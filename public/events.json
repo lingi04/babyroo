@@ -1,0 +1,39 @@
+{
+  "count": 1,
+  "events": [
+    {
+      "address": "서울시 샘플구 샘플로 1",
+      "age_max_months": 36,
+      "age_min_months": 12,
+      "category": "experience",
+      "ends_at": "2026-05-10",
+      "guardian_required": true,
+      "id": "manual-sample-f02640693f49",
+      "indoor": true,
+      "last_checked_at": "2026-04-29",
+      "nursing_room": null,
+      "parking": null,
+      "price_text": "무료",
+      "price_type": "free",
+      "region": "서울",
+      "reservation_required": true,
+      "source": "manual_sample",
+      "source_event_id": "sample-001",
+      "source_url": "https://example.com/events/sample-001",
+      "starts_at": "2026-05-10",
+      "stroller_friendly": null,
+      "summary": "12개월 이상 영유아와 보호자가 함께 참여하는 실내 감각놀이 체험입니다. 사전예약 필요.",
+      "tags": [
+        "24개월이하",
+        "무료",
+        "보호자동반",
+        "비오는날",
+        "실내",
+        "예약필요"
+      ],
+      "title": "아기와 함께하는 감각놀이 체험",
+      "venue_name": "샘플 육아지원센터"
+    }
+  ],
+  "generated_at": "2026-04-29"
+}
