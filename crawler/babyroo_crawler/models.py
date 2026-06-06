@@ -26,6 +26,7 @@ class NormalizedEvent:
     starts_at: str | None
     ends_at: str | None
     region: str | None
+    locality: str | None
     venue_name: str | None
     address: str | None
     age_min_months: int | None
@@ -34,6 +35,7 @@ class NormalizedEvent:
     price_type: str | None
     price_text: str | None
     reservation_required: bool | None
+    reservation_status: str | None
     indoor: bool | None
     stroller_friendly: bool | None
     nursing_room: bool | None
@@ -51,4 +53,3 @@ class NormalizedEvent:
 
 def today_iso() -> str:
     return date.today().isoformat()
-

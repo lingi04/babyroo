@@ -13,6 +13,8 @@ AGE_MONTH_PATTERNS = [
     re.compile(r"(?P<years>\d+)\s*세\s*(이상|부터)"),
 ]
 
+ALLOWED_TAGS = {"무료", "실내", "예약필요", "보호자동반", "24개월이하"}
+
 
 def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
     payload = raw.get("payload", {})
@@ -28,6 +30,7 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
 
     event_id = make_event_id(source, source_event_id, title, source_url)
     age_min_months = parse_age_min_months(text)
+    address = clean_string(payload.get("address"))
 
     return NormalizedEvent(
         id=event_id,
@@ -36,14 +39,16 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         starts_at=clean_string(payload.get("starts_at")),
         ends_at=clean_string(payload.get("ends_at")),
         region=clean_string(payload.get("region")),
+        locality=clean_string(payload.get("locality")) or parse_locality(address),
         venue_name=clean_string(payload.get("venue_name")),
-        address=clean_string(payload.get("address")),
+        address=address,
         age_min_months=age_min_months,
         age_max_months=parse_age_max_months(text),
         guardian_required=parse_bool_from_text(text, ["보호자", "양육자"]),
         price_type=normalize_price_type(payload.get("price_text"), text),
         price_text=clean_string(payload.get("price_text")),
         reservation_required=parse_bool_from_text(text, ["예약", "사전예약", "접수"]),
+        reservation_status=normalize_reservation_status(payload.get("reservation_status"), text),
         indoor=parse_bool_from_text(text, ["실내", "실내놀이", "공연장"]),
         stroller_friendly=parse_bool_from_text(text, ["유모차"]),
         nursing_room=parse_bool_from_text(text, ["수유실"]),
@@ -71,7 +76,25 @@ def clean_string(value: Any) -> str | None:
     return text or None
 
 
+def parse_locality(address: str | None) -> str | None:
+    if not address:
+        return None
+    district_match = re.search(r"([가-힣]+구|[가-힣]+군)", address)
+    if district_match:
+        return district_match.group(1)
+
+    city_match = re.search(r"([가-힣]+시)", address)
+    metro_cities = {"서울시", "부산시", "대구시", "인천시", "광주시", "대전시", "울산시", "세종시"}
+    if city_match and city_match.group(1) not in metro_cities:
+        return city_match.group(1)
+    return None
+
+
 def parse_age_min_months(text: str) -> int | None:
+    range_match = re.search(r"만?\s*(?P<years>\d+)\s*(?:세)?\s*[~\-]\s*\d+\s*세", text)
+    if range_match:
+        return int(range_match.group("years")) * 12
+
     for pattern in AGE_MONTH_PATTERNS:
         match = pattern.search(text)
         if not match:
@@ -86,6 +109,10 @@ def parse_age_min_months(text: str) -> int | None:
 
 
 def parse_age_max_months(text: str) -> int | None:
+    range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
+    if range_match:
+        return int(range_match.group("years")) * 12
+
     match = re.search(r"(?P<months>\d+)\s*개월\s*(이하|까지|미만)", text)
     if match:
         months = int(match.group("months"))
@@ -102,7 +129,7 @@ def parse_age_max_months(text: str) -> int | None:
 
 
 def normalize_category(value: Any, text: str) -> str | None:
-    raw = str(value or text)
+    raw = f"{value or ''} {text}"
     if any(token in raw for token in ["공연", "연극", "뮤지컬", "콘서트"]):
         return "performance"
     if any(token in raw for token in ["체험", "클래스", "교육", "만들기"]):
@@ -121,6 +148,17 @@ def normalize_price_type(price_text: Any, text: str) -> str | None:
     return None
 
 
+def normalize_reservation_status(value: Any, text: str) -> str | None:
+    raw = clean_string(value)
+    if raw in {"available", "closed", "unknown"}:
+        return raw
+
+    combined = f"{raw or ''} {text}"
+    if any(token in combined for token in ["마감", "매진", "접수종료", "예약종료"]):
+        return "closed"
+    return "unknown"
+
+
 def parse_bool_from_text(text: str, positive_tokens: list[str]) -> bool | None:
     if any(token in text for token in positive_tokens):
         return True
@@ -128,7 +166,11 @@ def parse_bool_from_text(text: str, positive_tokens: list[str]) -> bool | None:
 
 
 def make_parent_tags(payload: dict[str, Any], text: str, age_min_months: int | None) -> list[str]:
-    tags = set(str(tag).strip() for tag in payload.get("tags", []) if str(tag).strip())
+    tags = {
+        tag
+        for tag in (str(tag).strip() for tag in payload.get("tags", []))
+        if tag in ALLOWED_TAGS
+    }
 
     if "무료" in text:
         tags.add("무료")

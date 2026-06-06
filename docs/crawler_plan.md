@@ -96,6 +96,8 @@
 
 LLM의 `confidence`, `evidence`, 원문 일부, 파싱 실패 이유는 `public/events.json`에 넣지 않습니다. 공개 JSON은 사용자 경험에 필요한 안정 필드만 담는 계약으로 유지합니다.
 
+`publish`에서 제외된 행사는 `data/normalized/publish_report.json`에 제외 사유를 남깁니다. 리포트는 운영자 디버깅용이며 `public/`에는 공개하지 않습니다.
+
 ## 초기 수집 후보
 
 첫 번째 실제 collector는 HTML 구조가 비교적 안정적이고 공공성이 높은 곳부터 붙이는 것이 좋습니다.

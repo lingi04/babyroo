@@ -4,6 +4,40 @@ from babyroo_crawler.normalize import normalize_raw_event
 
 
 class NormalizeTest(unittest.TestCase):
+    def test_normalize_play_space_from_description(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "영아 전시",
+                "url": "https://example.com/event",
+                "payload": {
+                    "category": "전시/미술",
+                    "description": "36개월 미만 영아가 이용하는 서울형 키즈카페",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.category, "play_space")
+
+    def test_normalize_year_age_range(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "유아 체험",
+                "url": "https://example.com/event",
+                "payload": {
+                    "description": "만 3~5세 유아 대상 체험",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.age_min_months, 36)
+        self.assertEqual(event.age_max_months, 60)
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {
@@ -18,6 +52,7 @@ class NormalizeTest(unittest.TestCase):
                     "starts_at": "2026-05-10",
                     "ends_at": "2026-05-10",
                     "region": "서울",
+                    "address": "서울시 샘플구 샘플로 1",
                     "price_text": "무료",
                 },
             }
@@ -25,10 +60,12 @@ class NormalizeTest(unittest.TestCase):
 
         self.assertEqual(event.age_min_months, 12)
         self.assertEqual(event.category, "experience")
+        self.assertEqual(event.locality, "샘플구")
         self.assertIs(event.guardian_required, True)
         self.assertIs(event.indoor, True)
         self.assertEqual(event.price_type, "free")
         self.assertIs(event.reservation_required, True)
+        self.assertEqual(event.reservation_status, "unknown")
 
 
 if __name__ == "__main__":
