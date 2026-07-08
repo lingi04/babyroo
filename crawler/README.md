@@ -20,11 +20,24 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-sample
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-seoul --pages 5
 ```
 
+서울시육아종합지원센터 부모·가족 대상 행사 수집:
+
+```bash
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-childcare --months 3
+```
+
+두 실제 수집원을 한 번에 실행:
+
+```bash
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-all --pages 5 --months 3
+```
+
 단계별 실행:
 
 ```bash
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-sample
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-seoul --pages 5
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-childcare --months 3
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli normalize
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 ```
@@ -49,3 +62,5 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
    - 제외 이유는 `data/normalized/publish_report.json`에 기록합니다.
 
 수집기와 정규화를 분리했기 때문에, 다음 사이트를 추가할 때는 `crawler/sources/`에 collector만 추가하고 기존 normalize/publish 흐름을 재사용할 수 있습니다.
+
+서울시육아종합지원센터는 `나들이정보`가 기사형 콘텐츠라 행사 날짜를 안정적으로 얻기 어렵습니다. 그래서 현재 collector는 `행사/교육` 달력에서 부모·가족 대상 일정만 수집하고, 보육교직원·원장·교사 대상 교육은 제외합니다.

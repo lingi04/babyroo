@@ -1,0 +1,70 @@
+{
+  "captured_at": "2026-06-06",
+  "events": [
+    {
+      "captured_at": "2026-06-06",
+      "payload": {
+        "address": "서울특별시 마포구 서강로 75-16",
+        "age_text": null,
+        "category": "교육/체험",
+        "description": null,
+        "ends_at": "2026-06-10",
+        "external_url": null,
+        "notes": "접수기간 2026-05-06 ~ 2026-05-20. 시간 10:30 ~ 12:30",
+        "price_text": null,
+        "region": "서울",
+        "starts_at": "2026-06-10",
+        "title": "[6/10] 다문화부모 양육클래스(중국어) 2차",
+        "venue_name": "서울시육아종합지원센터 강당"
+      },
+      "source": "seoul_childcare",
+      "source_event_id": "51650",
+      "title": "[6/10] 다문화부모 양육클래스(중국어) 2차",
+      "url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51650"
+    },
+    {
+      "captured_at": "2026-06-06",
+      "payload": {
+        "address": "서울특별시 마포구 서강로 75-16",
+        "age_text": null,
+        "category": "교육/체험",
+        "description": null,
+        "ends_at": "2026-06-24",
+        "external_url": null,
+        "notes": "접수기간 2026-06-01 ~ 2026-06-23. 시간 10:30 ~ 12:30",
+        "price_text": null,
+        "region": "서울",
+        "starts_at": "2026-06-24",
+        "title": "[6/24] 다문화부모 양육클래스(베트남어) 1차",
+        "venue_name": "서울시육아종합지원센터 강당"
+      },
+      "source": "seoul_childcare",
+      "source_event_id": "51810",
+      "title": "[6/24] 다문화부모 양육클래스(베트남어) 1차",
+      "url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51810"
+    },
+    {
+      "captured_at": "2026-06-06",
+      "payload": {
+        "address": "서울특별시 마포구 서강로 75-16",
+        "age_text": null,
+        "category": "교육/체험",
+        "description": null,
+        "ends_at": "2026-07-15",
+        "external_url": null,
+        "notes": "접수기간 2026-06-01 ~ 2026-07-14. 시간 10:30 ~ 12:30",
+        "price_text": null,
+        "region": "서울",
+        "starts_at": "2026-07-15",
+        "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차",
+        "venue_name": "서울시육아종합지원센터 강당"
+      },
+      "source": "seoul_childcare",
+      "source_event_id": "51811",
+      "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차",
+      "url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51811"
+    }
+  ],
+  "source": "seoul_childcare",
+  "source_url": "https://seoul.childcare.go.kr"
+}

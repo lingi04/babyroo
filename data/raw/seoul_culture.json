@@ -1,0 +1,27 @@
+{
+  "captured_at": "2026-06-06",
+  "events": [
+    {
+      "captured_at": "2026-06-06",
+      "payload": {
+        "address": "서울  광진구 능동로 216",
+        "age_text": "누구나",
+        "category": "전시/미술",
+        "description": "서울상상나라 2F 기획전시 사랑하는 모양이야 서울상상나라 2층에 서울형 키즈카페 시립 서울상상나라점이 문을 엽니다. (36개월 미만 영아와 보호자만 이용 가능합니다.) 2F 기획전시 <사랑하는 모양이야> 성수정 작가의 그림책 <사랑하는 모양이야>를 설치 작품으로 확장한 이번 전시는, 아기와 양육자의 관계 속에서 피어하는 감정을 새로운 형태의 사랑으로 표현합니다. 비정형의 도형, 삐뚤빼뚤한 선, 따뜻한 손길로 만들어진 조각들이 사랑의 모양을 부드럽게 전해요. 우리만의 사랑의 모양을 상상해보세요! 자료출처 : 서울상상나라 홈페이지 ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
+        "ends_at": "2026-11-15",
+        "external_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition25.do",
+        "price_text": "입장료 별도",
+        "region": "서울",
+        "starts_at": "2025-11-15",
+        "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]",
+        "venue_name": "2층 서울형 키즈카페 시립 서울상상나라점"
+      },
+      "source": "seoul_culture",
+      "source_event_id": "156165",
+      "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]",
+      "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=156165&menuNo=200110"
+    }
+  ],
+  "source": "seoul_culture",
+  "source_url": "https://culture.seoul.go.kr"
+}
