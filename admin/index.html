@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Babyroo Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Babyroo Admin</p>
+        <h1>Instagram Event Discovery</h1>
+      </div>
+      <a class="site-link" href="https://babyroo-review.vercel.app">babyroo-review.vercel.app</a>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Connection</h2>
+            <p>Connect Facebook, select an Instagram Business or Creator account, then search hashtags.</p>
+          </div>
+          <span id="connectionStatus" class="status">Not connected</span>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Facebook App ID
+            <input id="appIdInput" autocomplete="off" placeholder="Meta app id" />
+          </label>
+          <label>
+            Redirect URL
+            <input id="redirectUriInput" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="connectButton" class="primary" type="button">Connect Instagram / Facebook</button>
+          <button id="clearAuthButton" type="button">Clear connection</button>
+        </div>
+
+        <details>
+          <summary>Use an existing access token</summary>
+          <div class="token-row">
+            <input id="tokenInput" autocomplete="off" placeholder="Paste Graph API access token" />
+            <button id="saveTokenButton" type="button">Use token</button>
+          </div>
+        </details>
+
+        <div class="account-block">
+          <h3>Connected Instagram Account</h3>
+          <div id="accountList" class="account-list empty">No connected account loaded.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Hashtag Search</h2>
+            <p>Uses Instagram Graph API hashtag search and recent media endpoints.</p>
+          </div>
+        </div>
+
+        <div class="search-row">
+          <label>
+            Hashtag
+            <input id="hashtagInput" placeholder="아기랑갈만한곳" />
+          </label>
+          <label>
+            Limit
+            <input id="limitInput" type="number" min="1" max="50" value="24" />
+          </label>
+          <button id="searchButton" class="primary" type="button">Search</button>
+        </div>
+
+        <pre id="errorBox" class="error hidden"></pre>
+        <div id="resultMeta" class="result-meta"></div>
+        <div id="resultList" class="result-list empty">No API results yet.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Event Candidates</h2>
+            <p>Saved candidates stay in this browser and can be exported as JSON.</p>
+          </div>
+          <button id="downloadButton" type="button">Download JSON</button>
+        </div>
+        <div id="candidateList" class="candidate-list empty">No saved candidates yet.</div>
+      </section>
+    </main>
+
+    <template id="accountTemplate">
+      <button class="account-card" type="button">
+        <strong></strong>
+        <span></span>
+      </button>
+    </template>
+
+    <template id="resultTemplate">
+      <article class="result-card">
+        <div class="media-thumb"></div>
+        <div class="result-body">
+          <div class="result-title-row">
+            <h3></h3>
+            <span></span>
+          </div>
+          <p></p>
+          <div class="result-footer">
+            <a target="_blank" rel="noreferrer">Open post</a>
+            <button type="button">Save as event candidate</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <template id="candidateTemplate">
+      <article class="candidate-card">
+        <div>
+          <h3></h3>
+          <p></p>
+        </div>
+        <button type="button">Remove</button>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
