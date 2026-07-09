@@ -90,7 +90,6 @@ function connectFacebook() {
       "pages_show_list",
       "pages_read_engagement",
       "instagram_basic",
-      "instagram_manage_insights",
     ].join(","),
   });
   window.location.href = `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth?${params}`;
