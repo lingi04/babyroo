@@ -41,7 +41,7 @@ boot();
 
 function boot() {
   els.appIdInput.value = localStorage.getItem(STORAGE_KEYS.appId) || "";
-  els.redirectUriInput.value = "https://babyroo.vercel.app";
+  els.redirectUriInput.value = defaultRedirectUri();
   els.hashtagInput.value = "아기랑갈만한곳";
 
   hydrateTokenFromHash();
@@ -52,6 +52,13 @@ function boot() {
   if (state.accessToken) {
     loadConnectedAccounts();
   }
+}
+
+function defaultRedirectUri() {
+  if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+    return `${window.location.origin}/`;
+  }
+  return "https://babyroo.vercel.app/";
 }
 
 function bindEvents() {

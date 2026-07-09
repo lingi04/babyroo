@@ -5,7 +5,7 @@ Static review/admin page for Instagram hashtag discovery.
 Target review URL:
 
 ```text
-https://babyroo-review.vercel.app
+https://babyroo.vercel.app/
 ```
 
 ## Features
