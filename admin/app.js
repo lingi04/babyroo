@@ -41,7 +41,7 @@ boot();
 
 function boot() {
   els.appIdInput.value = localStorage.getItem(STORAGE_KEYS.appId) || "";
-  els.redirectUriInput.value = "https://babyroo-review.vercel.app";
+  els.redirectUriInput.value = "https://babyroo.vercel.app";
   els.hashtagInput.value = "아기랑갈만한곳";
 
   hydrateTokenFromHash();
