@@ -1,4 +1,4 @@
-const GRAPH_VERSION = "v20.0";
+const GRAPH_VERSION = "v25.0";
 const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_VERSION}`;
 const STORAGE_KEYS = {
   appId: "babyroo.admin.appId",
@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
 const state = {
   accessToken: localStorage.getItem(STORAGE_KEYS.accessToken) || "",
   accounts: [],
+  pageCount: 0,
   selectedAccount: readJson(STORAGE_KEYS.selectedAccount, null),
   results: [],
   candidates: readJson(STORAGE_KEYS.candidates, []),
@@ -133,16 +134,18 @@ async function loadConnectedAccounts() {
   renderConnection("Loading accounts...");
   try {
     const payload = await graphGet("/me/accounts", {
-      fields: "id,name,instagram_business_account{id,username,profile_picture_url}",
+      fields:
+        "id,name,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
       limit: 100,
     });
     state.accounts = (payload.data || [])
       .map((page) => ({
         pageId: page.id,
         pageName: page.name,
-        instagram: page.instagram_business_account || null,
+        instagram: page.instagram_business_account || page.connected_instagram_account || null,
       }))
       .filter((account) => account.instagram && account.instagram.id);
+    state.pageCount = (payload.data || []).length;
 
     if (!state.selectedAccount && state.accounts.length) {
       selectAccount(state.accounts[0], { render: false });
@@ -259,7 +262,7 @@ function renderAccounts() {
   if (!state.accounts.length) {
     els.accountList.className = "account-list empty";
     els.accountList.textContent = state.accessToken
-      ? "No connected Instagram Business or Creator account found."
+      ? `No connected Instagram Business or Creator account found. Loaded ${state.pageCount || 0} Facebook Page(s).`
       : "No connected account loaded.";
     return;
   }
