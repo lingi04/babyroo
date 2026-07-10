@@ -251,6 +251,13 @@ summary {
   margin-top: 18px;
 }
 
+.debug-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
 .debug-box {
   overflow: auto;
   max-height: 360px;

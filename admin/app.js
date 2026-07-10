@@ -23,6 +23,8 @@ const els = {
   clearAuthButton: document.querySelector("#clearAuthButton"),
   debugButton: document.querySelector("#debugButton"),
   debugBox: document.querySelector("#debugBox"),
+  debugPageIdInput: document.querySelector("#debugPageIdInput"),
+  debugInstagramIdInput: document.querySelector("#debugInstagramIdInput"),
   tokenInput: document.querySelector("#tokenInput"),
   saveTokenButton: document.querySelector("#saveTokenButton"),
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -183,13 +185,38 @@ async function refreshDebugInfo() {
     return;
   }
 
+  const pageId = els.debugPageIdInput.value.trim();
+  const instagramId = els.debugInstagramIdInput.value.trim();
   els.debugButton.disabled = true;
   els.debugBox.textContent = "Loading debug data...";
   try {
-    const [me, permissions, accounts] = await Promise.all([
-      graphGet("/me", { fields: "id,name" }),
-      graphGet("/me/permissions", {}),
-      fetchAccounts(),
+    const [
+      me,
+      permissions,
+      accountsMinimal,
+      accountsWithInstagram,
+      directPage,
+      directInstagram,
+    ] = await Promise.all([
+      graphProbe("/me", { fields: "id,name" }),
+      graphProbe("/me/permissions", {}),
+      graphProbe("/me/accounts", { fields: "id,name,tasks", limit: 100 }),
+      graphProbe("/me/accounts", {
+        fields:
+          "id,name,tasks,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
+        limit: 100,
+      }),
+      pageId
+        ? graphProbe(`/${pageId}`, {
+            fields:
+              "id,name,tasks,access_token,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
+          })
+        : Promise.resolve(null),
+      instagramId
+        ? graphProbe(`/${instagramId}`, {
+            fields: "id,username,profile_picture_url",
+          })
+        : Promise.resolve(null),
     ]);
     els.debugBox.textContent = JSON.stringify(
       {
@@ -199,7 +226,10 @@ async function refreshDebugInfo() {
           sessionStorage.getItem("babyroo.admin.deniedScopes") || null,
         me,
         permissions,
-        accounts,
+        accounts_minimal: accountsMinimal,
+        accounts_with_instagram: accountsWithInstagram,
+        direct_page: directPage,
+        direct_instagram: directInstagram,
       },
       null,
       2,
@@ -290,6 +320,14 @@ async function graphGet(path, params = {}) {
     throw error;
   }
   return payload;
+}
+
+async function graphProbe(path, params = {}) {
+  try {
+    return await graphGet(path, params);
+  } catch (error) {
+    return error.payload || { error: { message: error.message || String(error) } };
+  }
 }
 
 function renderConnection(message) {
