@@ -22,6 +22,7 @@ const els = {
   connectButton: document.querySelector("#connectButton"),
   clearAuthButton: document.querySelector("#clearAuthButton"),
   debugButton: document.querySelector("#debugButton"),
+  useDirectInstagramButton: document.querySelector("#useDirectInstagramButton"),
   debugBox: document.querySelector("#debugBox"),
   debugPageIdInput: document.querySelector("#debugPageIdInput"),
   debugInstagramIdInput: document.querySelector("#debugInstagramIdInput"),
@@ -70,6 +71,7 @@ function bindEvents() {
   els.connectButton.addEventListener("click", connectFacebook);
   els.clearAuthButton.addEventListener("click", clearConnection);
   els.debugButton.addEventListener("click", refreshDebugInfo);
+  els.useDirectInstagramButton.addEventListener("click", useDirectInstagramAccount);
   els.saveTokenButton.addEventListener("click", usePastedToken);
   els.searchButton.addEventListener("click", searchHashtag);
   els.downloadButton.addEventListener("click", downloadCandidates);
@@ -209,7 +211,7 @@ async function refreshDebugInfo() {
       pageId
         ? graphProbe(`/${pageId}`, {
             fields:
-              "id,name,tasks,access_token,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
+              "id,name,access_token,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
           })
         : Promise.resolve(null),
       instagramId
@@ -238,6 +240,36 @@ async function refreshDebugInfo() {
     els.debugBox.textContent = formatApiError(error);
   } finally {
     els.debugButton.disabled = false;
+  }
+}
+
+async function useDirectInstagramAccount() {
+  clearError();
+  const instagramId = els.debugInstagramIdInput.value.trim();
+  const pageId = els.debugPageIdInput.value.trim();
+  if (!state.accessToken) {
+    showError("Connect Facebook or paste a Graph API access token first.");
+    return;
+  }
+  if (!instagramId) {
+    showError("Enter an Instagram ID in Connection debug first.");
+    return;
+  }
+
+  els.useDirectInstagramButton.disabled = true;
+  try {
+    const instagram = await graphGet(`/${instagramId}`, {
+      fields: "id,username,profile_picture_url",
+    });
+    selectAccount({
+      pageId: pageId || null,
+      pageName: pageId ? `Facebook Page ${pageId}` : "Direct Instagram account",
+      instagram,
+    });
+  } catch (error) {
+    showError(formatApiError(error));
+  } finally {
+    els.useDirectInstagramButton.disabled = false;
   }
 }
 
