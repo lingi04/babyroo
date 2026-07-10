@@ -247,6 +247,24 @@ summary {
   white-space: pre-wrap;
 }
 
+.debug-block {
+  margin-top: 18px;
+}
+
+.debug-box {
+  overflow: auto;
+  max-height: 360px;
+  margin: 12px 0 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #101828;
+  color: #f8fafc;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .hidden {
   display: none;
 }

@@ -21,6 +21,8 @@ const els = {
   redirectUriInput: document.querySelector("#redirectUriInput"),
   connectButton: document.querySelector("#connectButton"),
   clearAuthButton: document.querySelector("#clearAuthButton"),
+  debugButton: document.querySelector("#debugButton"),
+  debugBox: document.querySelector("#debugBox"),
   tokenInput: document.querySelector("#tokenInput"),
   saveTokenButton: document.querySelector("#saveTokenButton"),
   connectionStatus: document.querySelector("#connectionStatus"),
@@ -65,6 +67,7 @@ function defaultRedirectUri() {
 function bindEvents() {
   els.connectButton.addEventListener("click", connectFacebook);
   els.clearAuthButton.addEventListener("click", clearConnection);
+  els.debugButton.addEventListener("click", refreshDebugInfo);
   els.saveTokenButton.addEventListener("click", usePastedToken);
   els.searchButton.addEventListener("click", searchHashtag);
   els.downloadButton.addEventListener("click", downloadCandidates);
@@ -87,6 +90,8 @@ function connectFacebook() {
     client_id: appId,
     redirect_uri: redirectUri,
     response_type: "token",
+    auth_type: "rerequest",
+    return_scopes: "true",
     scope: [
       "pages_show_list",
       "pages_read_engagement",
@@ -103,6 +108,14 @@ function hydrateTokenFromHash() {
 
   state.accessToken = token;
   localStorage.setItem(STORAGE_KEYS.accessToken, token);
+  const grantedScopes = hash.get("granted_scopes");
+  const deniedScopes = hash.get("denied_scopes");
+  if (grantedScopes) {
+    sessionStorage.setItem("babyroo.admin.grantedScopes", grantedScopes);
+  }
+  if (deniedScopes) {
+    sessionStorage.setItem("babyroo.admin.deniedScopes", deniedScopes);
+  }
   window.history.replaceState(null, document.title, window.location.pathname);
 }
 
@@ -122,6 +135,7 @@ function usePastedToken() {
 function clearConnection() {
   state.accessToken = "";
   state.accounts = [];
+  state.pageCount = 0;
   state.selectedAccount = null;
   localStorage.removeItem(STORAGE_KEYS.accessToken);
   localStorage.removeItem(STORAGE_KEYS.selectedAccount);
@@ -133,11 +147,7 @@ async function loadConnectedAccounts() {
   clearError();
   renderConnection("Loading accounts...");
   try {
-    const payload = await graphGet("/me/accounts", {
-      fields:
-        "id,name,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
-      limit: 100,
-    });
+    const payload = await fetchAccounts();
     state.accounts = (payload.data || [])
       .map((page) => ({
         pageId: page.id,
@@ -155,6 +165,49 @@ async function loadConnectedAccounts() {
   } catch (error) {
     renderConnection();
     showError(formatApiError(error));
+  }
+}
+
+function fetchAccounts() {
+  return graphGet("/me/accounts", {
+    fields:
+      "id,name,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
+    limit: 100,
+  });
+}
+
+async function refreshDebugInfo() {
+  clearError();
+  if (!state.accessToken) {
+    els.debugBox.textContent = "No access token. Connect first.";
+    return;
+  }
+
+  els.debugButton.disabled = true;
+  els.debugBox.textContent = "Loading debug data...";
+  try {
+    const [me, permissions, accounts] = await Promise.all([
+      graphGet("/me", { fields: "id,name" }),
+      graphGet("/me/permissions", {}),
+      fetchAccounts(),
+    ]);
+    els.debugBox.textContent = JSON.stringify(
+      {
+        redirect_granted_scopes:
+          sessionStorage.getItem("babyroo.admin.grantedScopes") || null,
+        redirect_denied_scopes:
+          sessionStorage.getItem("babyroo.admin.deniedScopes") || null,
+        me,
+        permissions,
+        accounts,
+      },
+      null,
+      2,
+    );
+  } catch (error) {
+    els.debugBox.textContent = formatApiError(error);
+  } finally {
+    els.debugButton.disabled = false;
   }
 }
 
@@ -261,9 +314,14 @@ function renderAccounts() {
   els.accountList.innerHTML = "";
   if (!state.accounts.length) {
     els.accountList.className = "account-list empty";
-    els.accountList.textContent = state.accessToken
-      ? `No connected Instagram Business or Creator account found. Loaded ${state.pageCount || 0} Facebook Page(s).`
-      : "No connected account loaded.";
+    if (!state.accessToken) {
+      els.accountList.textContent = "No connected account loaded.";
+      return;
+    }
+
+    els.accountList.textContent = state.pageCount
+      ? `No connected Instagram Business or Creator account found. Loaded ${state.pageCount} Facebook Page(s).`
+      : "No Facebook Pages are visible to this token. Check Page selection, Page access, and granted permissions in Connection debug.";
     return;
   }
 
