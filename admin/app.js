@@ -211,7 +211,7 @@ async function refreshDebugInfo() {
       pageId
         ? graphProbe(`/${pageId}`, {
             fields:
-              "id,name,access_token,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
+              "id,name,instagram_business_account{id,username,profile_picture_url},connected_instagram_account{id,username,profile_picture_url}",
           })
         : Promise.resolve(null),
       instagramId
@@ -318,7 +318,7 @@ async function searchHashtag() {
 
     const mediaPayload = await graphGet(`/${hashtag.id}/recent_media`, {
       user_id: igUserId,
-      fields: "id,caption,media_type,media_url,permalink,timestamp,username",
+      fields: "id,caption,media_type,media_url,permalink,timestamp",
       limit,
     });
 
