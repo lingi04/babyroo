@@ -25,7 +25,8 @@ body {
 }
 
 button,
-input {
+input,
+fieldset {
   font: inherit;
 }
 
@@ -233,7 +234,64 @@ summary {
 
 .search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px auto;
+  grid-template-columns: minmax(0, 1fr) 190px 110px auto;
+}
+
+.mode-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.mode-control legend {
+  grid-column: 1 / -1;
+  margin-bottom: 6px;
+  color: #344054;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mode-control label {
+  display: block;
+  min-width: 0;
+}
+
+.mode-control input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-control span {
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mode-control label:first-of-type span {
+  border-radius: 6px 0 0 6px;
+}
+
+.mode-control label:last-of-type span {
+  margin-left: -1px;
+  border-radius: 0 6px 6px 0;
+}
+
+.mode-control input:checked + span {
+  position: relative;
+  z-index: 1;
+  border-color: var(--accent);
+  background: #e6f4f1;
+  color: var(--accent-dark);
 }
 
 .error {

@@ -31,6 +31,7 @@ const els = {
   connectionStatus: document.querySelector("#connectionStatus"),
   accountList: document.querySelector("#accountList"),
   hashtagInput: document.querySelector("#hashtagInput"),
+  mediaModeInputs: [...document.querySelectorAll('input[name="mediaMode"]')],
   limitInput: document.querySelector("#limitInput"),
   searchButton: document.querySelector("#searchButton"),
   errorBox: document.querySelector("#errorBox"),
@@ -285,6 +286,7 @@ function selectAccount(account, options = { render: true }) {
 async function searchHashtag() {
   clearError();
   const tag = normalizeTag(els.hashtagInput.value);
+  const mode = selectedMediaMode();
   const limit = clamp(parseInt(els.limitInput.value, 10) || 24, 1, 50);
   const igUserId = state.selectedAccount?.instagram?.id;
 
@@ -316,7 +318,7 @@ async function searchHashtag() {
       throw new Error(`No hashtag id found for #${tag}.`);
     }
 
-    const mediaPayload = await graphGet(`/${hashtag.id}/recent_media`, {
+    const mediaPayload = await graphGet(`/${hashtag.id}/${mode}_media`, {
       user_id: igUserId,
       fields: "id,caption,media_type,media_url,permalink,timestamp",
       limit,
@@ -327,8 +329,9 @@ async function searchHashtag() {
       hashtag: tag,
       hashtag_id: hashtag.id,
       ig_user_id: igUserId,
+      search_mode: mode,
     }));
-    renderResults(tag, hashtag.id);
+    renderResults(tag, hashtag.id, mode);
   } catch (error) {
     els.resultMeta.textContent = "";
     els.resultList.className = "result-list empty";
@@ -407,8 +410,8 @@ function renderAccounts() {
   });
 }
 
-function renderResults(tag, hashtagId) {
-  els.resultMeta.textContent = `#${tag} · hashtag id ${hashtagId} · ${state.results.length} media`;
+function renderResults(tag, hashtagId, mode) {
+  els.resultMeta.textContent = `#${tag} · ${mode} · hashtag id ${hashtagId} · ${state.results.length} media`;
   els.resultList.innerHTML = "";
 
   if (!state.results.length) {
@@ -442,6 +445,7 @@ function saveCandidate(item) {
     source_event_id: item.id,
     source_url: item.permalink,
     source_hashtag: item.hashtag,
+    source_search_mode: item.search_mode,
     captured_at: new Date().toISOString(),
     status: "candidate",
     payload: {
@@ -453,6 +457,7 @@ function saveCandidate(item) {
       username: item.username || null,
       hashtag_id: item.hashtag_id,
       ig_user_id: item.ig_user_id,
+      search_mode: item.search_mode,
     },
   };
 
@@ -516,6 +521,12 @@ function inferTitle(caption, fallback) {
 
 function normalizeTag(value) {
   return value.trim().replace(/^#/, "").trim();
+}
+
+function selectedMediaMode() {
+  return els.mediaModeInputs.find((input) => input.checked)?.value === "top"
+    ? "top"
+    : "recent";
 }
 
 function clamp(value, min, max) {

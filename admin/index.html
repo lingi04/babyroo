@@ -78,7 +78,7 @@
         <div class="panel-header">
           <div>
             <h2>Hashtag Search</h2>
-            <p>Uses Instagram Graph API hashtag search and recent media endpoints.</p>
+            <p>Uses Instagram Graph API hashtag search and media endpoints.</p>
           </div>
         </div>
 
@@ -87,6 +87,17 @@
             Hashtag
             <input id="hashtagInput" placeholder="아기랑갈만한곳" />
           </label>
+          <fieldset class="mode-control">
+            <legend>Mode</legend>
+            <label>
+              <input type="radio" name="mediaMode" value="recent" />
+              <span>Recent</span>
+            </label>
+            <label>
+              <input type="radio" name="mediaMode" value="top" checked />
+              <span>Top</span>
+            </label>
+          </fieldset>
           <label>
             Limit
             <input id="limitInput" type="number" min="1" max="50" value="24" />
