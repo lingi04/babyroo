@@ -1,5 +1,15 @@
 const GRAPH_VERSION = "v25.0";
 const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_VERSION}`;
+const EVENT_THUMBNAILS = {
+  "dikidiki-104109":
+    "https://www.o2meet.io/data/dikidiki/1021/post/20260624/c574fa042fd946fca2f42e3aeee1fb03.jpg",
+  "dikidiki-104108":
+    "https://www.o2meet.io/data/dikidiki/1021/post/20260624/573c3f24906f4cca84d5be0e704104e6.jpg",
+  "dikidiki-103871":
+    "https://www.o2meet.io/data/dikidiki/1021/post/20260604/6ccfab7b1b204cf7b854053e473bd391.jpg",
+  "dikidiki-103725":
+    "https://www.o2meet.io/data/dikidiki/1021/post/20260215/a20fe054c76b4ba88eeb01147e5b0606.jpg",
+};
 const STORAGE_KEYS = {
   appId: "babyroo.admin.appId",
   accessToken: "babyroo.admin.accessToken",
@@ -57,11 +67,16 @@ const els = {
   eventDetailDialog: document.querySelector("#eventDetailDialog"),
   eventDetailEyebrow: document.querySelector("#eventDetailEyebrow"),
   eventDetailTitle: document.querySelector("#eventDetailTitle"),
+  eventDetailThumb: document.querySelector("#eventDetailThumb"),
   eventDetailFacts: document.querySelector("#eventDetailFacts"),
   eventDetailSummary: document.querySelector("#eventDetailSummary"),
   eventDetailTags: document.querySelector("#eventDetailTags"),
   eventDetailRawFields: document.querySelector("#eventDetailRawFields"),
   closeEventDetailButton: document.querySelector("#closeEventDetailButton"),
+  imagePreviewDialog: document.querySelector("#imagePreviewDialog"),
+  imagePreviewTitle: document.querySelector("#imagePreviewTitle"),
+  imagePreview: document.querySelector("#imagePreview"),
+  closeImagePreviewButton: document.querySelector("#closeImagePreviewButton"),
   embeddedEventsCsv: document.querySelector("#embeddedEventsCsv"),
   accountTemplate: document.querySelector("#accountTemplate"),
   resultTemplate: document.querySelector("#resultTemplate"),
@@ -114,6 +129,19 @@ function bindEvents() {
   els.eventDetailDialog.addEventListener("click", (event) => {
     if (event.target === els.eventDetailDialog) {
       els.eventDetailDialog.close();
+    }
+  });
+  els.eventDetailThumb.addEventListener("click", openDetailThumbnailPreview);
+  els.eventDetailThumb.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openDetailThumbnailPreview();
+    }
+  });
+  els.closeImagePreviewButton.addEventListener("click", () => els.imagePreviewDialog.close());
+  els.imagePreviewDialog.addEventListener("click", (event) => {
+    if (event.target === els.imagePreviewDialog) {
+      els.imagePreviewDialog.close();
     }
   });
   els.appIdInput.addEventListener("change", () => {
@@ -630,6 +658,7 @@ function renderEvents() {
   els.eventList.className = "event-list";
   events.forEach((event) => {
     const node = els.eventTemplate.content.firstElementChild.cloneNode(true);
+    renderEventThumbnail(node.querySelector(".event-thumb"), event);
     node.querySelector("h3").textContent = event.title || event.id || "Untitled event";
     node.querySelector(".event-title-row span").textContent = eventStatusLabel(event);
     node.querySelector("p").textContent = event.summary || "No summary";
@@ -668,11 +697,66 @@ function renderEvents() {
   });
 }
 
+function renderEventThumbnail(container, event) {
+  const url = EVENT_THUMBNAILS[event.id] || "";
+  container.style.backgroundImage = "";
+  container.textContent = "";
+  container.dataset.fullImageUrl = "";
+  container.tabIndex = -1;
+  container.removeAttribute("role");
+  container.removeAttribute("title");
+
+  if (url) {
+    container.classList.remove("fallback");
+    container.style.backgroundImage = `url("${url}")`;
+    container.dataset.fullImageUrl = url;
+    container.setAttribute("aria-label", `${event.title || "Event"} thumbnail`);
+    return;
+  }
+
+  container.classList.add("fallback");
+  container.textContent = thumbnailLabel(event);
+  container.setAttribute("aria-label", `${event.source || event.category || "Event"} thumbnail`);
+}
+
+function enableDetailThumbnailPreview(event) {
+  const url = EVENT_THUMBNAILS[event.id] || "";
+  if (!url) return;
+
+  els.eventDetailThumb.tabIndex = 0;
+  els.eventDetailThumb.setAttribute("role", "button");
+  els.eventDetailThumb.title = "Open original image";
+  els.eventDetailThumb.dataset.previewTitle = event.title || "Event image";
+}
+
+function openDetailThumbnailPreview() {
+  const url = els.eventDetailThumb.dataset.fullImageUrl;
+  if (!url) return;
+
+  els.imagePreview.src = url;
+  els.imagePreview.alt = els.eventDetailThumb.dataset.previewTitle || "Event image";
+  els.imagePreviewTitle.textContent = els.imagePreview.alt;
+
+  if (typeof els.imagePreviewDialog.showModal === "function") {
+    els.imagePreviewDialog.showModal();
+  } else {
+    els.imagePreviewDialog.setAttribute("open", "");
+  }
+}
+
+function thumbnailLabel(event) {
+  if (event.source === "seoul_culture") return "서울";
+  if (event.source === "dikidiki") return "DDP";
+  return (event.category || event.source || "Event").slice(0, 3).toUpperCase();
+}
+
 function openEventDetail(event) {
   els.eventDetailEyebrow.textContent = [event.source, event.source_event_id]
     .filter(Boolean)
     .join(" · ");
   els.eventDetailTitle.textContent = event.title || event.id || "Untitled event";
+  renderEventThumbnail(els.eventDetailThumb, event);
+  enableDetailThumbnailPreview(event);
   els.eventDetailSummary.textContent = event.summary || "No summary";
   renderDetailFacts(event);
   renderDetailTags(event.tags);

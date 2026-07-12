@@ -180,6 +180,7 @@
         </div>
         <button id="closeEventDetailButton" type="button" aria-label="Close event detail">Close</button>
       </div>
+      <div id="eventDetailThumb" class="event-detail-thumb"></div>
       <dl id="eventDetailFacts" class="event-detail-facts"></dl>
       <section class="event-detail-section">
         <h3>Summary</h3>
@@ -193,6 +194,14 @@
         <h3>Raw Fields</h3>
         <dl id="eventDetailRawFields" class="raw-field-list"></dl>
       </section>
+    </dialog>
+
+    <dialog id="imagePreviewDialog" class="image-preview-dialog">
+      <div class="image-preview-header">
+        <span id="imagePreviewTitle"></span>
+        <button id="closeImagePreviewButton" type="button" aria-label="Close image preview">Close</button>
+      </div>
+      <img id="imagePreview" alt="" />
     </dialog>
 
     <script id="embeddedEventsCsv" type="text/csv">
@@ -240,6 +249,7 @@ address,age_max_months,age_min_months,category,ends_at,guardian_required,id,indo
 
     <template id="eventTemplate">
       <article class="event-card" tabindex="0">
+        <div class="event-thumb"></div>
         <div class="event-main">
           <div class="event-title-row">
             <h3></h3>
