@@ -2,6 +2,10 @@
 
 Static review/admin page for Instagram hashtag discovery and managed event review.
 
+Design guidance lives in [`../docs/design_system.md`](../docs/design_system.md). The admin stylesheet mirrors those tokens so new UI should reuse the same color, radius, shadow, card, tag, and status patterns.
+
+Recent UI direction: the admin should feel closer to Product Hunt's launch lists than a plain table. The primary pattern is a scannable ranked list with thumbnails, concise titles, metadata pills, tags, facts, and one clear action.
+
 Target review URL:
 
 ```text
@@ -24,9 +28,34 @@ https://babyroo.vercel.app/
 
 - Reads the CSV embedded in `admin/index.html`
 - Shows the normalized event list managed by Babyroo
+- Displays events by added order, newest first
 - Supports search by title, venue, address, region, source, and tags
 - Filters by category and reservation status
 - Links back to each source URL
+
+## Display Order
+
+The embedded CSV is treated as append-only review data:
+
+- Top CSV records are older.
+- Bottom CSV records are newer.
+- The Managed Events screen renders newer records first.
+- Card sequence badges preserve the original CSV row order, so five records render as `5, 4, 3, 2, 1`.
+
+This is intentional. If a new event is appended to the bottom of the CSV, it should appear at the top of the Managed Events list after reload.
+
+## Visual Notes
+
+The current UI applies the Product Hunt-inspired design system directly in `admin/styles.css`:
+
+- Warm page band and stronger top navigation
+- Panel-based workflow sections
+- Ranked card rows for search results and managed events
+- Thumbnail-first cards with title, summary, tags, key facts, and source action
+- Pill treatments for media type, category, source, and status metadata
+- Hover/focus states for clickable rows and controls
+
+Changes made locally will not appear at `https://babyroo.vercel.app/` until the site is deployed. For local review, open `admin/index.html` directly or run the static server command below.
 
 ## Local use
 

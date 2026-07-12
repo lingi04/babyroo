@@ -638,15 +638,17 @@ function renderEvents() {
   const category = els.eventCategoryFilter.value;
   const tag = els.eventTagFilter.value;
   const reservation = els.eventReservationFilter.value;
-  const events = state.events.filter((event) => {
-    const matchesQuery = !query || eventSearchText(event).includes(query);
-    const matchesCategory = !category || event.category === category;
-    const matchesTag = !tag || parseTags(event.tags).includes(tag);
-    const matchesReservation = !reservation || event.reservation_status === reservation;
-    return matchesQuery && matchesCategory && matchesTag && matchesReservation;
-  });
+  const events = state.events
+    .filter((event) => {
+      const matchesQuery = !query || eventSearchText(event).includes(query);
+      const matchesCategory = !category || event.category === category;
+      const matchesTag = !tag || parseTags(event.tags).includes(tag);
+      const matchesReservation = !reservation || event.reservation_status === reservation;
+      return matchesQuery && matchesCategory && matchesTag && matchesReservation;
+    })
+    .sort((left, right) => right.csvRowIndex - left.csvRowIndex);
 
-  els.eventMeta.textContent = `${events.length} of ${state.events.length} events · ${state.eventCsvPath || "events.csv"}`;
+  els.eventMeta.textContent = `${events.length} of ${state.events.length} events · newest additions first · ${state.eventCsvPath || "events.csv"}`;
   els.eventList.innerHTML = "";
 
   if (!events.length) {
@@ -658,6 +660,7 @@ function renderEvents() {
   els.eventList.className = "event-list";
   events.forEach((event) => {
     const node = els.eventTemplate.content.firstElementChild.cloneNode(true);
+    node.dataset.sequence = String(event.csvRowIndex + 1);
     renderEventThumbnail(node.querySelector(".event-thumb"), event);
     node.querySelector("h3").textContent = event.title || event.id || "Untitled event";
     node.querySelector(".event-title-row span").textContent = eventStatusLabel(event);
@@ -922,10 +925,14 @@ function parseCsv(text) {
   const rows = parseCsvRows(text.replace(/^\uFEFF/, ""));
   if (!rows.length) return [];
   const headers = rows[0].map((header) => header.trim());
-  return rows.slice(1).filter((row) => row.some(Boolean)).map((row) => {
+  return rows.slice(1).filter((row) => row.some(Boolean)).map((row, rowIndex) => {
     const record = {};
     headers.forEach((header, index) => {
       record[header] = row[index] || "";
+    });
+    Object.defineProperty(record, "csvRowIndex", {
+      value: rowIndex,
+      enumerable: false,
     });
     return record;
   });
