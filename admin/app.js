@@ -14,9 +14,16 @@ const state = {
   selectedAccount: readJson(STORAGE_KEYS.selectedAccount, null),
   results: [],
   candidates: readJson(STORAGE_KEYS.candidates, []),
+  events: [],
+  eventCsvPath: "",
 };
 
 const els = {
+  pageTitle: document.querySelector("#pageTitle"),
+  discoveryPage: document.querySelector("#discoveryPage"),
+  eventsPage: document.querySelector("#eventsPage"),
+  discoveryTabButton: document.querySelector("#discoveryTabButton"),
+  eventsTabButton: document.querySelector("#eventsTabButton"),
   appIdInput: document.querySelector("#appIdInput"),
   redirectUriInput: document.querySelector("#redirectUriInput"),
   connectButton: document.querySelector("#connectButton"),
@@ -39,9 +46,27 @@ const els = {
   resultList: document.querySelector("#resultList"),
   candidateList: document.querySelector("#candidateList"),
   downloadButton: document.querySelector("#downloadButton"),
+  refreshEventsButton: document.querySelector("#refreshEventsButton"),
+  eventSearchInput: document.querySelector("#eventSearchInput"),
+  eventCategoryFilter: document.querySelector("#eventCategoryFilter"),
+  eventTagFilter: document.querySelector("#eventTagFilter"),
+  eventReservationFilter: document.querySelector("#eventReservationFilter"),
+  eventErrorBox: document.querySelector("#eventErrorBox"),
+  eventMeta: document.querySelector("#eventMeta"),
+  eventList: document.querySelector("#eventList"),
+  eventDetailDialog: document.querySelector("#eventDetailDialog"),
+  eventDetailEyebrow: document.querySelector("#eventDetailEyebrow"),
+  eventDetailTitle: document.querySelector("#eventDetailTitle"),
+  eventDetailFacts: document.querySelector("#eventDetailFacts"),
+  eventDetailSummary: document.querySelector("#eventDetailSummary"),
+  eventDetailTags: document.querySelector("#eventDetailTags"),
+  eventDetailRawFields: document.querySelector("#eventDetailRawFields"),
+  closeEventDetailButton: document.querySelector("#closeEventDetailButton"),
+  embeddedEventsCsv: document.querySelector("#embeddedEventsCsv"),
   accountTemplate: document.querySelector("#accountTemplate"),
   resultTemplate: document.querySelector("#resultTemplate"),
   candidateTemplate: document.querySelector("#candidateTemplate"),
+  eventTemplate: document.querySelector("#eventTemplate"),
 };
 
 boot();
@@ -53,8 +78,10 @@ function boot() {
 
   hydrateTokenFromHash();
   bindEvents();
+  renderPage(currentPage());
   renderConnection();
   renderCandidates();
+  loadEvents();
 
   if (state.accessToken) {
     loadConnectedAccounts();
@@ -69,6 +96,8 @@ function defaultRedirectUri() {
 }
 
 function bindEvents() {
+  els.discoveryTabButton.addEventListener("click", () => navigateToPage("discovery"));
+  els.eventsTabButton.addEventListener("click", () => navigateToPage("events"));
   els.connectButton.addEventListener("click", connectFacebook);
   els.clearAuthButton.addEventListener("click", clearConnection);
   els.debugButton.addEventListener("click", refreshDebugInfo);
@@ -76,9 +105,39 @@ function bindEvents() {
   els.saveTokenButton.addEventListener("click", usePastedToken);
   els.searchButton.addEventListener("click", searchHashtag);
   els.downloadButton.addEventListener("click", downloadCandidates);
+  els.refreshEventsButton.addEventListener("click", loadEvents);
+  els.eventSearchInput.addEventListener("input", renderEvents);
+  els.eventCategoryFilter.addEventListener("change", renderEvents);
+  els.eventTagFilter.addEventListener("change", renderEvents);
+  els.eventReservationFilter.addEventListener("change", renderEvents);
+  els.closeEventDetailButton.addEventListener("click", () => els.eventDetailDialog.close());
+  els.eventDetailDialog.addEventListener("click", (event) => {
+    if (event.target === els.eventDetailDialog) {
+      els.eventDetailDialog.close();
+    }
+  });
   els.appIdInput.addEventListener("change", () => {
     localStorage.setItem(STORAGE_KEYS.appId, els.appIdInput.value.trim());
   });
+  window.addEventListener("hashchange", () => renderPage(currentPage()));
+}
+
+function currentPage() {
+  return window.location.hash === "#events" ? "events" : "discovery";
+}
+
+function navigateToPage(page) {
+  window.location.hash = page === "events" ? "events" : "discovery";
+  renderPage(page);
+}
+
+function renderPage(page) {
+  const isEventsPage = page === "events";
+  els.pageTitle.textContent = isEventsPage ? "Managed Events" : "Instagram Event Discovery";
+  els.discoveryPage.classList.toggle("hidden", isEventsPage);
+  els.eventsPage.classList.toggle("hidden", !isEventsPage);
+  els.discoveryTabButton.classList.toggle("selected", !isEventsPage);
+  els.eventsTabButton.classList.toggle("selected", isEventsPage);
 }
 
 function connectFacebook() {
@@ -487,6 +546,345 @@ function renderCandidates() {
   });
 }
 
+function loadEvents() {
+  clearEventError();
+  els.refreshEventsButton.disabled = true;
+  els.eventMeta.textContent = "Loading embedded events.csv...";
+  els.eventList.className = "event-list empty";
+  els.eventList.textContent = "No events loaded yet.";
+
+  try {
+    const csvText = els.embeddedEventsCsv?.textContent || "";
+    if (!csvText.trim()) {
+      throw new Error("Embedded events.csv is empty.");
+    }
+    state.events = parseCsv(csvText.trim());
+    state.eventCsvPath = "embedded events.csv";
+    populateEventFilters();
+    renderEvents();
+  } catch (error) {
+    state.events = [];
+    state.eventCsvPath = "";
+    els.eventMeta.textContent = "";
+    showEventError(`Could not load embedded events.csv. ${error.message || String(error)}`);
+  } finally {
+    els.refreshEventsButton.disabled = false;
+  }
+}
+
+function populateEventFilters() {
+  populateEventCategoryFilter();
+  populateEventTagFilter();
+}
+
+function populateEventCategoryFilter() {
+  const selected = els.eventCategoryFilter.value;
+  const categories = [...new Set(state.events.map((event) => event.category).filter(Boolean))].sort();
+  els.eventCategoryFilter.innerHTML = '<option value="">All categories</option>';
+  categories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    els.eventCategoryFilter.appendChild(option);
+  });
+  els.eventCategoryFilter.value = categories.includes(selected) ? selected : "";
+}
+
+function populateEventTagFilter() {
+  const selected = els.eventTagFilter.value;
+  const tags = [
+    ...new Set(state.events.flatMap((event) => parseTags(event.tags))),
+  ].sort((left, right) => left.localeCompare(right, "ko"));
+  els.eventTagFilter.innerHTML = '<option value="">All tags</option>';
+  tags.forEach((tag) => {
+    const option = document.createElement("option");
+    option.value = tag;
+    option.textContent = tag;
+    els.eventTagFilter.appendChild(option);
+  });
+  els.eventTagFilter.value = tags.includes(selected) ? selected : "";
+}
+
+function renderEvents() {
+  const query = els.eventSearchInput.value.trim().toLocaleLowerCase();
+  const category = els.eventCategoryFilter.value;
+  const tag = els.eventTagFilter.value;
+  const reservation = els.eventReservationFilter.value;
+  const events = state.events.filter((event) => {
+    const matchesQuery = !query || eventSearchText(event).includes(query);
+    const matchesCategory = !category || event.category === category;
+    const matchesTag = !tag || parseTags(event.tags).includes(tag);
+    const matchesReservation = !reservation || event.reservation_status === reservation;
+    return matchesQuery && matchesCategory && matchesTag && matchesReservation;
+  });
+
+  els.eventMeta.textContent = `${events.length} of ${state.events.length} events · ${state.eventCsvPath || "events.csv"}`;
+  els.eventList.innerHTML = "";
+
+  if (!events.length) {
+    els.eventList.className = "event-list empty";
+    els.eventList.textContent = state.events.length ? "No events match the filters." : "No events loaded yet.";
+    return;
+  }
+
+  els.eventList.className = "event-list";
+  events.forEach((event) => {
+    const node = els.eventTemplate.content.firstElementChild.cloneNode(true);
+    node.querySelector("h3").textContent = event.title || event.id || "Untitled event";
+    node.querySelector(".event-title-row span").textContent = eventStatusLabel(event);
+    node.querySelector("p").textContent = event.summary || "No summary";
+    renderTagBadges(node.querySelector(".event-card-tags"), event.tags, {
+      clickable: true,
+      limit: 6,
+    });
+    node.querySelector('[data-field="date"]').textContent = formatDateRange(
+      event.starts_at,
+      event.ends_at,
+    );
+    node.querySelector('[data-field="age"]').textContent = formatAgeRange(
+      event.age_min_months,
+      event.age_max_months,
+    );
+    node.querySelector('[data-field="venue"]').textContent = [event.venue_name, event.address]
+      .filter(Boolean)
+      .join(" · ") || "No venue";
+    node.querySelector('[data-field="price"]').textContent =
+      event.price_text || event.price_type || "No price";
+    node.querySelector('[data-field="source"]').textContent = event.source || "unknown source";
+    const link = node.querySelector("a");
+    link.href = event.source_url || "#";
+    link.toggleAttribute("hidden", !event.source_url);
+    node.addEventListener("click", (domEvent) => {
+      if (domEvent.target.closest("a")) return;
+      openEventDetail(event);
+    });
+    node.addEventListener("keydown", (domEvent) => {
+      if (domEvent.key === "Enter" || domEvent.key === " ") {
+        domEvent.preventDefault();
+        openEventDetail(event);
+      }
+    });
+    els.eventList.appendChild(node);
+  });
+}
+
+function openEventDetail(event) {
+  els.eventDetailEyebrow.textContent = [event.source, event.source_event_id]
+    .filter(Boolean)
+    .join(" · ");
+  els.eventDetailTitle.textContent = event.title || event.id || "Untitled event";
+  els.eventDetailSummary.textContent = event.summary || "No summary";
+  renderDetailFacts(event);
+  renderDetailTags(event.tags);
+  renderRawFields(event);
+
+  if (typeof els.eventDetailDialog.showModal === "function") {
+    els.eventDetailDialog.showModal();
+  } else {
+    els.eventDetailDialog.setAttribute("open", "");
+  }
+}
+
+function renderDetailFacts(event) {
+  const facts = [
+    ["ID", event.id],
+    ["Date", formatDateRange(event.starts_at, event.ends_at)],
+    ["Age", formatAgeRange(event.age_min_months, event.age_max_months)],
+    ["Venue", event.venue_name],
+    ["Address", event.address],
+    ["Region", [event.region, event.locality].filter(Boolean).join(" ")],
+    ["Category", event.category],
+    ["Price", event.price_text || event.price_type],
+    ["Reservation", formatBooleanStatus(event.reservation_required, event.reservation_status)],
+    ["Guardian", formatBoolean(event.guardian_required)],
+    ["Indoor", formatBoolean(event.indoor)],
+    ["Last checked", event.last_checked_at],
+  ];
+
+  els.eventDetailFacts.innerHTML = "";
+  facts.forEach(([label, value]) => {
+    appendDefinition(els.eventDetailFacts, label, value || "Not set");
+  });
+}
+
+function renderDetailTags(value) {
+  els.eventDetailTags.innerHTML = "";
+  const tags = parseTags(value);
+  if (!tags.length) {
+    els.eventDetailTags.className = "tag-list empty";
+    els.eventDetailTags.textContent = "No tags";
+    return;
+  }
+
+  els.eventDetailTags.className = "tag-list";
+  tags.forEach((tag) => {
+    const item = document.createElement("span");
+    item.textContent = tag;
+    els.eventDetailTags.appendChild(item);
+  });
+}
+
+function renderTagBadges(container, value, options = {}) {
+  container.innerHTML = "";
+  const tags = parseTags(value);
+  if (!tags.length) {
+    container.classList.add("hidden");
+    return;
+  }
+
+  container.classList.remove("hidden");
+  const limit = options.limit || tags.length;
+  tags.slice(0, limit).forEach((tag) => {
+    const item = document.createElement("span");
+    item.textContent = tag;
+    if (options.clickable) {
+      item.tabIndex = 0;
+      item.setAttribute("role", "button");
+      item.title = `Filter by ${tag}`;
+      item.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectEventTag(tag);
+      });
+      item.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          selectEventTag(tag);
+        }
+      });
+    }
+    container.appendChild(item);
+  });
+  if (tags.length > limit) {
+    const more = document.createElement("span");
+    more.textContent = `+${tags.length - limit}`;
+    more.className = "muted-badge";
+    container.appendChild(more);
+  }
+}
+
+function selectEventTag(tag) {
+  els.eventTagFilter.value = tag;
+  renderEvents();
+}
+
+function parseTags(value) {
+  return (value || "").split("|").map((tag) => tag.trim()).filter(Boolean);
+}
+
+function renderRawFields(event) {
+  els.eventDetailRawFields.innerHTML = "";
+  Object.entries(event).forEach(([key, value]) => {
+    appendDefinition(els.eventDetailRawFields, key, value || "");
+  });
+}
+
+function appendDefinition(list, term, description) {
+  const item = document.createElement("div");
+  const dt = document.createElement("dt");
+  const dd = document.createElement("dd");
+  dt.textContent = term;
+  dd.textContent = description;
+  item.append(dt, dd);
+  list.appendChild(item);
+}
+
+function formatBooleanStatus(required, status) {
+  const requiredText = formatBoolean(required);
+  return [requiredText, status].filter(Boolean).join(" · ");
+}
+
+function formatBoolean(value) {
+  if (value === "true") return "Yes";
+  if (value === "false") return "No";
+  return value || "Not set";
+}
+
+function eventSearchText(event) {
+  return [
+    event.title,
+    event.summary,
+    event.venue_name,
+    event.address,
+    event.region,
+    event.locality,
+    event.category,
+    event.source,
+    event.tags,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase();
+}
+
+function eventStatusLabel(event) {
+  const parts = [event.category, event.reservation_status].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "event";
+}
+
+function formatDateRange(start, end) {
+  if (start && end && start !== end) return `${start} - ${end}`;
+  return start || end || "No date";
+}
+
+function formatAgeRange(min, max) {
+  if (min && max) return `${min}-${max} months`;
+  if (min) return `${min}+ months`;
+  if (max) return `Up to ${max} months`;
+  return "No age";
+}
+
+function parseCsv(text) {
+  const rows = parseCsvRows(text.replace(/^\uFEFF/, ""));
+  if (!rows.length) return [];
+  const headers = rows[0].map((header) => header.trim());
+  return rows.slice(1).filter((row) => row.some(Boolean)).map((row) => {
+    const record = {};
+    headers.forEach((header, index) => {
+      record[header] = row[index] || "";
+    });
+    return record;
+  });
+}
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        value += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      row.push(value);
+      value = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(value);
+      rows.push(row);
+      row = [];
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+
+  if (value || row.length) {
+    row.push(value);
+    rows.push(row);
+  }
+  return rows;
+}
+
 function removeCandidate(id) {
   state.candidates = state.candidates.filter((candidate) => candidate.id !== id);
   localStorage.setItem(STORAGE_KEYS.candidates, JSON.stringify(state.candidates));
@@ -550,6 +948,16 @@ function clearError() {
 function showError(message) {
   els.errorBox.textContent = message;
   els.errorBox.classList.remove("hidden");
+}
+
+function clearEventError() {
+  els.eventErrorBox.classList.add("hidden");
+  els.eventErrorBox.textContent = "";
+}
+
+function showEventError(message) {
+  els.eventErrorBox.textContent = message;
+  els.eventErrorBox.classList.remove("hidden");
 }
 
 function formatApiError(error) {

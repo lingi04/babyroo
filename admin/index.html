@@ -10,12 +10,18 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">Babyroo Admin</p>
-        <h1>Instagram Event Discovery</h1>
+        <h1 id="pageTitle">Instagram Event Discovery</h1>
       </div>
-      <a class="site-link" href="https://babyroo.vercel.app">babyroo.vercel.app</a>
+      <div class="topbar-actions">
+        <nav class="page-tabs" aria-label="Admin pages">
+          <button id="discoveryTabButton" class="selected" type="button">Instagram Discovery</button>
+          <button id="eventsTabButton" type="button">Managed Events</button>
+        </nav>
+        <a class="site-link" href="https://babyroo.vercel.app">babyroo.vercel.app</a>
+      </div>
     </header>
 
-    <main class="layout">
+    <main id="discoveryPage" class="layout page-view">
       <section class="panel">
         <div class="panel-header">
           <div>
@@ -122,6 +128,82 @@
       </section>
     </main>
 
+    <main id="eventsPage" class="layout page-view hidden">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Managed Events</h2>
+            <p>Review the normalized events currently managed by the Babyroo data pipeline.</p>
+          </div>
+          <button id="refreshEventsButton" type="button">Reload CSV</button>
+        </div>
+
+        <div class="event-toolbar">
+          <label>
+            Search
+            <input id="eventSearchInput" placeholder="title, venue, region, source" />
+          </label>
+          <label>
+            Category
+            <select id="eventCategoryFilter">
+              <option value="">All categories</option>
+            </select>
+          </label>
+          <label>
+            Tag
+            <select id="eventTagFilter">
+              <option value="">All tags</option>
+            </select>
+          </label>
+          <label>
+            Reservation
+            <select id="eventReservationFilter">
+              <option value="">All reservation states</option>
+              <option value="unknown">Unknown</option>
+              <option value="limited">Limited</option>
+              <option value="closed">Closed</option>
+            </select>
+          </label>
+        </div>
+
+        <pre id="eventErrorBox" class="error hidden"></pre>
+        <div id="eventMeta" class="result-meta">Loading events.csv...</div>
+        <div id="eventList" class="event-list empty">No events loaded yet.</div>
+      </section>
+    </main>
+
+    <dialog id="eventDetailDialog" class="event-dialog">
+      <div class="event-dialog-header">
+        <div>
+          <p id="eventDetailEyebrow" class="eyebrow"></p>
+          <h2 id="eventDetailTitle"></h2>
+        </div>
+        <button id="closeEventDetailButton" type="button" aria-label="Close event detail">Close</button>
+      </div>
+      <dl id="eventDetailFacts" class="event-detail-facts"></dl>
+      <section class="event-detail-section">
+        <h3>Summary</h3>
+        <p id="eventDetailSummary"></p>
+      </section>
+      <section class="event-detail-section">
+        <h3>Tags</h3>
+        <div id="eventDetailTags" class="tag-list"></div>
+      </section>
+      <section class="event-detail-section">
+        <h3>Raw Fields</h3>
+        <dl id="eventDetailRawFields" class="raw-field-list"></dl>
+      </section>
+    </dialog>
+
+    <script id="embeddedEventsCsv" type="text/csv">
+address,age_max_months,age_min_months,category,ends_at,guardian_required,id,indoor,last_checked_at,locality,nursing_room,parking,price_text,price_type,region,reservation_required,reservation_status,source,source_event_id,source_url,starts_at,stroller_friendly,summary,tags,title,venue_name
+서울  광진구 능동로 216,35,0,play_space,2026-11-15,true,seoul-culture-a583e1a836a5,,2026-06-06,광진구,,,입장료 별도,paid,서울,,unknown,seoul_culture,156165,https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=156165&menuNo=200110,2025-11-15,,"서울상상나라 2F 기획전시 사랑하는 모양이야 서울상상나라 2층에 서울형 키즈카페 시립 서울상상나라점이 문을 엽니다. (36개월 미만 영아와 보호자만 이용 가능합니다.) 2F 기획전시 <사랑하는 모양이야> 성수정 작가의 그림책 <사랑하는 모양이야>를 설치 작품으로 확장한 이번 전시는, 아기와 양육자의 관계 속에서 피어하는 감정을 새로운 형태의 사랑으로 표현합니다. 비정형의 도형, 삐뚤빼뚤한 선, 따뜻한 손길로 만들어진 조각들이 사랑의 모양을 부드럽게 전해요. 우리만의 사랑의 모양을 상상해보세요! 자료출처 : 서울상상나라 홈페이지 ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",24개월이하|보호자동반,[서울상상나라] 2F 기획전시 [사랑하는 모양이야],2층 서울형 키즈카페 시립 서울상상나라점
+서울 중구 을지로 281 DDP,47,24,experience,2026-08-22,true,dikidiki-104109,true,2026-07-12,중구,,,어린이 1인 입장권 포함,paid,서울,true,unknown,dikidiki,104109,https://dikidiki.co.kr/post2_detail.do?seq=104109&type=2,2026-07-11,,"영유아를 위한 시간! <디키디키 × 프뢰벨 은물놀이> 오픈! 양육자들 사이에서 꾸준히 알려진 프뢰벨 은물 교구를 디키디키에서 만날 수 있는 시간! 프뢰벨 은물은 오랜 유아교육 철학에서 출발한 교육 놀잇감으로, 아이가 직접 만지고, 쌓고, 연결하고, 표현하며 형태·수·방향·색을 자연스럽게 경험할 수 있도록 도와주는 교구예요. 이번 여름, 디키디키에서는 24개월 이상 아이와 보호자가 함께 참여하는 주제 탐구형 영아 프로그램을 준비했어요! 😊 건강과 안전, 환경과 생활, 교통기관, 동식물과 자연까지! 매 회차 다른 주제로 은물을 탐색하고, 우리 아이의 창의력과 집중력, 사고력을 놀이 속에서 키워보세요. ✨ 프뢰벨 F-MIT 다중지능 검사 포함 ✨ 프로그램 40분 + 디키디키 놀이터 120분 ✨ 어린이 1인 입장권 포함 📍대상: 24개월 이상 ~ 48개월 미만 📍운영일: 7/11, 7/25, 8/8, 8/22 📍시간: 11:00 / 12:10 📍정원: 회차당 8팀 📍장소: 디키디키 내 프로",디키디키|프뢰벨|은물놀이|24개월이상|보호자동반|예약필요|실내,영유아를 위한 <디키디키 × 프뢰벨 은물놀이> 프로그램 오픈!,디키디키 내 프로그램실
+,,,experience,2026-08-07,true,dikidiki-104108,true,2026-07-12,,,,,paid,서울/경기,true,unknown,dikidiki,104108,https://dikidiki.co.kr/post2_detail.do?seq=104108&type=2,2026-07-26,,"🌿 정글 원정대 출동! 🌿 DDP 디자인놀이터 디키디키 의 대표 프로그램 〈정글숲을 지나서 가자〉 가 현대백화점 문화센터로 찾아갑니다. 아이들이 직접 걷고, 만지고, 만들며 상상 속 정글을 탐험하는 디키디키 촉감놀이터 ! 지난 3월 더현대 서울 에서 많은 친구들과 함께했던 디키디키 촉감놀이터가 이번에는 현대백화점 각 지점에서 여러분을 만납니다. 정글 속 동물 친구들을 만나고, 자연을 느끼며, 놀이 속에서 상상력을 키워보는 특별한 시간에 함께해 주세요. 운영 일정 📍 7/26(일) 현대백화점 킨텍스점 📍 7/28(화) 현대백화점 신촌점 📍 8/1(토) ~ 8/2(일) 현대백화점 미아점 📍 8/7(금) 현대백화점 중동점 신청 방법 현대백화점 APP 접속 → 문화센터 선택 → ‘디키디키’ 검색 → 프로그램 및 회차 선택 후 신청 ※ 지점별 운영 시간, 대상 연령, 정원 등 세부 내용은 현대백화점 APP 내 문화센터 페이지에서 확인해 주세요. 정글 속 동물 친구들을 만나러 우리 함께 떠나볼",디키디키|촉감놀이터|현대백화점문화센터|예약필요|실내,"디키디키 촉감놀이터, 현대백화점 문화센터 순회 운영 안내",현대백화점 문화센터 각 지점
+서울 중구 을지로 281 DDP,95,60,camp,2026-08-06,false,dikidiki-103871,true,2026-07-12,중구,,,"디키캠프 4일권 정가 648,000원; 얼리버드 583,200원; 특별혜택가 552,000원",paid,서울,true,limited,dikidiki,103871,https://dikidiki.co.kr/post2_detail.do?seq=103871&type=2,2026-07-27,,"2026 여름방학 디키캠프. 캠프 A는 2026-07-27~2026-07-30, 캠프 B는 2026-08-03~2026-08-06 운영. 운영 시간은 10:00~17:20이며 참가연령은 5세(2022년생)~8세(2019년생), 캠프별 정원은 32명. 돌봄서비스, 테마별 실내외 프로그램, 점심식사와 간식, 실내외 놀이시간을 포함합니다. 캠프 A는 예약 마감, 캠프 B는 제한 수량 예약 가능으로 안내되어 있습니다.",디키캠프|여름방학|5세-8세|2019년생-2022년생|돌봄서비스|점심간식|4일권|예약필요|유료|실내외프로그램,[디키캠프 소식] 2026 여름방학 디키캠프 예약,디키디키
+서울 영등포구 여의대로 108 더현대 서울,,36,experience,2026-03-01,false,dikidiki-103725,true,2026-07-12,영등포구,,,"40,000원",paid,서울,true,closed,dikidiki,103725,https://dikidiki.co.kr/post2_detail.do?seq=103725&type=2,2026-03-01,,"디키디키 플레이랩 원데이 클래스가 2026-03-01 더현대 서울 6F CH1985에서 운영됩니다. 궁극의 케이크 공장, 정글숲을 지나서 가자, 장난감 새활용 워크숍 중 하나를 선택해 참여하며, 디키디키 시그니처 디키블록 플레이 20분이 포함됩니다. 대상은 36개월 이상 보호자 분리 수업이고, 수업은 총 70분(수업 50분 + 디키블록 플레이 20분), 비용은 40,000원입니다. 현대백화점 앱에서 사전 예약하는 선착순 프로그램입니다.",디키디키|플레이랩|원데이클래스|더현대서울|CH1985|36개월이상|보호자분리수업|예약필요|유료|실내,DDP 디자인놀이터 디키디키가 '더현대 서울'로 향합니다! <디키디키 원데이 플레이랩> @더현대 서울 CH 1985,더현대 서울 6F CH1985
+    </script>
+
     <template id="accountTemplate">
       <button class="account-card" type="button">
         <strong></strong>
@@ -153,6 +235,41 @@
           <p></p>
         </div>
         <button type="button">Remove</button>
+      </article>
+    </template>
+
+    <template id="eventTemplate">
+      <article class="event-card" tabindex="0">
+        <div class="event-main">
+          <div class="event-title-row">
+            <h3></h3>
+            <span></span>
+          </div>
+          <p></p>
+          <div class="event-card-tags"></div>
+          <dl class="event-facts">
+            <div>
+              <dt>Date</dt>
+              <dd data-field="date"></dd>
+            </div>
+            <div>
+              <dt>Age</dt>
+              <dd data-field="age"></dd>
+            </div>
+            <div>
+              <dt>Venue</dt>
+              <dd data-field="venue"></dd>
+            </div>
+            <div>
+              <dt>Price</dt>
+              <dd data-field="price"></dd>
+            </div>
+          </dl>
+        </div>
+        <div class="event-side">
+          <span data-field="source"></span>
+          <a target="_blank" rel="noreferrer">Open source</a>
+        </div>
       </article>
     </template>
 
