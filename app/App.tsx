@@ -24,6 +24,28 @@ import { loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
 
 type Tab = 'home' | 'explore' | 'saved';
+type PriceFilter = 'all' | 'free' | 'paid';
+type PlaceFilter = 'all' | 'indoor' | 'outdoor';
+type ReservationFilter = 'all' | 'required' | 'notRequired' | 'available';
+type DateFilter = 'all' | 'upcoming' | 'ended';
+
+type ExploreFilters = {
+  ageFit: boolean;
+  date: DateFilter;
+  locality: string;
+  place: PlaceFilter;
+  price: PriceFilter;
+  reservation: ReservationFilter;
+};
+
+const defaultExploreFilters: ExploreFilters = {
+  ageFit: false,
+  date: 'all',
+  locality: 'all',
+  place: 'all',
+  price: 'all',
+  reservation: 'all',
+};
 
 function App() {
   const [user, setUser] = useState<User>(currentUser);
@@ -31,6 +53,7 @@ function App() {
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(defaultExploreFilters);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -159,6 +182,7 @@ function App() {
           ) : tab === 'explore' ? (
             <ExploreScreen
               user={user}
+              filters={exploreFilters}
               onOpenEvent={openDetail}
               onOpenFilter={() => setFilterOpen(true)}
               onOpenRecommendation={() => setTab('home')}
@@ -167,7 +191,13 @@ function App() {
             <SavedScreen />
           )}
           <BottomTabs activeTab={tab} onChange={setTab} />
-          {filterOpen ? <FilterSheet onClose={() => setFilterOpen(false)} /> : null}
+          {filterOpen ? (
+            <FilterSheet
+              filters={exploreFilters}
+              onChangeFilters={setExploreFilters}
+              onClose={() => setFilterOpen(false)}
+            />
+          ) : null}
         </>
       )}
     </SafeAreaView>
@@ -342,17 +372,26 @@ function HomeScreen({
 
 function ExploreScreen({
   user,
+  filters,
   onOpenEvent,
   onOpenFilter,
   onOpenRecommendation,
 }: {
   user: User;
+  filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const [searchQuery, setSearchQuery] = useState('');
   const [recommendationCtaVisible, setRecommendationCtaVisible] = useState(false);
+  const activeFilterCount = countActiveExploreFilters(filters);
+  const filteredEvents = useMemo(
+    () => filterEvents(eventsNewestFirst, searchQuery, filters, selectedChildren),
+    [filters, searchQuery, selectedChildren],
+  );
+  const activeFilterLabels = getActiveExploreFilterLabels(filters);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const nextVisible = event.nativeEvent.contentOffset.y > 420;
@@ -372,31 +411,50 @@ function ExploreScreen({
         <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
 
         <View style={styles.searchField}>
-          <Text style={styles.searchText}>제목, 장소, 지역 검색</Text>
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="제목, 장소, 지역 검색"
+            placeholderTextColor={colors.muted}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말'].map(chip => (
+          <Chip label={`${formatChildrenAges(selectedChildren)} 기준`} selected />
+          <Chip label={user.homeRegion} selected />
+          {activeFilterLabels.map(chip => (
             <Chip key={chip} label={chip} selected />
           ))}
           <Pressable onPress={onOpenFilter}>
-            <Chip label="필터" />
+            <Chip label={activeFilterCount > 0 ? `필터 ${activeFilterCount}` : '필터'} />
           </Pressable>
         </ScrollView>
 
         <Text style={styles.resultCount}>
-          {eventsNewestFirst.length}개 행사 · 최신 추가순
+          {filteredEvents.length}개 행사 · 최신 추가순
         </Text>
 
-        {eventsNewestFirst.map((event, index) => (
-          <EventCard
-            key={event.id}
-            event={event}
-            tone={index}
-            showSequence
-            onPress={() => onOpenEvent(event)}
-          />
-        ))}
+        {filteredEvents.length > 0 ? (
+          filteredEvents.map((event, index) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              tone={index}
+              showSequence
+              onPress={() => onOpenEvent(event)}
+            />
+          ))
+        ) : (
+          <View style={styles.noResultsCard}>
+            <Text style={styles.noResultsTitle}>조건에 맞는 행사가 없어요</Text>
+            <Text style={styles.noResultsText}>
+              검색어를 줄이거나 필터를 넓혀서 다시 찾아보세요.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       {recommendationCtaVisible ? (
@@ -737,31 +795,117 @@ function SettingsScreen({
   );
 }
 
-function FilterSheet({ onClose }: { onClose: () => void }) {
+function FilterSheet({
+  filters,
+  onChangeFilters,
+  onClose,
+}: {
+  filters: ExploreFilters;
+  onChangeFilters: (filters: ExploreFilters) => void;
+  onClose: () => void;
+}) {
+  const localities = useMemo(() => getAvailableLocalities(eventsNewestFirst), []);
+  const updateFilter = <Key extends keyof ExploreFilters>(
+    key: Key,
+    value: ExploreFilters[Key],
+  ) => {
+    onChangeFilters({ ...filters, [key]: value });
+  };
+
   return (
     <View style={styles.sheetOverlay}>
       <Pressable style={styles.sheetDim} onPress={onClose} />
       <View style={styles.sheet}>
         <View style={styles.grabber} />
-        <Text style={styles.sheetTitle}>Filter</Text>
-
-        <Text style={styles.fieldLabel}>Baby age</Text>
-        <View style={styles.stepper}>
-          <Text style={styles.stepperButton}>−</Text>
-          <Text style={styles.stepperValue}>18 months</Text>
-          <Text style={styles.stepperButton}>+</Text>
+        <View style={styles.sheetHeader}>
+          <View>
+            <Text style={styles.sheetTitle}>필터</Text>
+            <Text style={styles.sheetSubtitle}>직접 찾고 싶은 조건만 좁혀보세요</Text>
+          </View>
+          <Pressable onPress={() => onChangeFilters(defaultExploreFilters)}>
+            <Text style={styles.linkText}>초기화</Text>
+          </Pressable>
         </View>
 
-        <Text style={styles.fieldLabel}>Theme</Text>
-        <View style={styles.wrapRow}>
-          <Chip label="Indoor" selected />
-          <Chip label="Outdoor" />
-          <Chip label="Class" />
-        </View>
+        <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+          <Text style={styles.fieldLabel}>아이 월령</Text>
+          <View style={styles.wrapRow}>
+            <Pressable onPress={() => updateFilter('ageFit', !filters.ageFit)}>
+              <Chip label="선택한 아이에게 맞는 행사" selected={filters.ageFit} />
+            </Pressable>
+          </View>
 
-        <Pressable style={styles.primaryButton} onPress={onClose}>
-          <Text style={styles.primaryButtonText}>Apply filters</Text>
-        </Pressable>
+          <Text style={styles.fieldLabel}>일정</Text>
+          <View style={styles.wrapRow}>
+            {[
+              ['all', '전체'],
+              ['upcoming', '예정/진행중'],
+              ['ended', '종료됨'],
+            ].map(([value, label]) => (
+              <Pressable key={value} onPress={() => updateFilter('date', value as DateFilter)}>
+                <Chip label={label} selected={filters.date === value} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>지역</Text>
+          <View style={styles.wrapRow}>
+            <Pressable onPress={() => updateFilter('locality', 'all')}>
+              <Chip label="전체" selected={filters.locality === 'all'} />
+            </Pressable>
+            {localities.map(locality => (
+              <Pressable key={locality} onPress={() => updateFilter('locality', locality)}>
+                <Chip label={locality} selected={filters.locality === locality} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>가격</Text>
+          <View style={styles.wrapRow}>
+            {[
+              ['all', '전체'],
+              ['free', '무료'],
+              ['paid', '유료'],
+            ].map(([value, label]) => (
+              <Pressable key={value} onPress={() => updateFilter('price', value as PriceFilter)}>
+                <Chip label={label} selected={filters.price === value} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>공간</Text>
+          <View style={styles.wrapRow}>
+            {[
+              ['all', '전체'],
+              ['indoor', '실내'],
+              ['outdoor', '야외'],
+            ].map(([value, label]) => (
+              <Pressable key={value} onPress={() => updateFilter('place', value as PlaceFilter)}>
+                <Chip label={label} selected={filters.place === value} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>예약</Text>
+          <View style={styles.wrapRow}>
+            {[
+              ['all', '전체'],
+              ['available', '신청 가능'],
+              ['required', '예약 필요'],
+              ['notRequired', '예약 불필요'],
+            ].map(([value, label]) => (
+              <Pressable
+                key={value}
+                onPress={() => updateFilter('reservation', value as ReservationFilter)}>
+                <Chip label={label} selected={filters.reservation === value} />
+              </Pressable>
+            ))}
+          </View>
+
+          <Pressable style={[styles.primaryButton, styles.sheetApplyButton]} onPress={onClose}>
+            <Text style={styles.primaryButtonText}>결과 보기</Text>
+          </Pressable>
+        </ScrollView>
       </View>
     </View>
   );
@@ -860,6 +1004,168 @@ function BottomTabs({
         );
       })}
     </View>
+  );
+}
+
+function filterEvents(
+  events: BabyrooEvent[],
+  searchQuery: string,
+  filters: ExploreFilters,
+  selectedChildren: Child[],
+) {
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const selectedChildAges = selectedChildren.map(child => calculateAgeMonths(child.birthDate));
+
+  return events.filter(event => {
+    if (normalizedQuery && !eventMatchesSearchQuery(event, normalizedQuery)) {
+      return false;
+    }
+
+    if (filters.ageFit && !eventFitsAllSelectedChildren(event, selectedChildAges)) {
+      return false;
+    }
+
+    if (filters.date !== 'all' && !eventMatchesDateFilter(event, filters.date)) {
+      return false;
+    }
+
+    if (filters.locality !== 'all' && event.locality !== filters.locality) {
+      return false;
+    }
+
+    if (filters.price !== 'all' && event.priceType !== filters.price) {
+      return false;
+    }
+
+    if (filters.place === 'indoor' && event.indoor !== true) {
+      return false;
+    }
+
+    if (filters.place === 'outdoor' && event.indoor !== false) {
+      return false;
+    }
+
+    if (!eventMatchesReservationFilter(event, filters.reservation)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLocaleLowerCase();
+}
+
+function eventMatchesSearchQuery(event: BabyrooEvent, normalizedQuery: string) {
+  const searchableText = normalizeSearchText(
+    [
+      event.title,
+      event.venueName,
+      event.locality,
+      event.region,
+      event.category,
+      event.source,
+      event.summary,
+      ...event.tags,
+    ].join(' '),
+  );
+
+  return searchableText.includes(normalizedQuery);
+}
+
+function eventFitsAllSelectedChildren(event: BabyrooEvent, childAges: number[]) {
+  if (childAges.length === 0) {
+    return true;
+  }
+
+  return childAges.every(ageMonths => {
+    if (event.ageMinMonths != null && ageMonths < event.ageMinMonths) {
+      return false;
+    }
+
+    if (event.ageMaxMonths != null && ageMonths > event.ageMaxMonths) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function eventMatchesDateFilter(event: BabyrooEvent, dateFilter: DateFilter) {
+  const today = parseDateInput(formatDateInput(new Date()));
+  const eventEnd = parseDateInput(event.endsAt);
+
+  if (dateFilter === 'upcoming') {
+    return eventEnd >= today;
+  }
+
+  if (dateFilter === 'ended') {
+    return eventEnd < today;
+  }
+
+  return true;
+}
+
+function eventMatchesReservationFilter(event: BabyrooEvent, reservationFilter: ReservationFilter) {
+  if (reservationFilter === 'all') {
+    return true;
+  }
+
+  if (reservationFilter === 'available') {
+    return event.reservationStatus !== 'closed';
+  }
+
+  if (reservationFilter === 'required') {
+    return event.reservationRequired === true;
+  }
+
+  return event.reservationRequired === false;
+}
+
+function countActiveExploreFilters(filters: ExploreFilters) {
+  return getActiveExploreFilterLabels(filters).length;
+}
+
+function getActiveExploreFilterLabels(filters: ExploreFilters) {
+  const labels: string[] = [];
+
+  if (filters.ageFit) {
+    labels.push('월령 맞춤');
+  }
+
+  if (filters.date !== 'all') {
+    labels.push(filters.date === 'upcoming' ? '예정/진행중' : '종료됨');
+  }
+
+  if (filters.locality !== 'all') {
+    labels.push(filters.locality);
+  }
+
+  if (filters.price !== 'all') {
+    labels.push(filters.price === 'free' ? '무료' : '유료');
+  }
+
+  if (filters.place !== 'all') {
+    labels.push(filters.place === 'indoor' ? '실내' : '야외');
+  }
+
+  if (filters.reservation !== 'all') {
+    const reservationLabels: Record<ReservationFilter, string> = {
+      all: '전체',
+      available: '신청 가능',
+      required: '예약 필요',
+      notRequired: '예약 불필요',
+    };
+    labels.push(reservationLabels[filters.reservation]);
+  }
+
+  return labels;
+}
+
+function getAvailableLocalities(events: BabyrooEvent[]) {
+  return [...new Set(events.map(event => event.locality))].sort((left, right) =>
+    left.localeCompare(right, 'ko'),
   );
 }
 
@@ -1418,6 +1724,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxl,
     paddingHorizontal: spacing.lg,
   },
+  searchInput: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '700',
+    height: '100%',
+    padding: 0,
+  },
   searchText: {
     color: colors.muted,
     fontSize: 14,
@@ -1428,6 +1741,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     marginTop: spacing.xl,
+  },
+  noResultsCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    padding: spacing.xl,
+  },
+  noResultsTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  noResultsText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
+    marginTop: spacing.xs,
   },
   eventCard: {
     backgroundColor: colors.surface,
@@ -1664,6 +1997,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
     bottom: 0,
     left: 0,
+    maxHeight: '88%',
     padding: spacing.xl,
     paddingBottom: spacing.xxxl,
     position: 'absolute',
@@ -1682,11 +2016,28 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
   },
+  sheetHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sheetSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+  },
+  sheetScroll: {
+    marginTop: spacing.sm,
+  },
   fieldLabel: {
     color: colors.text,
     fontSize: 14,
     fontWeight: '800',
     marginBottom: spacing.sm,
+    marginTop: spacing.xxl,
+  },
+  sheetApplyButton: {
     marginTop: spacing.xxl,
   },
   stepper: {
