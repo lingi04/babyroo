@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -16,6 +18,7 @@ import DateTimePicker, {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BabyrooEvent, eventsNewestFirst, recommendedEvents } from './src/data/events';
+import { RecommendationSession } from './src/data/recommendation';
 import { Child, ChildGender, currentUser, getSelectedChildren, User } from './src/data/user';
 import { loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
@@ -25,7 +28,7 @@ type Tab = 'home' | 'explore' | 'saved';
 function App() {
   const [user, setUser] = useState<User>(currentUser);
   const [userLoaded, setUserLoaded] = useState(false);
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -158,6 +161,7 @@ function App() {
               user={user}
               onOpenEvent={openDetail}
               onOpenFilter={() => setFilterOpen(true)}
+              onOpenRecommendation={() => setTab('home')}
             />
           ) : (
             <SavedScreen />
@@ -180,6 +184,33 @@ function HomeScreen({
   onOpenSettings: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const [recommendationSessions, setRecommendationSessions] = useState<RecommendationSession[]>([]);
+  const [selectedRecommendationSessionId, setSelectedRecommendationSessionId] = useState<
+    string | null
+  >(null);
+  const latestRecommendationSession = recommendationSessions[0];
+  const selectedRecommendationSession =
+    recommendationSessions.find(session => session.id === selectedRecommendationSessionId) ??
+    latestRecommendationSession;
+  const selectedRecommendedEvents = selectedRecommendationSession
+    ? selectedRecommendationSession.resultEventIds
+        .map(eventId => eventsNewestFirst.find(event => event.id === eventId))
+        .filter((event): event is BabyrooEvent => Boolean(event))
+    : [];
+
+  const requestRecommendation = () => {
+    const session: RecommendationSession = {
+      id: `recommendation-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      userId: user.id,
+      childIds: selectedChildren.map(child => child.id),
+      resultEventIds: recommendedEvents.map(event => event.id),
+      creditCost: 1,
+    };
+
+    setRecommendationSessions(previousSessions => [session, ...previousSessions]);
+    setSelectedRecommendationSessionId(session.id);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.screenWithTabs}>
@@ -208,26 +239,98 @@ function HomeScreen({
         <Text style={styles.linkText}>바꾸기</Text>
       </Pressable>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {['실내', '무료', '예약필요', '24개월 이하'].map((chip, index) => (
-          <Chip key={chip} label={chip} selected={index === 0} />
-        ))}
-      </ScrollView>
+      <View style={styles.recommendationSetupCard}>
+        <Text style={styles.settingsLabel}>추천 준비</Text>
+        <Text style={styles.settingsTitle}>조건에 맞는 후보만 추려볼까요?</Text>
+        <Text style={styles.settingsMeta}>
+          추천은 현재 아이 정보와 지역을 기준으로 후보를 좁혀 보여주는 기능입니다.
+        </Text>
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>바로 고를 만한 후보</Text>
-        <Text style={styles.sectionMeta}>월령, 지역, 날짜가 맞는 행사예요</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말', '실내 선호'].map(
+            chip => (
+              <Chip key={chip} label={chip} selected />
+            ),
+          )}
+        </ScrollView>
+
+        <Pressable
+          style={styles.primaryButton}
+          onPress={requestRecommendation}>
+          <Text style={styles.primaryButtonText}>
+            {latestRecommendationSession ? '다시 추천 받기 · 1회 사용' : '추천 받기 · 1회 사용'}
+          </Text>
+        </Pressable>
+        {latestRecommendationSession ? (
+          <Text style={styles.settingsMeta}>
+            최근 추천 {formatRecommendationSessionTime(latestRecommendationSession.createdAt)} ·
+            총 {recommendationSessions.length}회 사용
+          </Text>
+        ) : null}
       </View>
 
-      {recommendedEvents.map((event, index) => (
-        <EventCard
-          key={event.id}
-          event={event}
-          compact
-          tone={index}
-          onPress={() => onOpenEvent(event)}
-        />
-      ))}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>
+          {selectedRecommendationSession ? '추천 결과' : '추천 전 확인'}
+        </Text>
+        <Text style={styles.sectionMeta}>
+          {selectedRecommendationSession
+            ? `${formatRecommendationSessionTime(
+                selectedRecommendationSession.createdAt,
+              )} 추천 · ${selectedRecommendationSession.creditCost}회 사용`
+            : '추천 받기를 누르면 후보가 표시됩니다'}
+        </Text>
+      </View>
+
+      {selectedRecommendationSession ? (
+        selectedRecommendedEvents.map((event, index) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            compact
+            tone={index}
+            onPress={() => onOpenEvent(event)}
+          />
+        ))
+      ) : (
+        <View style={styles.recommendationEmptyState}>
+          <Text style={styles.emptyStateTitle}>추천 결과를 아직 만들지 않았어요</Text>
+          <Text style={styles.emptyStateText}>
+            탐색에서 직접 고를 수도 있고, 추천을 요청하면 후보 3개를 먼저 추려드립니다.
+          </Text>
+        </View>
+      )}
+
+      {recommendationSessions.length > 1 ? (
+        <View style={styles.recommendationHistorySection}>
+          <Text style={styles.sectionTitle}>지난 추천</Text>
+          {recommendationSessions.map(session => {
+            const selected = session.id === selectedRecommendationSession?.id;
+
+            return (
+              <Pressable
+                key={session.id}
+                style={[
+                  styles.recommendationHistoryItem,
+                  selected && styles.recommendationHistoryItemSelected,
+                ]}
+                onPress={() => setSelectedRecommendationSessionId(session.id)}>
+                <View>
+                  <Text style={styles.recommendationHistoryTitle}>
+                    {formatRecommendationSessionTime(session.createdAt)} 추천
+                  </Text>
+                  <Text style={styles.recommendationHistoryMeta}>
+                    후보 {session.resultEventIds.length}개 · {session.creditCost}회 사용
+                  </Text>
+                </View>
+                <Text style={styles.recommendationHistoryBadge}>
+                  {selected ? '보는 중' : '보기'}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
 
       <View style={styles.latestTeaser}>
         <Text style={styles.sectionTitle}>새로 추가된 행사</Text>
@@ -241,43 +344,74 @@ function ExploreScreen({
   user,
   onOpenEvent,
   onOpenFilter,
+  onOpenRecommendation,
 }: {
   user: User;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
+  onOpenRecommendation: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const [recommendationCtaVisible, setRecommendationCtaVisible] = useState(false);
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextVisible = event.nativeEvent.contentOffset.y > 420;
+
+    if (nextVisible !== recommendationCtaVisible) {
+      setRecommendationCtaVisible(nextVisible);
+    }
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenWithTabs}>
-      <Text style={styles.pageTitle}>행사 탐색</Text>
-      <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
+    <View style={styles.exploreRoot}>
+      <ScrollView
+        contentContainerStyle={styles.screenWithTabs}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}>
+        <Text style={styles.pageTitle}>행사 탐색</Text>
+        <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
 
-      <View style={styles.searchField}>
-        <Text style={styles.searchText}>제목, 장소, 지역 검색</Text>
-      </View>
+        <View style={styles.searchField}>
+          <Text style={styles.searchText}>제목, 장소, 지역 검색</Text>
+        </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말'].map(chip => (
-          <Chip key={chip} label={chip} selected />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+          {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말'].map(chip => (
+            <Chip key={chip} label={chip} selected />
+          ))}
+          <Pressable onPress={onOpenFilter}>
+            <Chip label="필터" />
+          </Pressable>
+        </ScrollView>
+
+        <Text style={styles.resultCount}>
+          {eventsNewestFirst.length}개 행사 · 최신 추가순
+        </Text>
+
+        {eventsNewestFirst.map((event, index) => (
+          <EventCard
+            key={event.id}
+            event={event}
+            tone={index}
+            showSequence
+            onPress={() => onOpenEvent(event)}
+          />
         ))}
-        <Pressable onPress={onOpenFilter}>
-          <Chip label="필터" />
-        </Pressable>
       </ScrollView>
 
-      <Text style={styles.resultCount}>5개 행사 · 최신 추가순 · 순번 5, 4, 3, 2, 1</Text>
-
-      {eventsNewestFirst.map((event, index) => (
-        <EventCard
-          key={event.id}
-          event={event}
-          tone={index}
-          showSequence
-          onPress={() => onOpenEvent(event)}
-        />
-      ))}
-    </ScrollView>
+      {recommendationCtaVisible ? (
+        <Pressable
+          style={styles.floatingRecommendationCta}
+          onPress={onOpenRecommendation}
+          accessibilityLabel="Open recommendation page">
+          <View>
+            <Text style={styles.floatingRecommendationTitle}>고르기 어렵다면</Text>
+            <Text style={styles.floatingRecommendationText}>아이에게 맞는 후보만 추천받기</Text>
+          </View>
+          <Text style={styles.floatingRecommendationBadge}>추천 1회</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
 }
 
@@ -768,6 +902,16 @@ function formatChildrenNames(children: Child[]) {
   return children.map(child => child.nickname).join(', ');
 }
 
+function formatRecommendationSessionTime(createdAt: string) {
+  const createdDate = new Date(createdAt);
+  const month = createdDate.getMonth() + 1;
+  const day = createdDate.getDate();
+  const hours = String(createdDate.getHours()).padStart(2, '0');
+  const minutes = String(createdDate.getMinutes()).padStart(2, '0');
+
+  return `${month}/${day} ${hours}:${minutes}`;
+}
+
 function datePickerValue(target: string, children: Child[]) {
   const child = children.find(candidate => candidate.id === target);
 
@@ -870,6 +1014,42 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl,
     paddingBottom: 112,
   },
+  exploreRoot: {
+    flex: 1,
+  },
+  floatingRecommendationCta: {
+    alignItems: 'center',
+    backgroundColor: colors.text,
+    borderRadius: radius.lg,
+    bottom: 96,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    left: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    position: 'absolute',
+    right: spacing.xl,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.16,
+    shadowRadius: 24,
+  },
+  floatingRecommendationTitle: {
+    color: colors.primarySoft,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  floatingRecommendationText: {
+    color: colors.surface,
+    fontSize: 14,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  floatingRecommendationBadge: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '900',
+  },
   headerRow: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -929,6 +1109,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
+  },
+  recommendationSetupCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.xxl,
+    padding: spacing.lg,
+  },
+  recommendationEmptyState: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    marginTop: spacing.md,
+    padding: spacing.xl,
+  },
+  emptyStateTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  emptyStateText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
+    marginTop: spacing.sm,
+  },
+  recommendationHistorySection: {
+    marginTop: spacing.xxxl,
+  },
+  recommendationHistoryItem: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    padding: spacing.lg,
+  },
+  recommendationHistoryItemSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  recommendationHistoryTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  recommendationHistoryMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  recommendationHistoryBadge: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
   },
   settingsScreen: {
     paddingHorizontal: spacing.xl,
