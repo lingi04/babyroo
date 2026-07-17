@@ -1,42 +1,161 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import DateTimePicker, {
+  DateTimePickerAndroid,
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BabyrooEvent, eventsNewestFirst, recommendedEvents } from './src/data/events';
+import { Child, ChildGender, currentUser, getSelectedChildren, User } from './src/data/user';
+import { loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
 
 type Tab = 'home' | 'explore' | 'saved';
 
 function App() {
+  const [user, setUser] = useState<User>(currentUser);
+  const [userLoaded, setUserLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>('home');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    loadUser()
+      .then(savedUser => {
+        if (mounted) {
+          setUser(savedUser);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setUserLoaded(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (userLoaded) {
+      saveUser(user).catch(() => undefined);
+    }
+  }, [user, userLoaded]);
 
   const openDetail = (event: BabyrooEvent) => {
     setSelectedEvent(event);
     setFilterOpen(false);
+    setSettingsOpen(false);
   };
 
   const closeDetail = () => setSelectedEvent(null);
+
+  const openSettings = () => {
+    setFilterOpen(false);
+    setSettingsOpen(true);
+  };
+
+  const closeSettings = () => setSettingsOpen(false);
+
+  const updateHomeRegion = (homeRegion: string) => {
+    setUser(previousUser => ({ ...previousUser, homeRegion }));
+  };
+
+  const updateDisplayName = (displayName: string) => {
+    setUser(previousUser => ({ ...previousUser, displayName }));
+  };
+
+  const addChild = (child: Omit<Child, 'id'>) => {
+    const id = `child-${Date.now()}`;
+
+    setUser(previousUser => {
+      return {
+        ...previousUser,
+        children: [...previousUser.children, { id, ...child }],
+        activeChildIds: [...previousUser.activeChildIds, id],
+      };
+    });
+
+    return id;
+  };
+
+  const updateChild = (childId: string, childPatch: Partial<Omit<Child, 'id'>>) => {
+    setUser(previousUser => ({
+      ...previousUser,
+      children: previousUser.children.map(child =>
+        child.id === childId ? { ...child, ...childPatch } : child,
+      ),
+    }));
+  };
+
+  const removeChild = (childId: string) => {
+    setUser(previousUser => {
+      if (previousUser.children.length <= 1) {
+        return previousUser;
+      }
+
+      const children = previousUser.children.filter(child => child.id !== childId);
+      const activeChildIds = previousUser.activeChildIds.filter(id => id !== childId);
+
+      return {
+        ...previousUser,
+        children,
+        activeChildIds: activeChildIds.length > 0 ? activeChildIds : [children[0].id],
+      };
+    });
+  };
+
+  const toggleActiveChild = (childId: string) => {
+    setUser(previousUser => {
+      const isActive = previousUser.activeChildIds.includes(childId);
+      const activeChildIds = isActive
+        ? previousUser.activeChildIds.filter(id => id !== childId)
+        : [...previousUser.activeChildIds, childId];
+
+      return {
+        ...previousUser,
+        activeChildIds: activeChildIds.length > 0 ? activeChildIds : previousUser.activeChildIds,
+      };
+    });
+  };
 
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {selectedEvent ? (
         <EventDetail event={selectedEvent} onBack={closeDetail} />
+      ) : settingsOpen ? (
+        <SettingsScreen
+          user={user}
+          onBack={closeSettings}
+          onAddChild={addChild}
+          onRemoveChild={removeChild}
+          onUpdateChild={updateChild}
+          onUpdateDisplayName={updateDisplayName}
+          onToggleChild={toggleActiveChild}
+          onSelectRegion={updateHomeRegion}
+        />
       ) : (
         <>
           {tab === 'home' ? (
-            <HomeScreen onOpenEvent={openDetail} />
+            <HomeScreen user={user} onOpenEvent={openDetail} onOpenSettings={openSettings} />
           ) : tab === 'explore' ? (
             <ExploreScreen
+              user={user}
               onOpenEvent={openDetail}
               onOpenFilter={() => setFilterOpen(true)}
             />
@@ -51,7 +170,17 @@ function App() {
   );
 }
 
-function HomeScreen({ onOpenEvent }: { onOpenEvent: (event: BabyrooEvent) => void }) {
+function HomeScreen({
+  user,
+  onOpenEvent,
+  onOpenSettings,
+}: {
+  user: User;
+  onOpenEvent: (event: BabyrooEvent) => void;
+  onOpenSettings: () => void;
+}) {
+  const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+
   return (
     <ScrollView contentContainerStyle={styles.screenWithTabs}>
       <View style={styles.headerRow}>
@@ -59,18 +188,25 @@ function HomeScreen({ onOpenEvent }: { onOpenEvent: (event: BabyrooEvent) => voi
           <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
           <Text style={styles.pageTitle}>이번 주말 추천</Text>
         </View>
-        <Pressable style={styles.iconButton} accessibilityLabel="Open filters">
+        <Pressable
+          style={styles.iconButton}
+          onPress={onOpenSettings}
+          accessibilityLabel="Open user settings">
           <Text style={styles.iconButtonText}>≡</Text>
         </Pressable>
       </View>
 
-      <View style={styles.profileCard}>
+      <Pressable style={styles.profileCard} onPress={onOpenSettings}>
         <View>
-          <Text style={styles.profileTitle}>18개월 · 서울</Text>
-          <Text style={styles.profileMeta}>아이 월령과 지역 기준</Text>
+          <Text style={styles.profileTitle}>
+            {formatChildrenAges(selectedChildren)} · {user.homeRegion}
+          </Text>
+          <Text style={styles.profileMeta}>
+            {formatChildrenNames(selectedChildren)} 기준으로 추천
+          </Text>
         </View>
         <Text style={styles.linkText}>바꾸기</Text>
-      </View>
+      </Pressable>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
         {['실내', '무료', '예약필요', '24개월 이하'].map((chip, index) => (
@@ -102,12 +238,16 @@ function HomeScreen({ onOpenEvent }: { onOpenEvent: (event: BabyrooEvent) => voi
 }
 
 function ExploreScreen({
+  user,
   onOpenEvent,
   onOpenFilter,
 }: {
+  user: User;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
 }) {
+  const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+
   return (
     <ScrollView contentContainerStyle={styles.screenWithTabs}>
       <Text style={styles.pageTitle}>행사 탐색</Text>
@@ -118,7 +258,7 @@ function ExploreScreen({
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-        {['18개월', '서울', '이번 주말'].map(chip => (
+        {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말'].map(chip => (
           <Chip key={chip} label={chip} selected />
         ))}
         <Pressable onPress={onOpenFilter}>
@@ -208,6 +348,258 @@ function SavedScreen() {
       <Text style={styles.pageTitle}>저장한 행사</Text>
       <Text style={styles.pageSubtitle}>관심 있는 행사를 저장하면 여기에 모입니다.</Text>
     </View>
+  );
+}
+
+function SettingsScreen({
+  user,
+  onBack,
+  onAddChild,
+  onRemoveChild,
+  onUpdateChild,
+  onUpdateDisplayName,
+  onToggleChild,
+  onSelectRegion,
+}: {
+  user: User;
+  onBack: () => void;
+  onAddChild: (child: Omit<Child, 'id'>) => string;
+  onRemoveChild: (childId: string) => void;
+  onUpdateChild: (childId: string, childPatch: Partial<Omit<Child, 'id'>>) => void;
+  onUpdateDisplayName: (displayName: string) => void;
+  onToggleChild: (childId: string) => void;
+  onSelectRegion: (region: string) => void;
+}) {
+  const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const childrenByAge = sortChildrenByAge(user.children);
+  const regions = ['서울', '서울/경기', '경기'];
+  const [displayNameDraft, setDisplayNameDraft] = useState(user.displayName);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState<string | null>(null);
+  const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const displayNameInputRef = useRef<TextInput>(null);
+
+  const commitDisplayName = () => {
+    const nextDisplayName = displayNameDraft.trim();
+
+    if (nextDisplayName) {
+      onUpdateDisplayName(nextDisplayName);
+    } else {
+      setDisplayNameDraft(user.displayName);
+    }
+  };
+
+  const handleBack = () => {
+    commitDisplayName();
+    onBack();
+  };
+
+  const handleAddChild = () => {
+    const newChildId = onAddChild({
+      nickname: '새 아이',
+      birthDate: formatDateInput(defaultBirthDate()),
+      gender: 'unknown',
+    });
+
+    setEditingChildId(newChildId);
+  };
+
+  const setBirthDate = (target: string, selectedDate: Date) => {
+    const birthDate = formatDateInput(selectedDate);
+
+    onUpdateChild(target, { birthDate });
+  };
+
+  const handleBirthDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setDatePickerOpen(false);
+    }
+
+    if (event.type === 'dismissed' || !selectedDate) {
+      return;
+    }
+
+    if (datePickerTarget) {
+      setBirthDate(datePickerTarget, selectedDate);
+    }
+  };
+
+  const openBirthDatePicker = (target: string, birthDate?: string) => {
+    const value = birthDate ? parseDateInput(birthDate) : defaultBirthDate();
+
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value,
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: (event, selectedDate) => {
+          if (event.type !== 'dismissed' && selectedDate) {
+            setBirthDate(target, selectedDate);
+          }
+        },
+      });
+      return;
+    }
+
+    setDatePickerTarget(target);
+    setDatePickerOpen(true);
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.settingsScreen}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.eyebrow}>추천 기준 관리</Text>
+          <Text style={styles.pageTitle}>설정</Text>
+        </View>
+        <Pressable style={styles.iconButton} onPress={handleBack} accessibilityLabel="Close settings">
+          <Text style={styles.iconButtonText}>×</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.settingsCard}>
+        <Text style={styles.settingsLabel}>Parent</Text>
+        <TextInput
+          ref={displayNameInputRef}
+          style={styles.textInput}
+          defaultValue={user.displayName}
+          onChangeText={setDisplayNameDraft}
+          onBlur={commitDisplayName}
+          placeholder="보호자 이름"
+          placeholderTextColor={colors.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="default"
+          returnKeyType="done"
+          textContentType="none"
+        />
+        <Text style={styles.settingsMeta}>앱 안에서 사용할 보호자 이름입니다.</Text>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>추천에 포함할 아이</Text>
+        <Text style={styles.sectionMeta}>
+          {formatChildrenNames(selectedChildren)} 기준으로 월령 필터를 계산합니다.
+        </Text>
+
+        {childrenByAge.map(child => {
+          const selected = user.activeChildIds.includes(child.id);
+          const editing = editingChildId === child.id;
+
+          return (
+            <View
+              key={child.id}
+              style={[styles.childCard, selected && styles.childCardSelected]}>
+              <View style={styles.childCardHeader}>
+                <View>
+                  <Text style={styles.childName}>{child.nickname}</Text>
+                  <Text style={styles.childMeta}>
+                    {child.birthDate} · {formatChildAge(child)} · {formatGender(child.gender)}
+                  </Text>
+                </View>
+                <View style={styles.childActions}>
+                  <Pressable
+                    style={styles.editButton}
+                    onPress={() => setEditingChildId(editing ? null : child.id)}
+                    accessibilityLabel={`Edit ${child.nickname}`}>
+                    <Text style={styles.editButtonText}>{editing ? '완료' : '수정'}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.checkCircle, selected && styles.checkCircleSelected]}
+                    onPress={() => onToggleChild(child.id)}
+                    accessibilityLabel={`Toggle ${child.nickname} recommendation`}>
+                    <Text style={[styles.checkText, selected && styles.checkTextSelected]}>✓</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {editing ? (
+                <>
+                  <TextInput
+                    style={styles.textInput}
+                    defaultValue={child.nickname}
+                    onChangeText={nickname => onUpdateChild(child.id, { nickname })}
+                    placeholder="아이 이름 또는 별명"
+                    placeholderTextColor={colors.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="default"
+                    returnKeyType="done"
+                    textContentType="none"
+                  />
+
+                  <Pressable
+                    style={styles.datePickerButton}
+                    onPress={() => openBirthDatePicker(child.id, child.birthDate)}>
+                    <Text style={styles.datePickerText}>{child.birthDate}</Text>
+                    <Text style={styles.childMeta}>
+                      {formatChildAge(child)}
+                    </Text>
+                  </Pressable>
+
+                  <View style={styles.wrapRow}>
+                    {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
+                      <Pressable
+                        key={gender}
+                        onPress={() => onUpdateChild(child.id, { gender })}>
+                        <Chip label={formatGender(gender)} selected={gender === child.gender} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
+              ) : null}
+
+              {user.children.length > 1 ? (
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => onRemoveChild(child.id)}
+                  accessibilityLabel={`Remove ${child.nickname}`}>
+                  <Text style={styles.removeButtonText}>삭제</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })}
+
+        <Pressable
+          style={styles.addChildButton}
+          onPress={handleAddChild}
+          accessibilityLabel="Add child">
+          <Text style={styles.addChildPlus}>＋</Text>
+          <Text style={styles.addChildText}>아이 추가</Text>
+        </Pressable>
+        {datePickerOpen && Platform.OS === 'ios' && datePickerTarget ? (
+          <DateTimePicker
+            value={datePickerValue(datePickerTarget, user.children)}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            maximumDate={new Date()}
+            onChange={handleBirthDateChange}
+          />
+        ) : null}
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>기본 지역</Text>
+        <Text style={styles.sectionMeta}>추천과 탐색 필터의 기본 지역으로 사용됩니다.</Text>
+        <View style={styles.wrapRow}>
+          {regions.map(region => (
+            <Pressable key={region} onPress={() => onSelectRegion(region)}>
+              <Chip label={region} selected={region === user.homeRegion} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>자주 보는 동네</Text>
+        <View style={styles.wrapRow}>
+          {user.preferredLocalities.map(locality => (
+            <Chip key={locality} label={locality} selected />
+          ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -350,6 +742,82 @@ function formatAge(event: BabyrooEvent) {
   return `${event.ageMaxMonths}개월 이하`;
 }
 
+function formatChildAge(child: Child) {
+  return `${calculateAgeMonths(child.birthDate)}개월`;
+}
+
+function sortChildrenByAge(children: Child[]) {
+  return [...children].sort((left, right) => {
+    const ageDifference = calculateAgeMonths(right.birthDate) - calculateAgeMonths(left.birthDate);
+
+    if (ageDifference !== 0) {
+      return ageDifference;
+    }
+
+    return left.birthDate.localeCompare(right.birthDate);
+  });
+}
+
+function formatChildrenAges(children: Child[]) {
+  const uniqueAges = [...new Set(children.map(formatChildAge))];
+
+  return uniqueAges.join(', ');
+}
+
+function formatChildrenNames(children: Child[]) {
+  return children.map(child => child.nickname).join(', ');
+}
+
+function datePickerValue(target: string, children: Child[]) {
+  const child = children.find(candidate => candidate.id === target);
+
+  return child ? parseDateInput(child.birthDate) : defaultBirthDate();
+}
+
+function parseDateInput(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+
+  return new Date(year, month - 1, day);
+}
+
+function formatDateInput(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+function defaultBirthDate() {
+  const today = new Date();
+
+  return new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+}
+
+function calculateAgeMonths(birthDateValue: string) {
+  const birthDate = parseDateInput(birthDateValue);
+  const today = new Date();
+  let ageMonths =
+    (today.getFullYear() - birthDate.getFullYear()) * 12 +
+    (today.getMonth() - birthDate.getMonth());
+
+  if (today.getDate() < birthDate.getDate()) {
+    ageMonths -= 1;
+  }
+
+  return Math.max(ageMonths, 0);
+}
+
+function formatGender(gender: Child['gender']) {
+  if (gender === 'female') {
+    return '여아';
+  }
+  if (gender === 'male') {
+    return '남아';
+  }
+  return '성별 미입력';
+}
+
 function formatDateRange(event: BabyrooEvent) {
   return `${event.startsAt} - ${event.endsAt}`;
 }
@@ -461,6 +929,184 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
+  },
+  settingsScreen: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.xxxl,
+  },
+  settingsCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.xxl,
+    padding: spacing.lg,
+  },
+  settingsSection: {
+    marginTop: spacing.xxxl,
+  },
+  settingsLabel: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: spacing.xs,
+  },
+  settingsTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  settingsMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 19,
+    marginTop: spacing.xs,
+  },
+  textInput: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: spacing.md,
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  datePickerButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    minHeight: 58,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  datePickerText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  datePickerMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  placeholderText: {
+    color: colors.muted,
+  },
+  childCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    padding: spacing.lg,
+  },
+  childCardSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  childCardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  childActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  childName: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  childMeta: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  checkCircle: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
+  },
+  checkCircleSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  checkText: {
+    color: colors.muted,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  checkTextSelected: {
+    color: colors.surface,
+  },
+  editButton: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  editButtonText: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  removeButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  removeButtonText: {
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  addChildButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minHeight: 56,
+    justifyContent: 'center',
+    marginTop: spacing.lg,
+  },
+  addChildPlus: {
+    color: colors.primaryStrong,
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  addChildText: {
+    color: colors.primaryStrong,
+    fontSize: 14,
+    fontWeight: '900',
   },
   linkText: {
     color: colors.primaryStrong,
