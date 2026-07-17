@@ -1,0 +1,454 @@
+# Babyroo Client App Product Spec
+
+이 문서는 Babyroo React Native 앱을 처음부터 다시 구현해도 같은 기능을 제공할 수 있도록 정리한 클라이언트 앱 기준 명세입니다.
+
+## 1. 제품 목적
+
+Babyroo는 0~3세 아이와 외출할 장소나 행사를 고르기 어려운 부모를 위한 모바일 앱입니다.
+
+핵심 가치는 두 가지입니다.
+
+1. 사용자가 직접 행사 목록을 탐색할 수 있게 한다.
+2. 사용자가 선택한 아이 정보와 선호 조건을 바탕으로 적절한 후보를 추천한다.
+
+추천 기능은 향후 수익화 대상입니다. 따라서 앱은 무료 탐색 경험을 먼저 제공하되, 사용자가 목록을 보다가 선택 피로를 느끼는 시점에 추천 기능을 자연스럽게 제안합니다.
+
+## 2. 기술 전제
+
+- React Native CLI 기반 앱
+- Expo 사용 안 함
+- 앱 디렉터리: `app/`
+- Android/iOS 모바일 앱 우선
+- 초기에는 백엔드 없이 로컬 더미 데이터와 로컬 저장소 사용
+- 로컬 저장소는 `@react-native-async-storage/async-storage` 사용
+
+## 3. 주요 화면
+
+### 3.1 탐색 화면
+
+앱의 기본 진입 화면은 `탐색`입니다.
+
+목적:
+- 사용자가 앱을 열자마자 행사 목록을 볼 수 있게 한다.
+- 무료로 사용할 수 있는 기본 가치를 제공한다.
+- 일정 이상 스크롤하면 추천 기능으로 전환할 수 있는 CTA를 보여준다.
+
+구성:
+- 제목: `행사 탐색`
+- 설명: `새로 추가된 순서로 보여드려요`
+- 검색 필드 placeholder: `제목, 장소, 지역 검색`
+- 필터 칩:
+  - 선택된 아이들의 월령
+  - 기본 지역
+  - `이번 주말`
+  - `필터`
+- 결과 개수 텍스트:
+  - `${eventsNewestFirst.length}개 행사 · 최신 추가순`
+- 행사 카드 목록
+
+정렬:
+- 이벤트는 `csvSequence`가 큰 순서로 표시한다.
+- CSV 기준으로 아래쪽에 있는 레코드가 나중에 추가된 데이터라고 간주한다.
+- 예: `12, 11, 10 ... 1`
+
+스크롤 CTA:
+- 사용자가 탐색 화면에서 일정 이상 스크롤하면 하단 탭 위에 floating CTA를 표시한다.
+- 현재 기준 threshold: `contentOffset.y > 420`
+- CTA 문구:
+  - `고르기 어렵다면`
+  - `아이에게 맞는 후보만 추천받기`
+  - `추천 1회`
+- CTA를 누르면 `추천` 화면으로 이동한다.
+
+### 3.2 추천 화면
+
+추천 화면은 직접 진입할 수도 있고, 탐색 화면의 floating CTA를 통해 진입할 수도 있습니다.
+
+직접 진입했을 때도 바로 결과를 보여주지 않습니다. 먼저 추천을 권유하는 setup/invitation UI를 보여주고, 사용자가 명시적으로 `추천 받기`를 눌러야 결과가 생성됩니다.
+
+구성:
+- 제목: `이번 주말 추천`
+- 사용자 프로필 요약 카드
+  - 선택된 아이들의 월령
+  - 기본 지역
+  - `바꾸기` 버튼
+- 추천 준비 카드
+  - 라벨: `추천 준비`
+  - 제목: `조건에 맞는 후보만 추려볼까요?`
+  - 설명: `추천은 현재 아이 정보와 지역을 기준으로 후보를 좁혀 보여주는 기능입니다.`
+  - 칩:
+    - 선택된 아이들의 월령
+    - 기본 지역
+    - `이번 주말`
+    - `실내 선호`
+  - CTA:
+    - 추천 전: `추천 받기 · 1회 사용`
+    - 추천 후: `다시 추천 받기 · 1회 사용`
+
+추천 전 상태:
+- 섹션 제목: `추천 전 확인`
+- 설명: `추천 받기를 누르면 후보가 표시됩니다`
+- 빈 상태 카드:
+  - `추천 결과를 아직 만들지 않았어요`
+  - `탐색에서 직접 고를 수도 있고, 추천을 요청하면 후보 3개를 먼저 추려드립니다.`
+
+추천 후 상태:
+- 추천 세션을 생성한다.
+- 최신 세션을 선택 상태로 둔다.
+- 섹션 제목: `추천 결과`
+- 설명: `{추천시각} 추천 · {creditCost}회 사용`
+- 해당 추천 세션의 `resultEventIds`에 해당하는 이벤트 카드를 보여준다.
+
+반복 추천:
+- 사용자가 `다시 추천 받기 · 1회 사용`을 누를 수 있다.
+- 누를 때마다 새 `RecommendationSession`을 생성한다.
+- 새 세션은 목록 맨 앞에 추가하고, 자동으로 선택한다.
+
+지난 추천:
+- 추천 세션이 2개 이상이면 `지난 추천` 섹션을 표시한다.
+- 각 history row는 다음 정보를 보여준다.
+  - 추천 시각
+  - 후보 개수
+  - 사용한 추천권 수
+  - 현재 선택된 세션이면 `보는 중`
+  - 아니면 `보기`
+- 과거 추천 row를 누르면 해당 세션의 결과 카드가 다시 표시된다.
+
+현재 추천 결과 생성 방식:
+- 현재는 LLM 호출이 아니라 더미 로직이다.
+- `recommendedEvents` 또는 향후 ranking 함수가 반환한 이벤트 id를 `resultEventIds`로 저장한다.
+- 이후 백엔드/LLM 추천으로 교체하더라도 UI는 `RecommendationSession.resultEventIds`만 사용하면 된다.
+
+### 3.3 저장 화면
+
+현재는 placeholder입니다.
+
+구성:
+- 제목: `저장한 행사`
+- 설명: `관심 있는 행사를 저장하면 여기에 모입니다.`
+
+### 3.4 이벤트 상세 화면
+
+이벤트 카드를 누르면 상세 화면으로 이동한다.
+
+구성:
+- 상단 hero 영역
+- back button
+- source 표시
+- 이벤트 title
+- 지역/locality와 날짜 범위
+- key fact grid
+  - 월령
+  - 가격
+  - 예약
+  - 장소
+- 추천 판단 박스
+- 행사 소개
+- 태그
+- 하단 CTA: `원문 / 예약 페이지 열기`
+
+상세 화면의 추천 판단은 현재 간단한 rule 기반 문구입니다.
+
+예:
+- 이벤트 최소 월령이 18개월보다 크면:
+  - `18개월 아이에게는 월령이 맞지 않을 수 있어요. 원문에서 대상 연령 ... 확인해 주세요.`
+- 실내 이벤트면:
+  - `{월령} 아이에게 맞고, 실내에서 진행돼요. 날씨 영향을 적게 받는 후보입니다.`
+
+## 4. 사용자 설정 화면
+
+설정 화면은 홈/추천 화면의 프로필 카드나 메뉴 버튼에서 진입합니다.
+
+목적:
+- 보호자 이름 관리
+- 아이 정보 관리
+- 추천에 포함할 아이 선택
+- 기본 지역 선택
+- 자주 보는 동네 표시
+
+### 4.1 보호자 정보
+
+필드:
+- `displayName`
+
+동작:
+- TextInput으로 수정 가능
+- 빈 값으로 blur되면 기존 값을 유지한다.
+- 변경된 값은 `User` state에 반영되고 AsyncStorage에 저장된다.
+
+### 4.2 아이 목록
+
+아이들은 나이순으로 표시한다.
+
+정렬:
+- 나이가 많은 아이가 위에 온다.
+- `birthDate`를 기준으로 현재 월령을 계산한다.
+- 동일 월령이면 `birthDate` 문자열 기준 오름차순으로 정렬한다.
+
+각 아이 카드 기본 상태:
+- 닉네임
+- 생년월일
+- 현재 월령
+- 성별
+- 추천 포함 여부 toggle
+- `수정` 버튼
+- `삭제` 버튼
+
+수정 모드:
+- 사용자가 `수정`을 눌러야만 아이 정보를 변경할 수 있다.
+- `수정`을 누르면 버튼 텍스트는 `완료`가 된다.
+- 수정 모드에서 표시되는 입력 요소:
+  - 닉네임 TextInput
+  - 생년월일 date picker
+  - 성별 chip
+- `완료`를 누르면 수정 모드를 닫는다.
+
+삭제:
+- 아이가 2명 이상일 때만 삭제 버튼을 보여준다.
+- 아이가 1명뿐이면 삭제할 수 없다.
+- 삭제한 아이가 추천 포함 목록에 있으면 `activeChildIds`에서도 제거한다.
+- 삭제 후 `activeChildIds`가 비면 남은 첫 번째 아이를 자동 선택한다.
+
+추천 포함 toggle:
+- 체크 버튼으로 추천에 포함할 아이를 여러 명 선택할 수 있다.
+- 쌍둥이나 형제자매가 함께 외출하는 상황을 지원하기 위해 단일 active child가 아니라 `activeChildIds` 배열을 사용한다.
+- 모든 아이가 해제되는 것은 허용하지 않는다.
+
+### 4.3 아이 추가
+
+별도의 `아이 추가` 섹션은 사용하지 않는다.
+
+동작:
+- `추천에 포함할 아이` 섹션 아래에 plus button을 둔다.
+- 버튼 문구:
+  - `＋`
+  - `아이 추가`
+- 누르면 즉시 새 child card를 추가한다.
+- 새 카드는 자동으로 `수정` 상태로 열린다.
+- 기본 값:
+  - nickname: `새 아이`
+  - birthDate: 오늘 기준 1년 전
+  - gender: `unknown`
+- 새 아이는 자동으로 `activeChildIds`에 포함된다.
+
+### 4.4 기본 지역
+
+현재 region 선택지는 다음입니다.
+
+- `서울`
+- `서울/경기`
+- `경기`
+
+선택하면 `User.homeRegion`이 변경되고 저장된다.
+
+### 4.5 자주 보는 동네
+
+현재는 chip 목록으로 표시만 한다.
+
+필드:
+- `preferredLocalities`
+
+## 5. 데이터 모델
+
+### 5.1 User
+
+```ts
+export type ChildGender = 'female' | 'male' | 'unknown';
+
+export type Child = {
+  id: string;
+  nickname: string;
+  birthDate: string; // YYYY-MM-DD
+  gender: ChildGender;
+};
+
+export type User = {
+  id: string;
+  displayName: string;
+  children: Child[];
+  activeChildIds: string[];
+  homeRegion: string;
+  preferredLocalities: string[];
+};
+```
+
+중요 결정:
+- `child` 단일 객체가 아니라 `children` 배열을 사용한다.
+- `activeChildId` 단일 값이 아니라 `activeChildIds` 배열을 사용한다.
+- 아이 나이는 `ageMonths`로 저장하지 않고 `birthDate`로 저장한다.
+- 화면 표시 시점에 `birthDate`로 현재 월령을 계산한다.
+
+### 5.2 BabyrooEvent
+
+```ts
+export type ReservationStatus = 'unknown' | 'limited' | 'closed';
+
+export type BabyrooEvent = {
+  id: string;
+  csvSequence: number;
+  title: string;
+  venueName: string;
+  locality: string;
+  region: string;
+  category: string;
+  source: string;
+  startsAt: string;
+  endsAt: string;
+  ageMinMonths?: number;
+  ageMaxMonths?: number;
+  indoor?: boolean;
+  priceText?: string;
+  priceType: 'free' | 'paid' | 'unknown';
+  reservationRequired?: boolean;
+  reservationStatus: ReservationStatus;
+  guardianRequired?: boolean;
+  tags: string[];
+  summary: string;
+  sourceUrl: string;
+};
+```
+
+정렬 기준:
+- `csvSequence`가 클수록 나중에 추가된 데이터다.
+- 목록에서는 `csvSequence` 내림차순으로 보여준다.
+
+### 5.3 RecommendationSession
+
+```ts
+export type RecommendationSession = {
+  id: string;
+  createdAt: string;
+  userId: string;
+  childIds: string[];
+  resultEventIds: string[];
+  creditCost: number;
+};
+```
+
+역할:
+- 추천 기능을 한 번 사용할 때마다 생성되는 기록이다.
+- 추천 결과는 이벤트 객체 전체가 아니라 `resultEventIds`로 저장한다.
+- 향후 서버/LLM 추천으로 바뀌어도 세션 구조는 유지할 수 있다.
+
+현재 상태:
+- 앱 세션 중 메모리에만 저장된다.
+- 앱 재시작 후에도 지난 추천을 보려면 별도 `recommendationStorage.ts`가 필요하다.
+
+## 6. 로컬 저장소
+
+현재 저장 대상:
+- `User`
+
+저장소:
+- AsyncStorage
+- key: `@babyroo/user`
+
+필요 함수:
+
+```ts
+loadUser(): Promise<User>
+saveUser(user: User): Promise<void>
+clearSavedUser(): Promise<void>
+```
+
+동작:
+- 앱 시작 시 `loadUser()`로 저장된 user를 불러온다.
+- 저장된 user가 없으면 `currentUser`를 사용한다.
+- user state가 변경되면 `saveUser(user)`를 호출한다.
+- 기존 `ageMonths` 기반 저장 데이터가 있으면 `birthDate`로 migration한다.
+
+## 7. 날짜와 월령 계산
+
+생년월일 저장 형식:
+
+```ts
+YYYY-MM-DD
+```
+
+월령 계산:
+- 현재 날짜와 `birthDate`의 연월 차이를 계산한다.
+- 현재 일이 생일 일자보다 작으면 1개월을 뺀다.
+- 최소값은 0개월이다.
+
+예:
+- `birthDate = 2025-07-17`
+- 현재 날짜가 `2026-07-17`이면 `12개월`
+
+생년월일 입력:
+- 새 아이 추가나 아이 수정 시 date picker를 사용한다.
+- Android는 `DateTimePickerAndroid.open()` 방식 사용
+- iOS는 `<DateTimePicker />` 렌더링 방식 사용
+
+## 8. 추천 수익화 방향
+
+추천은 무료 필터가 아니라 유료/크레딧 기반 기능으로 간주한다.
+
+사용자 경험:
+- 사용자는 먼저 `탐색`에서 전체 목록을 무료로 볼 수 있다.
+- 스크롤을 충분히 내리면 추천 CTA가 나타난다.
+- 추천 화면에서는 사용자가 명시적으로 `추천 받기 · 1회 사용`을 눌러야 결과가 표시된다.
+- 반복 추천 시 `다시 추천 받기 · 1회 사용`으로 표시한다.
+- 각 추천은 `RecommendationSession`으로 기록한다.
+
+향후 필요 기능:
+- 추천권/credit 잔액
+- 추천권 구매
+- 추천 세션 로컬/서버 저장
+- LLM 추천 요청 API
+- 추천 결과 설명
+- 추천 기준 변경 UI
+
+## 9. 테스트 기준
+
+현재 필수 검증 명령:
+
+```sh
+cd app
+npm test -- --runInBand
+npm run lint
+npx tsc --noEmit
+```
+
+테스트로 보장해야 하는 동작:
+- 앱이 렌더링된다.
+- User 저장소가 추가된 아이 정보를 저장/로드한다.
+- 기존 저장 데이터 migration이 깨지지 않는다.
+
+## 10. 현재 한계
+
+- 추천 결과는 아직 LLM 기반이 아니다.
+- 추천 세션은 앱 재시작 후 사라진다.
+- 저장 화면은 placeholder다.
+- 검색/필터 UI는 실제 필터링 로직과 완전히 연결되어 있지 않다.
+- 원문/예약 CTA는 실제 브라우저 open 동작과 아직 연결되지 않았다.
+- 추천권 결제/잔액 시스템은 아직 없다.
+
+## 11. 재구현 체크리스트
+
+새로 앱을 만든다면 최소한 아래 기능을 구현해야 현재 앱과 같은 제품 동작을 제공할 수 있다.
+
+- React Native 앱 기본 구조
+- Bottom tabs: `추천`, `탐색`, `저장`
+- 기본 진입 탭: `탐색`
+- 탐색 목록 최신 추가순 표시
+- 탐색 스크롤 후 추천 CTA 표시
+- CTA 누르면 추천 탭 이동
+- 추천 탭 직접 진입 시 invitation/setup UI 표시
+- 추천 받기 버튼 클릭 시 RecommendationSession 생성
+- 최신 추천 결과 표시
+- 지난 추천 목록 표시
+- 지난 추천 선택 시 해당 결과 재표시
+- 사용자 설정 화면
+- 보호자 이름 수정
+- 아이 여러 명 관리
+- 아이 추가 plus button
+- 아이 수정 모드
+- 아이 삭제
+- 추천 포함 아이 여러 명 선택
+- 생년월일 date picker
+- 생년월일 기반 월령 계산
+- 아이 나이순 표시
+- 기본 지역 선택
+- User AsyncStorage 저장/로드
+- Event detail 화면
+- Event card 목록/상세 이동
