@@ -186,6 +186,7 @@ function App() {
               onOpenEvent={openDetail}
               onOpenFilter={() => setFilterOpen(true)}
               onOpenRecommendation={() => setTab('home')}
+              onOpenSettings={openSettings}
             />
           ) : (
             <SavedScreen />
@@ -376,12 +377,14 @@ function ExploreScreen({
   onOpenEvent,
   onOpenFilter,
   onOpenRecommendation,
+  onOpenSettings,
 }: {
   user: User;
   filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
+  onOpenSettings: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [searchQuery, setSearchQuery] = useState('');
@@ -410,12 +413,24 @@ function ExploreScreen({
         <Text style={styles.pageTitle}>행사 탐색</Text>
         <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
 
+        <Pressable style={styles.profileCard} onPress={onOpenSettings}>
+          <View>
+            <Text style={styles.profileTitle}>
+              {formatChildrenAges(selectedChildren)} · {user.homeRegion}
+            </Text>
+            <Text style={styles.profileMeta}>
+              {formatChildrenNames(selectedChildren)} 기준으로 탐색
+            </Text>
+          </View>
+          <Text style={styles.linkText}>설정</Text>
+        </Pressable>
+
         <View style={styles.searchField}>
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="제목, 장소, 지역 검색"
+            placeholder="행사 제목 검색"
             placeholderTextColor={colors.muted}
             returnKeyType="search"
             autoCorrect={false}
@@ -423,8 +438,6 @@ function ExploreScreen({
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          <Chip label={`${formatChildrenAges(selectedChildren)} 기준`} selected />
-          <Chip label={user.homeRegion} selected />
           {activeFilterLabels.map(chip => (
             <Chip key={chip} label={chip} selected />
           ))}
@@ -1058,18 +1071,7 @@ function normalizeSearchText(value: string) {
 }
 
 function eventMatchesSearchQuery(event: BabyrooEvent, normalizedQuery: string) {
-  const searchableText = normalizeSearchText(
-    [
-      event.title,
-      event.venueName,
-      event.locality,
-      event.region,
-      event.category,
-      event.source,
-      event.summary,
-      ...event.tags,
-    ].join(' '),
-  );
+  const searchableText = normalizeSearchText(event.title);
 
   return searchableText.includes(normalizedQuery);
 }
