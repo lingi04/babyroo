@@ -91,6 +91,10 @@ def parse_locality(address: str | None) -> str | None:
 
 
 def parse_age_min_months(text: str) -> int | None:
+    month_range_match = re.search(r"(?P<months>\d+)\s*개월\s*[~\-]", text)
+    if month_range_match:
+        return int(month_range_match.group("months"))
+
     range_match = re.search(r"만?\s*(?P<years>\d+)\s*(?:세)?\s*[~\-]\s*\d+\s*세", text)
     if range_match:
         return int(range_match.group("years")) * 12
@@ -109,6 +113,13 @@ def parse_age_min_months(text: str) -> int | None:
 
 
 def parse_age_max_months(text: str) -> int | None:
+    month_to_year_match = re.search(
+        r"\d+\s*개월\s*[~\-]\s*만?\s*(?P<years>\d+)\s*세",
+        text,
+    )
+    if month_to_year_match:
+        return int(month_to_year_match.group("years")) * 12
+
     range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
     if range_match:
         return int(range_match.group("years")) * 12
@@ -132,7 +143,7 @@ def normalize_category(value: Any, text: str) -> str | None:
     raw = f"{value or ''} {text}"
     if any(token in raw for token in ["공연", "연극", "뮤지컬", "콘서트"]):
         return "performance"
-    if any(token in raw for token in ["체험", "클래스", "교육", "만들기"]):
+    if any(token in raw for token in ["체험", "클래스", "교육", "만들기", "워크샵", "COOKING", "ART"]):
         return "experience"
     if any(token in raw for token in ["놀이터", "놀이공간", "키즈카페", "실내놀이"]):
         return "play_space"

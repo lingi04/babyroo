@@ -38,6 +38,24 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(event.age_min_months, 36)
         self.assertEqual(event.age_max_months, 60)
 
+    def test_normalize_month_to_year_age_range(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "오감놀이",
+                "url": "https://example.com/event",
+                "payload": {
+                    "description": "36개월~만8세 대상 워크샵",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.age_min_months, 36)
+        self.assertEqual(event.age_max_months, 96)
+        self.assertEqual(event.category, "experience")
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {
