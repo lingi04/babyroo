@@ -8,7 +8,7 @@
       "category": "exhibition",
       "ends_at": "2026-08-30",
       "guardian_required": null,
-      "id": "namu-c4981963e76e",
+      "id": "namu-44b494b108f6",
       "indoor": null,
       "last_checked_at": "2026-07-22",
       "locality": "서대문구",
@@ -20,7 +20,7 @@
       "reservation_required": null,
       "reservation_status": "unknown",
       "source": "namu",
-      "source_event_id": "exhibition-sdm-go-kr-web-main-exhibition-event-current-view",
+      "source_event_id": "exhibition-event-current",
       "source_url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view",
       "starts_at": "2025-10-01",
       "stroller_friendly": null,
@@ -29,8 +29,8 @@
         "실내"
       ],
       "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절",
-      "venue_detail": null,
-      "venue_name": "서대문자연사박물관 2층 기획전시실"
+      "venue_detail": "2층 기획전시실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울  광진구 능동로 216",
@@ -170,7 +170,7 @@
       "category": "exhibition",
       "ends_at": "2026-10-18",
       "guardian_required": null,
-      "id": "namu-0dc724551ae2",
+      "id": "namu-efe439f3d4bc",
       "indoor": null,
       "last_checked_at": "2026-07-22",
       "locality": "서대문구",
@@ -182,7 +182,7 @@
       "reservation_required": null,
       "reservation_status": "unknown",
       "source": "namu",
-      "source_event_id": "exhibition-m-go-kr-web-main-exhibition-special-current-view",
+      "source_event_id": "exhibition-special-current",
       "source_url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view",
       "starts_at": "2026-06-06",
       "stroller_friendly": null,
@@ -191,8 +191,8 @@
         "실내"
       ],
       "title": "무빙가든 MOVING GARDEN: 식물의 감각",
-      "venue_detail": null,
-      "venue_name": "서대문자연사박물관 1층 특별전시실"
+      "venue_detail": "1층 특별전시실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울특별시 종로구 삼청로 37",
@@ -367,7 +367,7 @@
       "category": "experience",
       "ends_at": "2026-07-24",
       "guardian_required": null,
-      "id": "namu-5643552f86f8",
+      "id": "namu-0e76469f2a69",
       "indoor": null,
       "last_checked_at": "2026-07-22",
       "locality": "서대문구",
@@ -388,7 +388,7 @@
         "실내",
         "예약필요"
       ],
-      "title": "생물 다양성 증진을 위한 정기강연",
+      "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>",
       "venue_detail": "1층 시청각실",
       "venue_name": "서대문자연사박물관"
     },
@@ -518,6 +518,38 @@
       ],
       "title": "(저)투어B",
       "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
+    },
+    {
+      "address": "서울시 서대문구 연희로32길 51",
+      "age_max_months": 144,
+      "age_min_months": 84,
+      "category": "experience",
+      "ends_at": "2026-07-25",
+      "guardian_required": null,
+      "id": "namu-39eba1cc42ad",
+      "indoor": null,
+      "last_checked_at": "2026-07-22",
+      "locality": "서대문구",
+      "nursing_room": null,
+      "parking": null,
+      "price_text": "25,000원 연간회원(일반) 25,000원",
+      "price_type": "paid",
+      "region": "서울",
+      "reservation_required": null,
+      "reservation_status": "available",
+      "source": "namu",
+      "source_event_id": "education-experience-26022-2026-07-25-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022",
+      "starts_at": "2026-07-25",
+      "stroller_friendly": null,
+      "summary": "- 쌍안경으로 밤하늘 관특하는 방법을 알려드리는 후 쌍안경을 빌려주는 가족프로그램 - 가족당 쌍안경 2대 대여 - 천체관측 기초 및 쌍안경 조작 실습 - 접수일 : 2026. 7. 13.(월) 11:00~ - 수업일 : 2026. 7. 25.(토) 19:30~21:00 - 과학도구 반납일 : 2026. 8. 23.(일) 16:00까지",
+      "tags": [
+        "실내",
+        "예약필요"
+      ],
+      "title": "<특별판>쌍안경으로 바라보는 밤하늘",
+      "venue_detail": "서대문자연사박물관 시청각실",
       "venue_name": "서대문자연사박물관"
     },
     {
@@ -678,38 +710,6 @@
       ],
       "title": "식물은 어떻게 생겼나요?2",
       "venue_detail": "1교육실",
-      "venue_name": "서대문자연사박물관"
-    },
-    {
-      "address": "서울시 서대문구 연희로32길 51",
-      "age_max_months": 144,
-      "age_min_months": 84,
-      "category": "experience",
-      "ends_at": "2026-07-25",
-      "guardian_required": null,
-      "id": "namu-8bd2da193536",
-      "indoor": null,
-      "last_checked_at": "2026-07-22",
-      "locality": "서대문구",
-      "nursing_room": null,
-      "parking": null,
-      "price_text": "25,000원 연간회원(일반) 25,000원",
-      "price_type": "paid",
-      "region": "서울",
-      "reservation_required": null,
-      "reservation_status": "available",
-      "source": "namu",
-      "source_event_id": "education-experience-26022-2026-07-25-1",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022",
-      "starts_at": "2026-07-25",
-      "stroller_friendly": null,
-      "summary": "- 쌍안경으로 밤하늘 관특하는 방법을 알려드리는 후 쌍안경을 빌려주는 가족프로그램 - 가족당 쌍안경 2대 대여 - 천체관측 기초 및 쌍안경 조작 실습 - 접수일 : 2026. 7. 13.(월) 11:00~ - 수업일 : 2026. 7. 25.(토) 19:30~21:00 - 과학도구 반납일 : 2026. 8. 23.(일) 16:00까지",
-      "tags": [
-        "실내",
-        "예약필요"
-      ],
-      "title": "쌍안경으로 바라보는 밤하늘",
-      "venue_detail": "서대문자연사박물관 시청각실",
       "venue_name": "서대문자연사박물관"
     },
     {

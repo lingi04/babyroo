@@ -274,7 +274,7 @@
         "ends_at": "2026-07-18",
         "item_type": "program",
         "locality": "서대문구",
-        "notes": "수업시간 14:00~16:00. 강좌명 (7월)",
+        "notes": "수업시간 14:00~16:00. 강좌명 (7월)<현미경: 작은 세상을 살펴보는 과학도구>",
         "price_text": "25,000원 연간회원(일반) 25,000원",
         "region": "서울",
         "reservation_required": true,
@@ -285,13 +285,13 @@
           "실내",
           "예약필요"
         ],
-        "title": "(7월)",
+        "title": "(7월)<현미경: 작은 세상을 살펴보는 과학도구>",
         "venue_detail": "2층 세미나실(사무실 윗층)",
         "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26020-2026-07-18-1",
-      "title": "(7월)",
+      "title": "(7월)<현미경: 작은 세상을 살펴보는 과학도구>",
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020"
     },
     {
@@ -304,7 +304,7 @@
         "ends_at": "2026-07-18",
         "item_type": "program",
         "locality": "서대문구",
-        "notes": "수업시간 19:00~21:00. 강좌명 (7월)",
+        "notes": "수업시간 19:00~21:00. 강좌명 (7월)<망원경: 밤하늘 관측 과학도구>",
         "price_text": "25,000원 연간회원(일반) 25,000원",
         "region": "서울",
         "reservation_required": true,
@@ -315,13 +315,13 @@
           "실내",
           "예약필요"
         ],
-        "title": "(7월)",
+        "title": "(7월)<망원경: 밤하늘 관측 과학도구>",
         "venue_detail": "2층 세미나실(사무실 윗층)",
         "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26021-2026-07-18-2",
-      "title": "(7월)",
+      "title": "(7월)<망원경: 밤하늘 관측 과학도구>",
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021"
     },
     {
@@ -394,7 +394,7 @@
         "ends_at": "2026-07-24",
         "item_type": "program",
         "locality": "서대문구",
-        "notes": "수업시간 15:00~16:30. 강좌명 생물 다양성 증진을 위한 정기강연",
+        "notes": "수업시간 15:00~16:30. 강좌명 생물 다양성 증진을 위한 정기강연 <도시 vs 야생>",
         "price_text": "0원",
         "region": "서울",
         "reservation_required": true,
@@ -405,13 +405,13 @@
           "실내",
           "예약필요"
         ],
-        "title": "생물 다양성 증진을 위한 정기강연",
+        "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>",
         "venue_detail": "1층 시청각실",
         "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26140-2026-07-24-1",
-      "title": "생물 다양성 증진을 위한 정기강연",
+      "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>",
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140"
     },
     {
@@ -544,7 +544,7 @@
         "ends_at": "2026-07-25",
         "item_type": "program",
         "locality": "서대문구",
-        "notes": "수업시간 19:30-21:00. 강좌명 쌍안경으로 바라보는 밤하늘",
+        "notes": "수업시간 19:30-21:00. 강좌명 <특별판>쌍안경으로 바라보는 밤하늘",
         "price_text": "25,000원 연간회원(일반) 25,000원",
         "region": "서울",
         "reservation_required": true,
@@ -555,13 +555,13 @@
           "실내",
           "예약필요"
         ],
-        "title": "쌍안경으로 바라보는 밤하늘",
+        "title": "<특별판>쌍안경으로 바라보는 밤하늘",
         "venue_detail": "서대문자연사박물관 시청각실",
         "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26022-2026-07-25-1",
-      "title": "쌍안경으로 바라보는 밤하늘",
+      "title": "<특별판>쌍안경으로 바라보는 밤하늘",
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022"
     },
     {

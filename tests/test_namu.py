@@ -52,6 +52,17 @@ EDUCATION_DETAIL_HTML = """
 </div>
 """
 
+EDUCATION_DETAIL_WITH_ANGLE_TITLE_HTML = """
+<ul class="ul-dot3">
+  <li><span class="item">강좌명</span>(7월)<망원경: 밤하늘 관측 과학도구></li>
+  <li><span class="item">장소</span>2층 세미나실(사무실 윗층)</li>
+  <li><span class="item">날짜</span>2026-07-18</li>
+  <li><span class="item">시간</span>19:00~21:00</li>
+  <li><span class="item">대상</span>초등학생 포함 가족</li>
+  <li><span class="item">수강료</span>25,000원<ul><li>연간회원(일반) 25,000원</li></ul></li>
+</ul>
+"""
+
 
 class NamuCollectorTest(unittest.TestCase):
     def test_parse_exhibitions_maps_current_exhibition(self):
@@ -93,6 +104,11 @@ class NamuCollectorTest(unittest.TestCase):
         self.assertEqual(detail["age_text"], "초4~6학년")
         self.assertEqual(detail["price_text"], "16,000원 연간회원 11,000원")
         self.assertIn("지구환경관", detail["summary"])
+
+    def test_parse_education_detail_preserves_korean_angle_bracket_title(self):
+        detail = parse_education_detail(EDUCATION_DETAIL_WITH_ANGLE_TITLE_HTML)
+
+        self.assertEqual(detail["title"], "(7월)<망원경: 밤하늘 관측 과학도구>")
 
     def test_parse_education_calendar_can_enrich_from_detail_pages(self):
         events = parse_education_calendar(

@@ -337,7 +337,8 @@ def absolutize(url: str | None) -> str | None:
 def clean_html(value: str | None) -> str | None:
     if value is None:
         return None
-    text = re.sub(r"<[^>]+>", " ", value)
+    text = re.sub(r"<!--.*?-->", " ", value, flags=re.DOTALL)
+    text = re.sub(r"</?[A-Za-z][^>]*>", " ", text)
     text = html.unescape(text)
     text = " ".join(text.split())
     return text or None
