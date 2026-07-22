@@ -120,7 +120,7 @@ def parse_exhibitions(html_pages: list[str], captured_at: str) -> list[dict]:
         events.append(
             RawEvent(
                 source=SOURCE,
-                source_event_id=make_source_event_id("exhibition", url),
+                source_event_id=make_exhibition_source_event_id(url),
                 title=title,
                 url=url,
                 captured_at=captured_at,
@@ -133,7 +133,8 @@ def parse_exhibitions(html_pages: list[str], captured_at: str) -> list[dict]:
                     "ends_at": ends_at,
                     "region": "서울",
                     "locality": "서대문구",
-                    "venue_name": f"{VENUE_NAME} {venue}" if venue else VENUE_NAME,
+                    "venue_name": VENUE_NAME,
+                    "venue_detail": venue,
                     "address": VENUE_ADDRESS,
                     "age_text": "전 연령",
                     "price_text": "박물관 관람료 적용",
@@ -194,7 +195,8 @@ def parse_education_calendar(
                     "ends_at": detail.get("date") or event_date,
                     "region": "서울",
                     "locality": "서대문구",
-                    "venue_name": detail.get("venue_name") or VENUE_NAME,
+                    "venue_name": VENUE_NAME,
+                    "venue_detail": detail.get("venue_name"),
                     "address": VENUE_ADDRESS,
                     "age_text": detail.get("age_text"),
                     "price_text": detail.get("price_text"),
@@ -311,6 +313,14 @@ def normalize_status(starts_at: str | None, ends_at: str | None, captured_at: st
     if starts_at and starts_at > captured_at:
         return "available"
     return "unknown"
+
+
+def make_exhibition_source_event_id(url: str) -> str:
+    if "/exhibition/event/current/" in url:
+        return "exhibition-event-current"
+    if "/exhibition/special/current/" in url:
+        return "exhibition-special-current"
+    return make_source_event_id("exhibition", url)
 
 
 def make_source_event_id(prefix: str, value: str) -> str:

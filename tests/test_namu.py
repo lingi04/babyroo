@@ -60,10 +60,13 @@ class NamuCollectorTest(unittest.TestCase):
         self.assertEqual(len(events), 1)
         event = events[0]
         self.assertEqual(event["source"], "namu")
+        self.assertEqual(event["source_event_id"], "exhibition-special-current")
         self.assertEqual(event["payload"]["item_type"], "exhibition")
         self.assertEqual(event["payload"]["starts_at"], "2026-06-06")
         self.assertEqual(event["payload"]["ends_at"], "2026-10-18")
         self.assertEqual(event["payload"]["category"], "특별전시")
+        self.assertEqual(event["payload"]["venue_name"], "서대문자연사박물관")
+        self.assertEqual(event["payload"]["venue_detail"], "1층 특별전시실")
         self.assertEqual(
             event["payload"]["image_url"],
             "https://namu.sdm.go.kr/uploadfile/asa/exhibition/314/poster.png",
@@ -100,7 +103,8 @@ class NamuCollectorTest(unittest.TestCase):
 
         self.assertEqual(events[0]["payload"]["age_text"], "초4~6학년")
         self.assertEqual(events[0]["payload"]["price_text"], "16,000원 연간회원 11,000원")
-        self.assertEqual(events[0]["payload"]["venue_name"], "1층 중앙홀 안내데스크 옆")
+        self.assertEqual(events[0]["payload"]["venue_name"], "서대문자연사박물관")
+        self.assertEqual(events[0]["payload"]["venue_detail"], "1층 중앙홀 안내데스크 옆")
         self.assertIn("지구환경관", events[0]["payload"]["summary"])
 
     def test_collect_writes_admission_exhibition_and_programs(self):

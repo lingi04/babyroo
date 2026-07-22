@@ -41,6 +41,7 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         region=clean_string(payload.get("region")),
         locality=clean_string(payload.get("locality")) or parse_locality(address),
         venue_name=clean_string(payload.get("venue_name")),
+        venue_detail=clean_string(payload.get("venue_detail")),
         address=address,
         age_min_months=age_min_months,
         age_max_months=parse_age_max_months(text),

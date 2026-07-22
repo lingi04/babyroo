@@ -28,6 +28,7 @@ class NormalizedEvent:
     region: str | None
     locality: str | None
     venue_name: str | None
+    venue_detail: str | None
     address: str | None
     age_min_months: int | None
     age_max_months: int | None

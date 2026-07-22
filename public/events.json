@@ -10,7 +10,7 @@
       "guardian_required": null,
       "id": "namu-c4981963e76e",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -29,6 +29,7 @@
         "실내"
       ],
       "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절",
+      "venue_detail": null,
       "venue_name": "서대문자연사박물관 2층 기획전시실"
     },
     {
@@ -60,6 +61,7 @@
         "보호자동반"
       ],
       "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]",
+      "venue_detail": null,
       "venue_name": "2층 서울형 키즈카페 시립 서울상상나라점"
     },
     {
@@ -92,6 +94,7 @@
         "예약필요"
       ],
       "title": "[2026년 전시몰입 프로그램] 박물관 선생님의 전시이야기",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     },
     {
@@ -124,6 +127,7 @@
         "예약필요"
       ],
       "title": "[2026년 전시연계] 할머니의 옛이야기",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     },
     {
@@ -156,6 +160,7 @@
         "예약필요"
       ],
       "title": "[2026년 교과연계교육] K-FOOD 양념치킨",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     },
     {
@@ -167,7 +172,7 @@
       "guardian_required": null,
       "id": "namu-0dc724551ae2",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -186,6 +191,7 @@
         "실내"
       ],
       "title": "무빙가든 MOVING GARDEN: 식물의 감각",
+      "venue_detail": null,
       "venue_name": "서대문자연사박물관 1층 특별전시실"
     },
     {
@@ -218,6 +224,7 @@
         "예약필요"
       ],
       "title": "[2026년 문화나눔] 두근두근 소풍",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     },
     {
@@ -250,39 +257,8 @@
         "실내"
       ],
       "title": "디키디키 입장",
+      "venue_detail": null,
       "venue_name": "디키디키"
-    },
-    {
-      "address": "서울시 서대문구 연희로32길 51",
-      "age_max_months": 144,
-      "age_min_months": 0,
-      "category": "exhibition",
-      "ends_at": "2027-01-17",
-      "guardian_required": null,
-      "id": "namu-b0aa2103ea66",
-      "indoor": true,
-      "last_checked_at": "2026-07-21",
-      "locality": "서대문구",
-      "nursing_room": null,
-      "parking": null,
-      "price_text": "어린이 3,000원, 4세 이하 무료, 어른 7,000원",
-      "price_type": "free",
-      "region": "서울",
-      "reservation_required": null,
-      "reservation_status": "unknown",
-      "source": "namu",
-      "source_event_id": "admission",
-      "source_url": "https://namu.sdm.go.kr/web/main/contents/guide_info_fee",
-      "starts_at": "2026-07-21",
-      "stroller_friendly": null,
-      "summary": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
-      "tags": [
-        "24개월이하",
-        "무료",
-        "실내"
-      ],
-      "title": "서대문자연사박물관 관람",
-      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울특별시 종로구 삼청로 37",
@@ -316,7 +292,41 @@
         "예약필요"
       ],
       "title": "국립민속박물관 어린이박물관 관람",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
+    },
+    {
+      "address": "서울시 서대문구 연희로32길 51",
+      "age_max_months": 144,
+      "age_min_months": 0,
+      "category": "exhibition",
+      "ends_at": "2027-01-18",
+      "guardian_required": null,
+      "id": "namu-b0aa2103ea66",
+      "indoor": true,
+      "last_checked_at": "2026-07-22",
+      "locality": "서대문구",
+      "nursing_room": null,
+      "parking": null,
+      "price_text": "어린이 3,000원, 4세 이하 무료, 어른 7,000원",
+      "price_type": "free",
+      "region": "서울",
+      "reservation_required": null,
+      "reservation_status": "unknown",
+      "source": "namu",
+      "source_event_id": "admission",
+      "source_url": "https://namu.sdm.go.kr/web/main/contents/guide_info_fee",
+      "starts_at": "2026-07-22",
+      "stroller_friendly": null,
+      "summary": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
+      "tags": [
+        "24개월이하",
+        "무료",
+        "실내"
+      ],
+      "title": "서대문자연사박물관 관람",
+      "venue_detail": null,
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -327,7 +337,7 @@
       "guardian_required": null,
       "id": "namu-a6bc5f2935a2",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -347,7 +357,8 @@
         "예약필요"
       ],
       "title": "【올해의 과학도서 1강】 나는 달로 출근한다",
-      "venue_name": "1층 시청각실"
+      "venue_detail": "1층 시청각실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -358,7 +369,7 @@
       "guardian_required": null,
       "id": "namu-5643552f86f8",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -378,7 +389,8 @@
         "예약필요"
       ],
       "title": "생물 다양성 증진을 위한 정기강연",
-      "venue_name": "1층 시청각실"
+      "venue_detail": "1층 시청각실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -389,7 +401,7 @@
       "guardian_required": null,
       "id": "namu-d589dd95dd88",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -409,7 +421,8 @@
         "예약필요"
       ],
       "title": "(유)멸종위기 야생생물",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -420,7 +433,7 @@
       "guardian_required": null,
       "id": "namu-6dad25195356",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -440,7 +453,8 @@
         "예약필요"
       ],
       "title": "(유)지구",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -451,7 +465,7 @@
       "guardian_required": null,
       "id": "namu-c7ac2c89bb50",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -471,7 +485,8 @@
         "예약필요"
       ],
       "title": "(저)멸종위기 야생생물",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -482,7 +497,7 @@
       "guardian_required": null,
       "id": "namu-c5c44d034c6f",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -502,7 +517,8 @@
         "예약필요"
       ],
       "title": "(저)투어B",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -513,7 +529,7 @@
       "guardian_required": null,
       "id": "namu-f83d811bd64d",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -533,7 +549,8 @@
         "예약필요"
       ],
       "title": "【여름방학 특강 2강】 캄브리아기 바다부터 현재까지, 5억 년의 진화",
-      "venue_name": "1층 시청각실"
+      "venue_detail": "1층 시청각실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -544,7 +561,7 @@
       "guardian_required": null,
       "id": "namu-4af8b59a34e6",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -564,7 +581,8 @@
         "예약필요"
       ],
       "title": "상어가족1",
-      "venue_name": "2교육실"
+      "venue_detail": "2교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -575,7 +593,7 @@
       "guardian_required": null,
       "id": "namu-ec01c443520c",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -595,7 +613,8 @@
         "예약필요"
       ],
       "title": "상어가족2",
-      "venue_name": "2교육실"
+      "venue_detail": "2교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -606,7 +625,7 @@
       "guardian_required": null,
       "id": "namu-a3ac2a6f581b",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -626,7 +645,8 @@
         "예약필요"
       ],
       "title": "식물은 어떻게 생겼나요?1",
-      "venue_name": "1교육실"
+      "venue_detail": "1교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -637,7 +657,7 @@
       "guardian_required": null,
       "id": "namu-b8293f04074c",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -657,7 +677,8 @@
         "예약필요"
       ],
       "title": "식물은 어떻게 생겼나요?2",
-      "venue_name": "1교육실"
+      "venue_detail": "1교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -668,7 +689,7 @@
       "guardian_required": null,
       "id": "namu-8bd2da193536",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -688,7 +709,8 @@
         "예약필요"
       ],
       "title": "쌍안경으로 바라보는 밤하늘",
-      "venue_name": "서대문자연사박물관 시청각실"
+      "venue_detail": "서대문자연사박물관 시청각실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -699,7 +721,7 @@
       "guardian_required": null,
       "id": "namu-583b37a5d603",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -719,7 +741,8 @@
         "예약필요"
       ],
       "title": "(고)멸종위기 야생생물",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -730,7 +753,7 @@
       "guardian_required": null,
       "id": "namu-3bd6597161f7",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -750,7 +773,8 @@
         "예약필요"
       ],
       "title": "(저탐구)화석탐구",
-      "venue_name": "1층 중앙홀 안내데스크 옆"
+      "venue_detail": "1층 중앙홀 안내데스크 옆",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -761,7 +785,7 @@
       "guardian_required": null,
       "id": "namu-73cd4336b945",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -781,7 +805,8 @@
         "예약필요"
       ],
       "title": "배고픈 식물들1",
-      "venue_name": "1교육실"
+      "venue_detail": "1교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -792,7 +817,7 @@
       "guardian_required": null,
       "id": "namu-e587d1506083",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -812,7 +837,8 @@
         "예약필요"
       ],
       "title": "배고픈 식물들2",
-      "venue_name": "1교육실"
+      "venue_detail": "1교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -823,7 +849,7 @@
       "guardian_required": null,
       "id": "namu-6cb2c8a6cb20",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -843,7 +869,8 @@
         "예약필요"
       ],
       "title": "홀로그램으로 하는 붕어해부1",
-      "venue_name": "3교육실"
+      "venue_detail": "3교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -854,7 +881,7 @@
       "guardian_required": null,
       "id": "namu-5f139345fe01",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -874,7 +901,8 @@
         "예약필요"
       ],
       "title": "홀로그램으로 하는 붕어해부2",
-      "venue_name": "3교육실"
+      "venue_detail": "3교육실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
@@ -885,7 +913,7 @@
       "guardian_required": null,
       "id": "namu-04af7bee5771",
       "indoor": null,
-      "last_checked_at": "2026-07-21",
+      "last_checked_at": "2026-07-22",
       "locality": "서대문구",
       "nursing_room": null,
       "parking": null,
@@ -905,7 +933,8 @@
         "예약필요"
       ],
       "title": "【올해의 과학도서 2강】 호랑이는 숲에 살지 않는다",
-      "venue_name": "1층 시청각실"
+      "venue_detail": "1층 시청각실",
+      "venue_name": "서대문자연사박물관"
     },
     {
       "address": "서울특별시 종로구 삼청로 37",
@@ -938,6 +967,7 @@
         "예약필요"
       ],
       "title": "[2026년 하반기 주말 교육] 찾아라! 민속",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     },
     {
@@ -970,6 +1000,7 @@
         "예약필요"
       ],
       "title": "[2026년 문화나눔] 얼쑤 좋다! 탈춤 한마당",
+      "venue_detail": null,
       "venue_name": "국립민속박물관 어린이박물관"
     }
   ],

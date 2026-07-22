@@ -1,14 +1,14 @@
 {
-  "captured_at": "2026-07-21",
+  "captured_at": "2026-07-22",
   "events": [
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "0~12세 어린이 및 가족",
         "category": "박물관",
         "description": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
-        "ends_at": "2027-01-17",
+        "ends_at": "2027-01-18",
         "item_type": "venue_admission",
         "locality": "서대문구",
         "notes": "입장권 사전 예매는 불가하며 현장 예매만 가능합니다.",
@@ -16,7 +16,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-07-21",
+        "starts_at": "2026-07-22",
         "tags": [
           "실내"
         ],
@@ -29,7 +29,7 @@
       "url": "https://namu.sdm.go.kr/web/main/contents/guide_info_fee"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -48,15 +48,16 @@
           "실내"
         ],
         "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절",
-        "venue_name": "서대문자연사박물관 2층 기획전시실"
+        "venue_detail": "2층 기획전시실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
-      "source_event_id": "exhibition-sdm-go-kr-web-main-exhibition-event-current-view",
+      "source_event_id": "exhibition-event-current",
       "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절",
       "url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -75,15 +76,16 @@
           "실내"
         ],
         "title": "무빙가든 MOVING GARDEN: 식물의 감각",
-        "venue_name": "서대문자연사박물관 1층 특별전시실"
+        "venue_detail": "1층 특별전시실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
-      "source_event_id": "exhibition-m-go-kr-web-main-exhibition-special-current-view",
+      "source_event_id": "exhibition-special-current",
       "title": "무빙가든 MOVING GARDEN: 식물의 감각",
       "url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -104,7 +106,8 @@
           "예약필요"
         ],
         "title": "(고)투어",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25990-2026-07-11-1",
@@ -112,7 +115,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -133,7 +136,8 @@
           "예약필요"
         ],
         "title": "(저)투어A",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25991-2026-07-11-2",
@@ -141,7 +145,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -162,7 +166,8 @@
           "예약필요"
         ],
         "title": "(유)자연",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25992-2026-07-11-3",
@@ -170,7 +175,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -191,7 +196,8 @@
           "예약필요"
         ],
         "title": "(저탐구)생물탐구",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25993-2026-07-11-4",
@@ -199,7 +205,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -220,7 +226,8 @@
           "예약필요"
         ],
         "title": "(유)생명",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25994-2026-07-12-1",
@@ -228,7 +235,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -249,7 +256,8 @@
           "예약필요"
         ],
         "title": "(고심화)다양한 생물왕국",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25995-2026-07-12-2",
@@ -257,7 +265,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -278,7 +286,8 @@
           "예약필요"
         ],
         "title": "(7월)",
-        "venue_name": "2층 세미나실(사무실 윗층)"
+        "venue_detail": "2층 세미나실(사무실 윗층)",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26020-2026-07-18-1",
@@ -286,7 +295,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -307,7 +316,8 @@
           "예약필요"
         ],
         "title": "(7월)",
-        "venue_name": "2층 세미나실(사무실 윗층)"
+        "venue_detail": "2층 세미나실(사무실 윗층)",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26021-2026-07-18-2",
@@ -315,7 +325,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -336,7 +346,8 @@
           "예약필요"
         ],
         "title": "【여름방학 특강 1강】 진화란 무엇인가?",
-        "venue_name": "1층 시청각실"
+        "venue_detail": "1층 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26118-2026-07-18-1",
@@ -344,7 +355,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
@@ -365,7 +376,8 @@
           "예약필요"
         ],
         "title": "【올해의 과학도서 1강】 나는 달로 출근한다",
-        "venue_name": "1층 시청각실"
+        "venue_detail": "1층 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26121-2026-07-23-1",
@@ -373,7 +385,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "관심 있는 누구나",
@@ -394,7 +406,8 @@
           "예약필요"
         ],
         "title": "생물 다양성 증진을 위한 정기강연",
-        "venue_name": "1층 시청각실"
+        "venue_detail": "1층 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26140-2026-07-24-1",
@@ -402,7 +415,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -423,7 +436,8 @@
           "예약필요"
         ],
         "title": "식물은 어떻게 생겼나요?1",
-        "venue_name": "1교육실"
+        "venue_detail": "1교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26072-2026-07-25-1",
@@ -431,7 +445,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26072"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -452,7 +466,8 @@
           "예약필요"
         ],
         "title": "식물은 어떻게 생겼나요?2",
-        "venue_name": "1교육실"
+        "venue_detail": "1교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26073-2026-07-25-2",
@@ -460,7 +475,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26073"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -481,7 +496,8 @@
           "예약필요"
         ],
         "title": "상어가족1",
-        "venue_name": "2교육실"
+        "venue_detail": "2교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26074-2026-07-25-3",
@@ -489,7 +505,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -510,7 +526,8 @@
           "예약필요"
         ],
         "title": "상어가족2",
-        "venue_name": "2교육실"
+        "venue_detail": "2교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26075-2026-07-25-4",
@@ -518,7 +535,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -539,7 +556,8 @@
           "예약필요"
         ],
         "title": "쌍안경으로 바라보는 밤하늘",
-        "venue_name": "서대문자연사박물관 시청각실"
+        "venue_detail": "서대문자연사박물관 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-experience-26022-2026-07-25-1",
@@ -547,7 +565,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -568,7 +586,8 @@
           "예약필요"
         ],
         "title": "【여름방학 특강 2강】 캄브리아기 바다부터 현재까지, 5억 년의 진화",
-        "venue_name": "1층 시청각실"
+        "venue_detail": "1층 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26119-2026-07-25-1",
@@ -576,7 +595,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26119"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -597,7 +616,8 @@
           "예약필요"
         ],
         "title": "(유)지구",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25996-2026-07-25-1",
@@ -605,7 +625,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25996"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -626,7 +646,8 @@
           "예약필요"
         ],
         "title": "(저)멸종위기 야생생물",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25997-2026-07-25-2",
@@ -634,7 +655,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25997"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -655,7 +676,8 @@
           "예약필요"
         ],
         "title": "(유)멸종위기 야생생물",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25998-2026-07-25-3",
@@ -663,7 +685,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25998"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -684,7 +706,8 @@
           "예약필요"
         ],
         "title": "(저)투어B",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-25999-2026-07-25-4",
@@ -692,7 +715,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25999"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -713,7 +736,8 @@
           "예약필요"
         ],
         "title": "배고픈 식물들1",
-        "venue_name": "1교육실"
+        "venue_detail": "1교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26086-2026-07-26-1",
@@ -721,7 +745,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26086"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -742,7 +766,8 @@
           "예약필요"
         ],
         "title": "홀로그램으로 하는 붕어해부1",
-        "venue_name": "3교육실"
+        "venue_detail": "3교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26114-2026-07-26-2",
@@ -750,7 +775,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26114"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -771,7 +796,8 @@
           "예약필요"
         ],
         "title": "배고픈 식물들2",
-        "venue_name": "1교육실"
+        "venue_detail": "1교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26087-2026-07-26-3",
@@ -779,7 +805,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26087"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -800,7 +826,8 @@
           "예약필요"
         ],
         "title": "홀로그램으로 하는 붕어해부2",
-        "venue_name": "3교육실"
+        "venue_detail": "3교육실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-class-26115-2026-07-26-4",
@@ -808,7 +835,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26115"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -829,7 +856,8 @@
           "예약필요"
         ],
         "title": "(저탐구)화석탐구",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-26000-2026-07-26-1",
@@ -837,7 +865,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26000"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -858,7 +886,8 @@
           "예약필요"
         ],
         "title": "(고)멸종위기 야생생물",
-        "venue_name": "1층 중앙홀 안내데스크 옆"
+        "venue_detail": "1층 중앙홀 안내데스크 옆",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-tour-26001-2026-07-26-2",
@@ -866,7 +895,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26001"
     },
     {
-      "captured_at": "2026-07-21",
+      "captured_at": "2026-07-22",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
@@ -887,7 +916,8 @@
           "예약필요"
         ],
         "title": "【올해의 과학도서 2강】 호랑이는 숲에 살지 않는다",
-        "venue_name": "1층 시청각실"
+        "venue_detail": "1층 시청각실",
+        "venue_name": "서대문자연사박물관"
       },
       "source": "namu",
       "source_event_id": "education-science-26122-2026-07-30-1",
