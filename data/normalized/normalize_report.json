@@ -1,0 +1,86 @@
+{
+  "age_warning_count": 10,
+  "age_warnings": [
+    {
+      "age_text": "전 연령",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "exhibition-event-current",
+      "source_url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view",
+      "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절"
+    },
+    {
+      "age_text": "전 연령",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "exhibition-special-current",
+      "source_url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view",
+      "title": "무빙가든 MOVING GARDEN: 식물의 감각"
+    },
+    {
+      "age_text": "성인 및 청소년 누구나 60명",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "education-science-26121-2026-07-23-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121",
+      "title": "【올해의 과학도서 1강】 나는 달로 출근한다"
+    },
+    {
+      "age_text": "관심 있는 누구나",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "education-science-26140-2026-07-24-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140",
+      "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>"
+    },
+    {
+      "age_text": "유치부(2020년생 1월1일생 이후)",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "education-class-26074-2026-07-25-3",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074",
+      "title": "상어가족1"
+    },
+    {
+      "age_text": "유치부(2020년생 1월1일생 이후)",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "education-class-26075-2026-07-25-4",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075",
+      "title": "상어가족2"
+    },
+    {
+      "age_text": "성인 및 청소년 누구나 60명",
+      "reason": "unsupported_age_text_format",
+      "source": "namu",
+      "source_event_id": "education-science-26122-2026-07-30-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26122",
+      "title": "【올해의 과학도서 2강】 호랑이는 숲에 살지 않는다"
+    },
+    {
+      "age_text": "초·중·고등 특수학급(장애 어린이), 장애인, 노인 단체",
+      "reason": "unsupported_age_text_format",
+      "source": "nfm_kids",
+      "source_event_id": "education-13916",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13916",
+      "title": "[2026년 문화나눔] 얼쑤 좋다! 탈춤 한마당"
+    },
+    {
+      "age_text": "초·중·고등 특수학급 등 교육복지 대상",
+      "reason": "unsupported_age_text_format",
+      "source": "nfm_kids",
+      "source_event_id": "education-13917",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13917",
+      "title": "[2026년 문화나눔] 두근두근 소풍"
+    },
+    {
+      "age_text": "누구나",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_culture",
+      "source_event_id": "156165",
+      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=156165&menuNo=200110",
+      "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]"
+    }
+  ],
+  "input_count": 69
+}

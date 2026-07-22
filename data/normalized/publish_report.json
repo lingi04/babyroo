@@ -1,6 +1,231 @@
 {
   "excluded": [
     {
+      "id": "dikidiki-fcf905542a89",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=3",
+      "title": "INSIDE OUT : 속마음 밖으로"
+    },
+    {
+      "id": "dikidiki-8bf479a218b2",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=4",
+      "title": "COLOR TALK : 색으로 대화하기"
+    },
+    {
+      "id": "dikidiki-89522241669a",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=5",
+      "title": "COLOR EXPRESS : 컬러 익스프레스"
+    },
+    {
+      "id": "dikidiki-4b795dc8c51e",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=2",
+      "title": "MONSTER CALLS : 내 안의 몬스터"
+    },
+    {
+      "id": "dikidiki-cc93c342f7aa",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=6",
+      "title": "초코타르트 만들기"
+    },
+    {
+      "id": "dikidiki-923983ec6f7f",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=8",
+      "title": "떡카롱 만들기"
+    },
+    {
+      "id": "dikidiki-f73c9af49d4c",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=9",
+      "title": "티라노 공룡탈 만들기"
+    },
+    {
+      "id": "dikidiki-e1cb19e79322",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=20",
+      "title": "ART in 공룡탈"
+    },
+    {
+      "id": "dikidiki-2bc353b5410b",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=13",
+      "title": "ART in 플레이모빌키링"
+    },
+    {
+      "id": "dikidiki-2fbf9236f4ce",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=14",
+      "title": "ART in 디자인"
+    },
+    {
+      "id": "dikidiki-5afb0c73f68d",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=15",
+      "title": "ART in 놀이터"
+    },
+    {
+      "id": "dikidiki-beb2e2e8b867",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=17",
+      "title": "ART in 멜로디"
+    },
+    {
+      "id": "dikidiki-1de5a5a8eed8",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=16",
+      "title": "ART in 움직임"
+    },
+    {
+      "id": "dikidiki-67f189b561ec",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=21",
+      "title": "COOKING in 클레이(슈가 컵케이크)"
+    },
+    {
+      "id": "dikidiki-a25f86a6a89b",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=19",
+      "title": "ART in 그림책"
+    },
+    {
+      "id": "dikidiki-5c1435a94ab5",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=18",
+      "title": "ART in 퐁피듀"
+    },
+    {
+      "id": "dikidiki-ebe1bbc70870",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=22",
+      "title": "COOKING in 케익바 (팝시클)"
+    },
+    {
+      "id": "dikidiki-98043c9fc942",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=25",
+      "title": "아빠,엄마와 함께하는 해피왈츠"
+    },
+    {
+      "id": "dikidiki-1f3f4d44ee6d",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=24",
+      "title": "모두의 놀이터, 몽클한 촉감놀이터 <발굴 탐험대>"
+    },
+    {
+      "id": "dikidiki-6f45712a4cda",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=27",
+      "title": "어린이 밥상 연구소"
+    },
+    {
+      "id": "dikidiki-f880215d6bb7",
+      "reasons": [
+        "ended"
+      ],
+      "source": "dikidiki",
+      "source_url": "https://dikidiki.co.kr/workshop_detail.do?seq=26",
+      "title": "키마키마(어린이 ESG 프로젝트)"
+    },
+    {
+      "id": "nfm-kids-23b116d3d3d3",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13908",
+      "title": "[2026년 특별전 연계 교육] 생일, 모두의 잔치"
+    },
+    {
+      "id": "nfm-kids-a3ecba0e27be",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13913",
+      "title": "[2026년 상반기 주말 교육] 찾아라! 민속"
+    },
+    {
+      "id": "nfm-kids-c37da717dae4",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13910",
+      "title": "[2026년 상반기] 유아교육(단체)"
+    },
+    {
+      "id": "nfm-kids-7db0d5503be4",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13914",
+      "title": "[2026년] 찾아가는 어린이박물관(지역박물관)"
+    },
+    {
       "id": "manual-sample-f02640693f49",
       "reasons": [
         "ended"
@@ -8,10 +233,118 @@
       "source": "manual_sample",
       "source_url": "https://example.com/events/sample-001",
       "title": "아기와 함께하는 감각놀이 체험"
+    },
+    {
+      "id": "seoul-childcare-48190f23f13f",
+      "reasons": [
+        "ended"
+      ],
+      "source": "seoul_childcare",
+      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51650",
+      "title": "[6/10] 다문화부모 양육클래스(중국어) 2차"
+    },
+    {
+      "id": "seoul-childcare-690732e57911",
+      "reasons": [
+        "ended"
+      ],
+      "source": "seoul_childcare",
+      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51810",
+      "title": "[6/24] 다문화부모 양육클래스(베트남어) 1차"
+    },
+    {
+      "id": "namu-91b87a92b085",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990",
+      "title": "(고)투어"
+    },
+    {
+      "id": "namu-2410bac8577f",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992",
+      "title": "(유)자연"
+    },
+    {
+      "id": "namu-8dc63ab36897",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991",
+      "title": "(저)투어A"
+    },
+    {
+      "id": "namu-ab71eb4d6814",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993",
+      "title": "(저탐구)생물탐구"
+    },
+    {
+      "id": "namu-f904aa408080",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995",
+      "title": "(고심화)다양한 생물왕국"
+    },
+    {
+      "id": "namu-4e8dc016f46b",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994",
+      "title": "(유)생명"
+    },
+    {
+      "id": "seoul-childcare-d58bc35f4ec0",
+      "reasons": [
+        "ended"
+      ],
+      "source": "seoul_childcare",
+      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51811",
+      "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차"
+    },
+    {
+      "id": "namu-26eb055e7d6d",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021",
+      "title": "(7월)<망원경: 밤하늘 관측 과학도구>"
+    },
+    {
+      "id": "namu-ae799dca95cc",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020",
+      "title": "(7월)<현미경: 작은 세상을 살펴보는 과학도구>"
+    },
+    {
+      "id": "namu-39dedcc91d43",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118",
+      "title": "【여름방학 특강 1강】 진화란 무엇인가?"
     }
   ],
-  "excluded_count": 1,
-  "generated_at": "2026-06-06",
-  "input_count": 5,
-  "published_count": 4
+  "excluded_count": 38,
+  "generated_at": "2026-07-22",
+  "input_count": 69,
+  "published_count": 31
 }

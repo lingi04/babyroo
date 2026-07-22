@@ -1,0 +1,327 @@
+{
+  "captured_at": "2026-07-22",
+  "events": [
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "어린이 및 보호자 동반 가족",
+        "category": "박물관",
+        "description": "무료로 이용할 수 있는 실내 어린이박물관 전시 관람.",
+        "ends_at": "2027-01-18",
+        "item_type": "venue_admission",
+        "locality": "종로구",
+        "notes": "관람시간 09:30~16:50. 인터넷 예약을 통해 관람할 수 있으며, 보호자와 어린이가 동반 입장해야 합니다.",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "unknown",
+        "starts_at": "2026-07-22",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요",
+          "보호자동반"
+        ],
+        "title": "국립민속박물관 어린이박물관 관람",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "admission",
+      "title": "국립민속박물관 어린이박물관 관람",
+      "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "초·중·고등 특수학급(장애 어린이), 장애인, 노인 단체",
+        "category": "문화나눔교육",
+        "description": "문화나눔교육 교육 프로그램",
+        "ends_at": "2026-10-22",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수중",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "available",
+        "starts_at": "2026-08-19",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 문화나눔] 얼쑤 좋다! 탈춤 한마당",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13916",
+      "title": "[2026년 문화나눔] 얼쑤 좋다! 탈춤 한마당",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13916"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "초·중·고등 특수학급 등 교육복지 대상",
+        "category": "문화가있는날교육",
+        "description": "문화가있는날교육 교육 프로그램",
+        "ends_at": "2026-11-04",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수중",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "available",
+        "starts_at": "2026-06-11",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 문화나눔] 두근두근 소풍",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13917",
+      "title": "[2026년 문화나눔] 두근두근 소풍",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13917"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "어린이 동반 가족",
+        "category": "주말교육",
+        "description": "주말교육 교육 프로그램",
+        "ends_at": "2026-11-29",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수예정",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "available",
+        "starts_at": "2026-08-01",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 하반기 주말 교육] 찾아라! 민속",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13918",
+      "title": "[2026년 하반기 주말 교육] 찾아라! 민속",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13918"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "6세 이상",
+        "category": "전시연계교육",
+        "description": "전시연계교육 교육 프로그램",
+        "ends_at": "2026-12-31",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수예정",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "available",
+        "starts_at": "2026-03-05",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 전시연계] 할머니의 옛이야기",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13911",
+      "title": "[2026년 전시연계] 할머니의 옛이야기",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13911"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "6세~10세, 어린이 포함 및 가족",
+        "category": "전시연계교육",
+        "description": "전시연계교육 교육 프로그램",
+        "ends_at": "2026-12-31",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수예정",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "available",
+        "starts_at": "2026-02-26",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 전시몰입 프로그램] 박물관 선생님의 전시이야기",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13909",
+      "title": "[2026년 전시몰입 프로그램] 박물관 선생님의 전시이야기",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13909"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "초등 1~6학년 1학급(30명 내외)",
+        "category": "교과연계교육",
+        "description": "교과연계교육 교육 프로그램",
+        "ends_at": "2026-11-10",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수마감",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "closed",
+        "starts_at": "2026-05-12",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 교과연계교육] K-FOOD 양념치킨",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13912",
+      "title": "[2026년 교과연계교육] K-FOOD 양념치킨",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13912"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "25명 내외(1회 기준) 유아(만5~6세), 초등학생(1~2학년)",
+        "category": "찾아가는어린이박물관교육",
+        "description": "찾아가는어린이박물관교육 교육 프로그램",
+        "ends_at": "2026-06-26",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수마감",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "closed",
+        "starts_at": "2026-04-22",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년] 찾아가는 어린이박물관(지역박물관)",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13914",
+      "title": "[2026년] 찾아가는 어린이박물관(지역박물관)",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13914"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "취학 전 누리과정 어린이 단체 및 기관(20명 내외)",
+        "category": "유아교육",
+        "description": "유아교육 교육 프로그램",
+        "ends_at": "2026-06-17",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수마감",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "closed",
+        "starts_at": "2026-04-15",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 상반기] 유아교육(단체)",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13910",
+      "title": "[2026년 상반기] 유아교육(단체)",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13910"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "어린이 동반 가족",
+        "category": "주말교육",
+        "description": "주말교육 교육 프로그램",
+        "ends_at": "2026-07-19",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수마감",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "closed",
+        "starts_at": "2026-04-04",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 상반기 주말 교육] 찾아라! 민속",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13913",
+      "title": "[2026년 상반기 주말 교육] 찾아라! 민속",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13913"
+    },
+    {
+      "captured_at": "2026-07-22",
+      "payload": {
+        "address": "서울특별시 종로구 삼청로 37",
+        "age_text": "초등학생 어린이 동반 가족",
+        "category": "전시연계교육",
+        "description": "전시연계교육 교육 프로그램",
+        "ends_at": "2026-01-30",
+        "item_type": "program",
+        "locality": "종로구",
+        "notes": "접수상태 접수마감",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "closed",
+        "starts_at": "2026-01-12",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요"
+        ],
+        "title": "[2026년 특별전 연계 교육] 생일, 모두의 잔치",
+        "venue_name": "국립민속박물관 어린이박물관"
+      },
+      "source": "nfm_kids",
+      "source_event_id": "education-13908",
+      "title": "[2026년 특별전 연계 교육] 생일, 모두의 잔치",
+      "url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13908"
+    }
+  ],
+  "source": "nfm_kids",
+  "source_url": "https://www.nfm.go.kr/kids/"
+}

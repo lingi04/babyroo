@@ -17,18 +17,48 @@ PUBLIC_DIR = ROOT / "public"
 
 def normalize_all(raw_dir: Path = RAW_DIR, normalized_dir: Path = NORMALIZED_DIR) -> list[dict]:
     normalized_events = []
+    age_warnings = []
     for path in list_json_files(raw_dir):
         raw_doc = read_json(path)
         raw_events = raw_doc if isinstance(raw_doc, list) else raw_doc.get("events", [])
         for raw_event in raw_events:
-            normalized_events.append(normalize_raw_event(raw_event).to_dict())
+            normalized = normalize_raw_event(raw_event).to_dict()
+            normalized_events.append(normalized)
+            age_warning = make_age_normalization_warning(raw_event, normalized)
+            if age_warning:
+                age_warnings.append(age_warning)
 
     normalized_events = sorted(
         deduplicate(normalized_events),
         key=lambda event: (event.get("starts_at") or "9999-99-99", event.get("title") or ""),
     )
     write_json(normalized_dir / "events.json", {"events": normalized_events})
+    write_json(
+        normalized_dir / "normalize_report.json",
+        {
+            "input_count": len(normalized_events),
+            "age_warning_count": len(age_warnings),
+            "age_warnings": age_warnings,
+        },
+    )
     return normalized_events
+
+
+def make_age_normalization_warning(raw_event: dict[str, Any], normalized_event: dict[str, Any]) -> dict | None:
+    payload = raw_event.get("payload", {})
+    age_text = payload.get("age_text")
+    if not age_text:
+        return None
+    if normalized_event.get("age_min_months") is not None or normalized_event.get("age_max_months") is not None:
+        return None
+    return {
+        "source": raw_event.get("source"),
+        "source_event_id": raw_event.get("source_event_id"),
+        "title": raw_event.get("title") or payload.get("title"),
+        "source_url": raw_event.get("url") or payload.get("url"),
+        "age_text": age_text,
+        "reason": "unsupported_age_text_format",
+    }
 
 
 def publish(

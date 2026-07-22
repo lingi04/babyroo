@@ -26,7 +26,25 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-seoul --pages 5
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-childcare --months 3
 ```
 
-두 실제 수집원을 한 번에 실행:
+디키디키 입장 및 워크샵 프로그램 수집:
+
+```bash
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-dikidiki
+```
+
+서대문자연사박물관 관람, 현재 전시, 교육일정 수집:
+
+```bash
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-namu
+```
+
+국립민속박물관 어린이박물관 관람 및 교육일정 수집:
+
+```bash
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-nfm-kids
+```
+
+실제 수집원을 한 번에 실행:
 
 ```bash
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-all --pages 5 --months 3
@@ -38,6 +56,9 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-all --pages 5 --months 3
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-sample
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-seoul --pages 5
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-childcare --months 3
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-dikidiki
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-namu
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-nfm-kids
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli normalize
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 ```
@@ -64,3 +85,9 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 수집기와 정규화를 분리했기 때문에, 다음 사이트를 추가할 때는 `crawler/sources/`에 collector만 추가하고 기존 normalize/publish 흐름을 재사용할 수 있습니다.
 
 서울시육아종합지원센터는 `나들이정보`가 기사형 콘텐츠라 행사 날짜를 안정적으로 얻기 어렵습니다. 그래서 현재 collector는 `행사/교육` 달력에서 부모·가족 대상 일정만 수집하고, 보육교직원·원장·교사 대상 교육은 제외합니다.
+
+디키디키는 상설 입장과 워크샵 프로그램이 함께 있는 수집원입니다. `crawler/sources/dikidiki.py`는 상설 입장을 `venue_admission`, 워크샵을 `program`으로 raw payload에 구분해 저장하고, 기존 normalize/publish 흐름으로 Babyroo 공통 이벤트 스키마에 맞춥니다.
+
+서대문자연사박물관은 `crawler/sources/namu.py`에서 상설 관람을 `venue_admission`, 현재 전시를 `exhibition`, 교육일정 달력의 수업을 `program`으로 구분해 저장합니다.
+
+국립민속박물관 어린이박물관은 `crawler/sources/nfm_kids.py`에서 어린이박물관 관람을 `venue_admission`, 교육일정 표의 교육을 `program`으로 구분해 저장합니다.

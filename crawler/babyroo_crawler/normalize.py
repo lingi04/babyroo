@@ -29,7 +29,8 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
     source_url = str(raw.get("url") or payload.get("url") or "").strip()
 
     event_id = make_event_id(source, source_event_id, title, source_url)
-    age_min_months = parse_age_min_months(text)
+    age_source_text = clean_string(payload.get("age_text")) or text
+    age_min_months = parse_age_min_months(age_source_text)
     address = clean_string(payload.get("address"))
 
     return NormalizedEvent(
@@ -41,9 +42,11 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         region=clean_string(payload.get("region")),
         locality=clean_string(payload.get("locality")) or parse_locality(address),
         venue_name=clean_string(payload.get("venue_name")),
+        venue_detail=clean_string(payload.get("venue_detail")),
+        image_url=clean_string(payload.get("image_url")),
         address=address,
         age_min_months=age_min_months,
-        age_max_months=parse_age_max_months(text),
+        age_max_months=parse_age_max_months(age_source_text),
         guardian_required=parse_bool_from_text(text, ["보호자", "양육자"]),
         price_type=normalize_price_type(payload.get("price_text"), text),
         price_text=clean_string(payload.get("price_text")),
@@ -91,51 +94,120 @@ def parse_locality(address: str | None) -> str | None:
 
 
 def parse_age_min_months(text: str) -> int | None:
+    candidates = []
+
+    if "취학 전 누리과정" in text:
+        candidates.append(36)
+
+    month_range_match = re.search(r"(?P<months>\d+)\s*개월\s*[~\-]", text)
+    if month_range_match:
+        candidates.append(int(month_range_match.group("months")))
+
     range_match = re.search(r"만?\s*(?P<years>\d+)\s*(?:세)?\s*[~\-]\s*\d+\s*세", text)
     if range_match:
-        return int(range_match.group("years")) * 12
+        candidates.append(int(range_match.group("years")) * 12)
+
+    year_to_elementary_match = re.search(
+        r"만?\s*(?P<years>\d+)\s*세\s*[~\-]\s*초(?:등|등학생)?\s*(?P<grade>\d+)\s*학년",
+        text,
+    )
+    if year_to_elementary_match:
+        candidates.append(int(year_to_elementary_match.group("years")) * 12)
+
+    elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*[~\-]\s*\d+\s*학년", text)
+    if elementary_range_match:
+        candidates.append(elementary_grade_to_months(int(elementary_range_match.group("grade"))))
+
+    elementary_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        candidates.append(elementary_grade_to_months(int(elementary_match.group("grade"))))
+
+    if "초등학생" in text and not elementary_range_match and not elementary_match:
+        candidates.append(elementary_grade_to_months(1))
 
     for pattern in AGE_MONTH_PATTERNS:
         match = pattern.search(text)
         if not match:
             continue
         if match.groupdict().get("months"):
-            return int(match.group("months"))
+            candidates.append(int(match.group("months")))
         if match.groupdict().get("years"):
-            return int(match.group("years")) * 12
-    if any(token in text for token in ["영유아", "아기", "베이비"]):
-        return 0
-    return None
+            candidates.append(int(match.group("years")) * 12)
+    if any(token in text for token in ["영유아", "아기", "베이비"]) and not candidates:
+        candidates.append(0)
+    if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
+        candidates.append(0)
+    return min(candidates) if candidates else None
 
 
 def parse_age_max_months(text: str) -> int | None:
+    candidates = []
+
+    if "취학 전 누리과정" in text:
+        candidates.append(72)
+
+    month_to_year_match = re.search(
+        r"\d+\s*개월\s*[~\-]\s*만?\s*(?P<years>\d+)\s*세",
+        text,
+    )
+    if month_to_year_match:
+        candidates.append(int(month_to_year_match.group("years")) * 12)
+
     range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
     if range_match:
-        return int(range_match.group("years")) * 12
+        candidates.append(int(range_match.group("years")) * 12)
+
+    year_to_elementary_match = re.search(
+        r"만?\s*\d+\s*세\s*[~\-]\s*초(?:등|등학생)?\s*(?P<grade>\d+)\s*학년",
+        text,
+    )
+    if year_to_elementary_match:
+        candidates.append(elementary_grade_to_months(int(year_to_elementary_match.group("grade"))))
+
+    elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?\d+\s*[~\-]\s*(?P<grade>\d+)\s*학년", text)
+    if elementary_range_match:
+        candidates.append(elementary_grade_to_months(int(elementary_range_match.group("grade"))))
+
+    elementary_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        candidates.append(elementary_grade_to_months(int(elementary_match.group("grade"))))
+
+    if "초등학생" in text and not elementary_range_match and not elementary_match:
+        candidates.append(elementary_grade_to_months(6))
 
     match = re.search(r"(?P<months>\d+)\s*개월\s*(이하|까지|미만)", text)
     if match:
         months = int(match.group("months"))
-        return months - 1 if "미만" in match.group(0) else months
+        candidates.append(months - 1 if "미만" in match.group(0) else months)
 
     match = re.search(r"(?P<years>\d+)\s*세\s*(이하|까지|미만)", text)
     if match:
         months = int(match.group("years")) * 12
-        return months - 1 if "미만" in match.group(0) else months
+        candidates.append(months - 1 if "미만" in match.group(0) else months)
 
     if "0~3세" in text or "0-3세" in text:
-        return 36
-    return None
+        candidates.append(36)
+    if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
+        candidates.append(144)
+    return max(candidates) if candidates else None
+
+
+def elementary_grade_to_months(grade: int) -> int:
+    return (grade + 6) * 12
 
 
 def normalize_category(value: Any, text: str) -> str | None:
     raw = f"{value or ''} {text}"
     if any(token in raw for token in ["공연", "연극", "뮤지컬", "콘서트"]):
         return "performance"
-    if any(token in raw for token in ["체험", "클래스", "교육", "만들기"]):
+    if any(token in raw for token in ["체험", "클래스", "교육", "만들기", "워크샵", "COOKING", "ART"]):
         return "experience"
     if any(token in raw for token in ["놀이터", "놀이공간", "키즈카페", "실내놀이"]):
         return "play_space"
+    if any(token in raw for token in ["전시", "기획전시", "특별전시"]):
+        return "exhibition"
+    if any(token in raw for token in ["박물관", "museum"]):
+        return "museum"
     return None
 
 
