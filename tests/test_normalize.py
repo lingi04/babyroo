@@ -36,7 +36,7 @@ class NormalizeTest(unittest.TestCase):
         )
 
         self.assertEqual(event.age_min_months, 36)
-        self.assertEqual(event.age_max_months, 60)
+        self.assertEqual(event.age_max_months, 71)
 
     def test_normalize_month_to_year_age_range(self):
         event = normalize_raw_event(
@@ -53,8 +53,25 @@ class NormalizeTest(unittest.TestCase):
         )
 
         self.assertEqual(event.age_min_months, 36)
-        self.assertEqual(event.age_max_months, 96)
+        self.assertEqual(event.age_max_months, 107)
         self.assertEqual(event.category, "experience")
+
+    def test_normalize_single_year_age_as_full_year_band(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "세살 체험",
+                "url": "https://example.com/event",
+                "payload": {
+                    "age_text": "3세 어린이 대상",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.age_min_months, 36)
+        self.assertEqual(event.age_max_months, 47)
 
     def test_normalize_museum_and_exhibition_categories(self):
         museum = normalize_raw_event(
@@ -167,7 +184,7 @@ class NormalizeTest(unittest.TestCase):
         )
 
         self.assertEqual(year_range.age_min_months, 72)
-        self.assertEqual(year_range.age_max_months, 120)
+        self.assertEqual(year_range.age_max_months, 131)
         self.assertEqual(elementary_range.age_min_months, 84)
         self.assertEqual(elementary_range.age_max_months, 96)
         self.assertEqual(preschool.age_min_months, 36)

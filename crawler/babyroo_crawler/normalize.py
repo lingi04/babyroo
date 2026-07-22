@@ -133,6 +133,9 @@ def parse_age_min_months(text: str) -> int | None:
             candidates.append(int(match.group("months")))
         if match.groupdict().get("years"):
             candidates.append(int(match.group("years")) * 12)
+    exact_year_match = find_exact_year_age(text)
+    if exact_year_match:
+        candidates.append(exact_year_match * 12)
     if any(token in text for token in ["영유아", "아기", "베이비"]) and not candidates:
         candidates.append(0)
     if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
@@ -151,11 +154,11 @@ def parse_age_max_months(text: str) -> int | None:
         text,
     )
     if month_to_year_match:
-        candidates.append(int(month_to_year_match.group("years")) * 12)
+        candidates.append(year_to_max_months(int(month_to_year_match.group("years"))))
 
     range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
     if range_match:
-        candidates.append(int(range_match.group("years")) * 12)
+        candidates.append(year_to_max_months(int(range_match.group("years"))))
 
     year_to_elementary_match = re.search(
         r"만?\s*\d+\s*세\s*[~\-]\s*초(?:등|등학생)?\s*(?P<grade>\d+)\s*학년",
@@ -182,11 +185,14 @@ def parse_age_max_months(text: str) -> int | None:
 
     match = re.search(r"(?P<years>\d+)\s*세\s*(이하|까지|미만)", text)
     if match:
-        months = int(match.group("years")) * 12
+        months = year_to_max_months(int(match.group("years")))
         candidates.append(months - 1 if "미만" in match.group(0) else months)
 
     if "0~3세" in text or "0-3세" in text:
-        candidates.append(36)
+        candidates.append(year_to_max_months(3))
+    exact_year_match = find_exact_year_age(text)
+    if exact_year_match:
+        candidates.append(year_to_max_months(exact_year_match))
     if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
         candidates.append(144)
     return max(candidates) if candidates else None
@@ -194,6 +200,18 @@ def parse_age_max_months(text: str) -> int | None:
 
 def elementary_grade_to_months(grade: int) -> int:
     return (grade + 6) * 12
+
+
+def year_to_max_months(year: int) -> int:
+    return year * 12 + 11
+
+
+def find_exact_year_age(text: str) -> int | None:
+    match = re.search(
+        r"(?<![~\-\d])(?:만\s*)?(?P<years>\d+)\s*세(?!\s*(?:이상|부터|이하|까지|미만|[~\-]|학년))",
+        text,
+    )
+    return int(match.group("years")) if match else None
 
 
 def normalize_category(value: Any, text: str) -> str | None:

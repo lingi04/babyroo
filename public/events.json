@@ -67,7 +67,7 @@
     },
     {
       "address": "서울특별시 종로구 삼청로 37",
-      "age_max_months": 120,
+      "age_max_months": 131,
       "age_min_months": 72,
       "category": "experience",
       "ends_at": "2026-12-31",
@@ -235,7 +235,7 @@
     },
     {
       "address": "서울특별시 중구 을지로 281 동대문디자인플라자(DDP) 뮤지엄 4층 디키디키",
-      "age_max_months": 96,
+      "age_max_months": 107,
       "age_min_months": 24,
       "category": "play_space",
       "ends_at": "2027-01-17",
@@ -305,7 +305,7 @@
     },
     {
       "address": "서울시 서대문구 연희로32길 51",
-      "age_max_months": 144,
+      "age_max_months": 155,
       "age_min_months": 0,
       "category": "exhibition",
       "ends_at": "2027-01-18",
