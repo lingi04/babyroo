@@ -217,6 +217,60 @@
       "title": "[6/24] 다문화부모 양육클래스(베트남어) 1차"
     },
     {
+      "id": "namu-91b87a92b085",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990",
+      "title": "(고)투어"
+    },
+    {
+      "id": "namu-2410bac8577f",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992",
+      "title": "(유)자연"
+    },
+    {
+      "id": "namu-8dc63ab36897",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991",
+      "title": "(저)투어A"
+    },
+    {
+      "id": "namu-ab71eb4d6814",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993",
+      "title": "(저탐구)생물탐구"
+    },
+    {
+      "id": "namu-f904aa408080",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995",
+      "title": "(고심화)다양한 생물왕국"
+    },
+    {
+      "id": "namu-4e8dc016f46b",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994",
+      "title": "(유)생명"
+    },
+    {
       "id": "seoul-childcare-d58bc35f4ec0",
       "reasons": [
         "ended"
@@ -224,10 +278,37 @@
       "source": "seoul_childcare",
       "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51811",
       "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차"
+    },
+    {
+      "id": "namu-9b3fbcc3f93e",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020",
+      "title": "(7월)"
+    },
+    {
+      "id": "namu-54ccf0aa1dce",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021",
+      "title": "(7월)"
+    },
+    {
+      "id": "namu-39dedcc91d43",
+      "reasons": [
+        "ended"
+      ],
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118",
+      "title": "【여름방학 특강 1강】 진화란 무엇인가?"
     }
   ],
-  "excluded_count": 25,
+  "excluded_count": 34,
   "generated_at": "2026-07-21",
-  "input_count": 27,
-  "published_count": 2
+  "input_count": 58,
+  "published_count": 24
 }

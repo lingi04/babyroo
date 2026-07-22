@@ -56,6 +56,54 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(event.age_max_months, 96)
         self.assertEqual(event.category, "experience")
 
+    def test_normalize_museum_and_exhibition_categories(self):
+        museum = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "박물관 관람",
+                "url": "https://example.com/museum",
+                "payload": {
+                    "category": "박물관",
+                    "description": "실내 자연사박물관 관람",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+        exhibition = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "특별전시",
+                "url": "https://example.com/exhibition",
+                "payload": {
+                    "category": "특별전시",
+                    "description": "식물 감각 전시",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(museum.category, "museum")
+        self.assertEqual(exhibition.category, "exhibition")
+
+    def test_normalize_elementary_grade_age_range(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "박물관 투어",
+                "url": "https://example.com/tour",
+                "payload": {
+                    "description": "대상 초4~6학년",
+                    "starts_at": "2026-07-11",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.age_min_months, 120)
+        self.assertEqual(event.age_max_months, 144)
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {

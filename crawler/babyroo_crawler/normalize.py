@@ -91,6 +91,14 @@ def parse_locality(address: str | None) -> str | None:
 
 
 def parse_age_min_months(text: str) -> int | None:
+    elementary_range_match = re.search(r"초\s*(?P<grade>\d+)\s*[~\-]\s*\d+\s*학년", text)
+    if elementary_range_match:
+        return elementary_grade_to_months(int(elementary_range_match.group("grade")))
+
+    elementary_match = re.search(r"초\s*(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        return elementary_grade_to_months(int(elementary_match.group("grade")))
+
     month_range_match = re.search(r"(?P<months>\d+)\s*개월\s*[~\-]", text)
     if month_range_match:
         return int(month_range_match.group("months"))
@@ -113,6 +121,14 @@ def parse_age_min_months(text: str) -> int | None:
 
 
 def parse_age_max_months(text: str) -> int | None:
+    elementary_range_match = re.search(r"초\s*\d+\s*[~\-]\s*(?P<grade>\d+)\s*학년", text)
+    if elementary_range_match:
+        return elementary_grade_to_months(int(elementary_range_match.group("grade")))
+
+    elementary_match = re.search(r"초\s*(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        return elementary_grade_to_months(int(elementary_match.group("grade")))
+
     month_to_year_match = re.search(
         r"\d+\s*개월\s*[~\-]\s*만?\s*(?P<years>\d+)\s*세",
         text,
@@ -139,6 +155,10 @@ def parse_age_max_months(text: str) -> int | None:
     return None
 
 
+def elementary_grade_to_months(grade: int) -> int:
+    return (grade + 6) * 12
+
+
 def normalize_category(value: Any, text: str) -> str | None:
     raw = f"{value or ''} {text}"
     if any(token in raw for token in ["공연", "연극", "뮤지컬", "콘서트"]):
@@ -147,6 +167,10 @@ def normalize_category(value: Any, text: str) -> str | None:
         return "experience"
     if any(token in raw for token in ["놀이터", "놀이공간", "키즈카페", "실내놀이"]):
         return "play_space"
+    if any(token in raw for token in ["전시", "기획전시", "특별전시"]):
+        return "exhibition"
+    if any(token in raw for token in ["박물관", "museum"]):
+        return "museum"
     return None
 
 
