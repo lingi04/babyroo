@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
+  BackHandler,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -17,9 +21,19 @@ import DateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BabyrooEvent, eventsNewestFirst, recommendedEvents } from './src/data/events';
+import {
+  BabyrooEvent,
+  eventsNewestFirst,
+  recommendedEvents,
+} from './src/data/events';
 import { RecommendationSession } from './src/data/recommendation';
-import { Child, ChildGender, currentUser, getSelectedChildren, User } from './src/data/user';
+import {
+  Child,
+  ChildGender,
+  currentUser,
+  getSelectedChildren,
+  User,
+} from './src/data/user';
 import { loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
 
@@ -53,7 +67,9 @@ function App() {
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(defaultExploreFilters);
+  const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(
+    defaultExploreFilters,
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -81,6 +97,37 @@ function App() {
       saveUser(user).catch(() => undefined);
     }
   }, [user, userLoaded]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        if (filterOpen) {
+          setFilterOpen(false);
+          return true;
+        }
+
+        if (selectedEvent) {
+          setSelectedEvent(null);
+          return true;
+        }
+
+        if (settingsOpen) {
+          setSettingsOpen(false);
+          return true;
+        }
+
+        if (tab !== 'explore') {
+          setTab('explore');
+          return true;
+        }
+
+        return false;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [filterOpen, selectedEvent, settingsOpen, tab]);
 
   const openDetail = (event: BabyrooEvent) => {
     setSelectedEvent(event);
@@ -119,7 +166,10 @@ function App() {
     return id;
   };
 
-  const updateChild = (childId: string, childPatch: Partial<Omit<Child, 'id'>>) => {
+  const updateChild = (
+    childId: string,
+    childPatch: Partial<Omit<Child, 'id'>>,
+  ) => {
     setUser(previousUser => ({
       ...previousUser,
       children: previousUser.children.map(child =>
@@ -134,13 +184,18 @@ function App() {
         return previousUser;
       }
 
-      const children = previousUser.children.filter(child => child.id !== childId);
-      const activeChildIds = previousUser.activeChildIds.filter(id => id !== childId);
+      const children = previousUser.children.filter(
+        child => child.id !== childId,
+      );
+      const activeChildIds = previousUser.activeChildIds.filter(
+        id => id !== childId,
+      );
 
       return {
         ...previousUser,
         children,
-        activeChildIds: activeChildIds.length > 0 ? activeChildIds : [children[0].id],
+        activeChildIds:
+          activeChildIds.length > 0 ? activeChildIds : [children[0].id],
       };
     });
   };
@@ -154,7 +209,10 @@ function App() {
 
       return {
         ...previousUser,
-        activeChildIds: activeChildIds.length > 0 ? activeChildIds : previousUser.activeChildIds,
+        activeChildIds:
+          activeChildIds.length > 0
+            ? activeChildIds
+            : previousUser.activeChildIds,
       };
     });
   };
@@ -178,7 +236,11 @@ function App() {
       ) : (
         <>
           {tab === 'home' ? (
-            <HomeScreen user={user} onOpenEvent={openDetail} onOpenSettings={openSettings} />
+            <HomeScreen
+              user={user}
+              onOpenEvent={openDetail}
+              onOpenSettings={openSettings}
+            />
           ) : tab === 'explore' ? (
             <ExploreScreen
               user={user}
@@ -215,14 +277,16 @@ function HomeScreen({
   onOpenSettings: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
-  const [recommendationSessions, setRecommendationSessions] = useState<RecommendationSession[]>([]);
-  const [selectedRecommendationSessionId, setSelectedRecommendationSessionId] = useState<
-    string | null
-  >(null);
+  const [recommendationSessions, setRecommendationSessions] = useState<
+    RecommendationSession[]
+  >([]);
+  const [selectedRecommendationSessionId, setSelectedRecommendationSessionId] =
+    useState<string | null>(null);
   const latestRecommendationSession = recommendationSessions[0];
   const selectedRecommendationSession =
-    recommendationSessions.find(session => session.id === selectedRecommendationSessionId) ??
-    latestRecommendationSession;
+    recommendationSessions.find(
+      session => session.id === selectedRecommendationSessionId,
+    ) ?? latestRecommendationSession;
   const selectedRecommendedEvents = selectedRecommendationSession
     ? selectedRecommendationSession.resultEventIds
         .map(eventId => eventsNewestFirst.find(event => event.id === eventId))
@@ -239,7 +303,10 @@ function HomeScreen({
       creditCost: 1,
     };
 
-    setRecommendationSessions(previousSessions => [session, ...previousSessions]);
+    setRecommendationSessions(previousSessions => [
+      session,
+      ...previousSessions,
+    ]);
     setSelectedRecommendationSessionId(session.id);
   };
 
@@ -253,7 +320,8 @@ function HomeScreen({
         <Pressable
           style={styles.iconButton}
           onPress={onOpenSettings}
-          accessibilityLabel="Open user settings">
+          accessibilityLabel="Open user settings"
+        >
           <Text style={styles.iconButtonText}>≡</Text>
         </Pressable>
       </View>
@@ -274,28 +342,39 @@ function HomeScreen({
         <Text style={styles.settingsLabel}>추천 준비</Text>
         <Text style={styles.settingsTitle}>조건에 맞는 후보만 추려볼까요?</Text>
         <Text style={styles.settingsMeta}>
-          추천은 현재 아이 정보와 지역을 기준으로 후보를 좁혀 보여주는 기능입니다.
+          추천은 현재 아이 정보와 지역을 기준으로 후보를 좁혀 보여주는
+          기능입니다.
         </Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-          {[formatChildrenAges(selectedChildren), user.homeRegion, '이번 주말', '실내 선호'].map(
-            chip => (
-              <Chip key={chip} label={chip} selected />
-            ),
-          )}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipRow}
+        >
+          {[
+            formatChildrenAges(selectedChildren),
+            user.homeRegion,
+            '이번 주말',
+            '실내 선호',
+          ].map(chip => (
+            <Chip key={chip} label={chip} selected />
+          ))}
         </ScrollView>
 
-        <Pressable
-          style={styles.primaryButton}
-          onPress={requestRecommendation}>
+        <Pressable style={styles.primaryButton} onPress={requestRecommendation}>
           <Text style={styles.primaryButtonText}>
-            {latestRecommendationSession ? '다시 추천 받기 · 1회 사용' : '추천 받기 · 1회 사용'}
+            {latestRecommendationSession
+              ? '다시 추천 받기 · 1회 사용'
+              : '추천 받기 · 1회 사용'}
           </Text>
         </Pressable>
         {latestRecommendationSession ? (
           <Text style={styles.settingsMeta}>
-            최근 추천 {formatRecommendationSessionTime(latestRecommendationSession.createdAt)} ·
-            총 {recommendationSessions.length}회 사용
+            최근 추천{' '}
+            {formatRecommendationSessionTime(
+              latestRecommendationSession.createdAt,
+            )}{' '}
+            · 총 {recommendationSessions.length}회 사용
           </Text>
         ) : null}
       </View>
@@ -325,9 +404,12 @@ function HomeScreen({
         ))
       ) : (
         <View style={styles.recommendationEmptyState}>
-          <Text style={styles.emptyStateTitle}>추천 결과를 아직 만들지 않았어요</Text>
+          <Text style={styles.emptyStateTitle}>
+            추천 결과를 아직 만들지 않았어요
+          </Text>
           <Text style={styles.emptyStateText}>
-            탐색에서 직접 고를 수도 있고, 추천을 요청하면 후보 3개를 먼저 추려드립니다.
+            탐색에서 직접 고를 수도 있고, 추천을 요청하면 후보 3개를 먼저
+            추려드립니다.
           </Text>
         </View>
       )}
@@ -345,13 +427,15 @@ function HomeScreen({
                   styles.recommendationHistoryItem,
                   selected && styles.recommendationHistoryItemSelected,
                 ]}
-                onPress={() => setSelectedRecommendationSessionId(session.id)}>
+                onPress={() => setSelectedRecommendationSessionId(session.id)}
+              >
                 <View>
                   <Text style={styles.recommendationHistoryTitle}>
                     {formatRecommendationSessionTime(session.createdAt)} 추천
                   </Text>
                   <Text style={styles.recommendationHistoryMeta}>
-                    후보 {session.resultEventIds.length}개 · {session.creditCost}회 사용
+                    후보 {session.resultEventIds.length}개 ·{' '}
+                    {session.creditCost}회 사용
                   </Text>
                 </View>
                 <Text style={styles.recommendationHistoryBadge}>
@@ -388,10 +472,12 @@ function ExploreScreen({
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [searchQuery, setSearchQuery] = useState('');
-  const [recommendationCtaVisible, setRecommendationCtaVisible] = useState(false);
+  const [recommendationCtaVisible, setRecommendationCtaVisible] =
+    useState(false);
   const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
-    () => filterEvents(eventsNewestFirst, searchQuery, filters, selectedChildren),
+    () =>
+      filterEvents(eventsNewestFirst, searchQuery, filters, selectedChildren),
     [filters, searchQuery, selectedChildren],
   );
   const activeFilterLabels = getActiveExploreFilterLabels(filters);
@@ -409,7 +495,8 @@ function ExploreScreen({
       <ScrollView
         contentContainerStyle={styles.screenWithTabs}
         onScroll={handleScroll}
-        scrollEventThrottle={16}>
+        scrollEventThrottle={16}
+      >
         <Text style={styles.pageTitle}>행사 탐색</Text>
         <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
 
@@ -437,12 +524,20 @@ function ExploreScreen({
           />
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipRow}
+        >
           {activeFilterLabels.map(chip => (
             <Chip key={chip} label={chip} selected />
           ))}
           <Pressable onPress={onOpenFilter}>
-            <Chip label={activeFilterCount > 0 ? `필터 ${activeFilterCount}` : '필터'} />
+            <Chip
+              label={
+                activeFilterCount > 0 ? `필터 ${activeFilterCount}` : '필터'
+              }
+            />
           </Pressable>
         </ScrollView>
 
@@ -474,10 +569,15 @@ function ExploreScreen({
         <Pressable
           style={styles.floatingRecommendationCta}
           onPress={onOpenRecommendation}
-          accessibilityLabel="Open recommendation page">
+          accessibilityLabel="Open recommendation page"
+        >
           <View>
-            <Text style={styles.floatingRecommendationTitle}>고르기 어렵다면</Text>
-            <Text style={styles.floatingRecommendationText}>아이에게 맞는 후보만 추천받기</Text>
+            <Text style={styles.floatingRecommendationTitle}>
+              고르기 어렵다면
+            </Text>
+            <Text style={styles.floatingRecommendationText}>
+              아이에게 맞는 후보만 추천받기
+            </Text>
           </View>
           <Text style={styles.floatingRecommendationBadge}>추천 1회</Text>
         </Pressable>
@@ -493,13 +593,32 @@ function EventDetail({
   event: BabyrooEvent;
   onBack: () => void;
 }) {
-  const recommendation = useMemo(() => getRecommendationReason(event), [event]);
+  const openSourceUrl = () => {
+    Linking.openURL(event.sourceUrl).catch(() => {
+      Alert.alert('페이지를 열 수 없어요', '잠시 후 다시 시도해 주세요.');
+    });
+  };
 
   return (
     <View style={styles.detailRoot}>
       <ScrollView contentContainerStyle={styles.detailContent}>
         <View style={styles.detailHero}>
-          <Pressable style={styles.backButton} onPress={onBack} accessibilityLabel="Go back">
+          {event.imageUrl ? (
+            <Image
+              source={{ uri: event.imageUrl }}
+              resizeMode="cover"
+              style={styles.detailHeroImage}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <EventThumbnailFallback event={event} tone={event.csvSequence} />
+          )}
+          <View style={styles.detailHeroScrim} />
+          <Pressable
+            style={styles.backButton}
+            onPress={onBack}
+            accessibilityLabel="Go back"
+          >
             <Text style={styles.backButtonText}>‹</Text>
           </Pressable>
           <Text style={styles.heroSource}>{event.source}</Text>
@@ -516,14 +635,15 @@ function EventDetail({
 
           <View style={styles.factGrid}>
             <Fact label="월령" value={formatAge(event)} />
-            <Fact label="가격" value={event.priceText || formatPriceType(event.priceType)} />
+            <Fact
+              label="가격"
+              value={event.priceText || formatPriceType(event.priceType)}
+            />
             <Fact label="예약" value={formatReservation(event)} />
             <Fact label="장소" value={event.venueName} />
-          </View>
-
-          <View style={styles.reasonBox}>
-            <Text style={styles.reasonTitle}>추천 판단</Text>
-            <Text style={styles.reasonText}>{recommendation}</Text>
+            {event.venueDetail ? (
+              <Fact label="상세위치" value={event.venueDetail} />
+            ) : null}
           </View>
 
           <Text style={styles.sectionTitle}>행사 소개</Text>
@@ -539,7 +659,12 @@ function EventDetail({
       </ScrollView>
 
       <View style={styles.ctaBar}>
-        <Pressable style={styles.primaryButton}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={openSourceUrl}
+          accessibilityLabel="Open source or reservation page"
+          accessibilityRole="link"
+        >
           <Text style={styles.primaryButtonText}>원문 / 예약 페이지 열기</Text>
         </Pressable>
       </View>
@@ -551,7 +676,9 @@ function SavedScreen() {
   return (
     <View style={[styles.screenWithTabs, styles.emptyState]}>
       <Text style={styles.pageTitle}>저장한 행사</Text>
-      <Text style={styles.pageSubtitle}>관심 있는 행사를 저장하면 여기에 모입니다.</Text>
+      <Text style={styles.pageSubtitle}>
+        관심 있는 행사를 저장하면 여기에 모입니다.
+      </Text>
     </View>
   );
 }
@@ -570,7 +697,10 @@ function SettingsScreen({
   onBack: () => void;
   onAddChild: (child: Omit<Child, 'id'>) => string;
   onRemoveChild: (childId: string) => void;
-  onUpdateChild: (childId: string, childPatch: Partial<Omit<Child, 'id'>>) => void;
+  onUpdateChild: (
+    childId: string,
+    childPatch: Partial<Omit<Child, 'id'>>,
+  ) => void;
   onUpdateDisplayName: (displayName: string) => void;
   onToggleChild: (childId: string) => void;
   onSelectRegion: (region: string) => void;
@@ -615,7 +745,10 @@ function SettingsScreen({
     onUpdateChild(target, { birthDate });
   };
 
-  const handleBirthDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const handleBirthDateChange = (
+    event: DateTimePickerEvent,
+    selectedDate?: Date,
+  ) => {
     if (Platform.OS === 'android') {
       setDatePickerOpen(false);
     }
@@ -657,7 +790,11 @@ function SettingsScreen({
           <Text style={styles.eyebrow}>추천 기준 관리</Text>
           <Text style={styles.pageTitle}>설정</Text>
         </View>
-        <Pressable style={styles.iconButton} onPress={handleBack} accessibilityLabel="Close settings">
+        <Pressable
+          style={styles.iconButton}
+          onPress={handleBack}
+          accessibilityLabel="Close settings"
+        >
           <Text style={styles.iconButtonText}>×</Text>
         </Pressable>
       </View>
@@ -678,13 +815,16 @@ function SettingsScreen({
           returnKeyType="done"
           textContentType="none"
         />
-        <Text style={styles.settingsMeta}>앱 안에서 사용할 보호자 이름입니다.</Text>
+        <Text style={styles.settingsMeta}>
+          앱 안에서 사용할 보호자 이름입니다.
+        </Text>
       </View>
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>추천에 포함할 아이</Text>
         <Text style={styles.sectionMeta}>
-          {formatChildrenNames(selectedChildren)} 기준으로 월령 필터를 계산합니다.
+          {formatChildrenNames(selectedChildren)} 기준으로 월령 필터를
+          계산합니다.
         </Text>
 
         {childrenByAge.map(child => {
@@ -694,26 +834,42 @@ function SettingsScreen({
           return (
             <View
               key={child.id}
-              style={[styles.childCard, selected && styles.childCardSelected]}>
+              style={[styles.childCard, selected && styles.childCardSelected]}
+            >
               <View style={styles.childCardHeader}>
                 <View>
                   <Text style={styles.childName}>{child.nickname}</Text>
                   <Text style={styles.childMeta}>
-                    {child.birthDate} · {formatChildAge(child)} · {formatGender(child.gender)}
+                    {child.birthDate} · {formatChildAge(child)} ·{' '}
+                    {formatGender(child.gender)}
                   </Text>
                 </View>
                 <View style={styles.childActions}>
                   <Pressable
                     style={styles.editButton}
                     onPress={() => setEditingChildId(editing ? null : child.id)}
-                    accessibilityLabel={`Edit ${child.nickname}`}>
-                    <Text style={styles.editButtonText}>{editing ? '완료' : '수정'}</Text>
+                    accessibilityLabel={`Edit ${child.nickname}`}
+                  >
+                    <Text style={styles.editButtonText}>
+                      {editing ? '완료' : '수정'}
+                    </Text>
                   </Pressable>
                   <Pressable
-                    style={[styles.checkCircle, selected && styles.checkCircleSelected]}
+                    style={[
+                      styles.checkCircle,
+                      selected && styles.checkCircleSelected,
+                    ]}
                     onPress={() => onToggleChild(child.id)}
-                    accessibilityLabel={`Toggle ${child.nickname} recommendation`}>
-                    <Text style={[styles.checkText, selected && styles.checkTextSelected]}>✓</Text>
+                    accessibilityLabel={`Toggle ${child.nickname} recommendation`}
+                  >
+                    <Text
+                      style={[
+                        styles.checkText,
+                        selected && styles.checkTextSelected,
+                      ]}
+                    >
+                      ✓
+                    </Text>
                   </Pressable>
                 </View>
               </View>
@@ -723,7 +879,9 @@ function SettingsScreen({
                   <TextInput
                     style={styles.textInput}
                     defaultValue={child.nickname}
-                    onChangeText={nickname => onUpdateChild(child.id, { nickname })}
+                    onChangeText={nickname =>
+                      onUpdateChild(child.id, { nickname })
+                    }
                     placeholder="아이 이름 또는 별명"
                     placeholderTextColor={colors.muted}
                     autoCapitalize="none"
@@ -735,7 +893,10 @@ function SettingsScreen({
 
                   <Pressable
                     style={styles.datePickerButton}
-                    onPress={() => openBirthDatePicker(child.id, child.birthDate)}>
+                    onPress={() =>
+                      openBirthDatePicker(child.id, child.birthDate)
+                    }
+                  >
                     <Text style={styles.datePickerText}>{child.birthDate}</Text>
                     <Text style={styles.childMeta}>
                       {formatChildAge(child)}
@@ -743,13 +904,19 @@ function SettingsScreen({
                   </Pressable>
 
                   <View style={styles.wrapRow}>
-                    {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
-                      <Pressable
-                        key={gender}
-                        onPress={() => onUpdateChild(child.id, { gender })}>
-                        <Chip label={formatGender(gender)} selected={gender === child.gender} />
-                      </Pressable>
-                    ))}
+                    {(['unknown', 'female', 'male'] as ChildGender[]).map(
+                      gender => (
+                        <Pressable
+                          key={gender}
+                          onPress={() => onUpdateChild(child.id, { gender })}
+                        >
+                          <Chip
+                            label={formatGender(gender)}
+                            selected={gender === child.gender}
+                          />
+                        </Pressable>
+                      ),
+                    )}
                   </View>
                 </>
               ) : null}
@@ -758,7 +925,8 @@ function SettingsScreen({
                 <Pressable
                   style={styles.removeButton}
                   onPress={() => onRemoveChild(child.id)}
-                  accessibilityLabel={`Remove ${child.nickname}`}>
+                  accessibilityLabel={`Remove ${child.nickname}`}
+                >
                   <Text style={styles.removeButtonText}>삭제</Text>
                 </Pressable>
               ) : null}
@@ -769,7 +937,8 @@ function SettingsScreen({
         <Pressable
           style={styles.addChildButton}
           onPress={handleAddChild}
-          accessibilityLabel="Add child">
+          accessibilityLabel="Add child"
+        >
           <Text style={styles.addChildPlus}>＋</Text>
           <Text style={styles.addChildText}>아이 추가</Text>
         </Pressable>
@@ -786,7 +955,9 @@ function SettingsScreen({
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>기본 지역</Text>
-        <Text style={styles.sectionMeta}>추천과 탐색 필터의 기본 지역으로 사용됩니다.</Text>
+        <Text style={styles.sectionMeta}>
+          추천과 탐색 필터의 기본 지역으로 사용됩니다.
+        </Text>
         <View style={styles.wrapRow}>
           {regions.map(region => (
             <Pressable key={region} onPress={() => onSelectRegion(region)}>
@@ -817,7 +988,10 @@ function FilterSheet({
   onChangeFilters: (filters: ExploreFilters) => void;
   onClose: () => void;
 }) {
-  const localities = useMemo(() => getAvailableLocalities(eventsNewestFirst), []);
+  const localities = useMemo(
+    () => getAvailableLocalities(eventsNewestFirst),
+    [],
+  );
   const updateFilter = <Key extends keyof ExploreFilters>(
     key: Key,
     value: ExploreFilters[Key],
@@ -833,18 +1007,26 @@ function FilterSheet({
         <View style={styles.sheetHeader}>
           <View>
             <Text style={styles.sheetTitle}>필터</Text>
-            <Text style={styles.sheetSubtitle}>직접 찾고 싶은 조건만 좁혀보세요</Text>
+            <Text style={styles.sheetSubtitle}>
+              직접 찾고 싶은 조건만 좁혀보세요
+            </Text>
           </View>
           <Pressable onPress={() => onChangeFilters(defaultExploreFilters)}>
             <Text style={styles.linkText}>초기화</Text>
           </Pressable>
         </View>
 
-        <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.sheetScroll}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.fieldLabel}>아이 월령</Text>
           <View style={styles.wrapRow}>
             <Pressable onPress={() => updateFilter('ageFit', !filters.ageFit)}>
-              <Chip label="선택한 아이에게 맞는 행사" selected={filters.ageFit} />
+              <Chip
+                label="선택한 아이에게 맞는 행사"
+                selected={filters.ageFit}
+              />
             </Pressable>
           </View>
 
@@ -855,7 +1037,10 @@ function FilterSheet({
               ['upcoming', '예정/진행중'],
               ['ended', '종료됨'],
             ].map(([value, label]) => (
-              <Pressable key={value} onPress={() => updateFilter('date', value as DateFilter)}>
+              <Pressable
+                key={value}
+                onPress={() => updateFilter('date', value as DateFilter)}
+              >
                 <Chip label={label} selected={filters.date === value} />
               </Pressable>
             ))}
@@ -867,8 +1052,14 @@ function FilterSheet({
               <Chip label="전체" selected={filters.locality === 'all'} />
             </Pressable>
             {localities.map(locality => (
-              <Pressable key={locality} onPress={() => updateFilter('locality', locality)}>
-                <Chip label={locality} selected={filters.locality === locality} />
+              <Pressable
+                key={locality}
+                onPress={() => updateFilter('locality', locality)}
+              >
+                <Chip
+                  label={locality}
+                  selected={filters.locality === locality}
+                />
               </Pressable>
             ))}
           </View>
@@ -880,7 +1071,10 @@ function FilterSheet({
               ['free', '무료'],
               ['paid', '유료'],
             ].map(([value, label]) => (
-              <Pressable key={value} onPress={() => updateFilter('price', value as PriceFilter)}>
+              <Pressable
+                key={value}
+                onPress={() => updateFilter('price', value as PriceFilter)}
+              >
                 <Chip label={label} selected={filters.price === value} />
               </Pressable>
             ))}
@@ -893,7 +1087,10 @@ function FilterSheet({
               ['indoor', '실내'],
               ['outdoor', '야외'],
             ].map(([value, label]) => (
-              <Pressable key={value} onPress={() => updateFilter('place', value as PlaceFilter)}>
+              <Pressable
+                key={value}
+                onPress={() => updateFilter('place', value as PlaceFilter)}
+              >
                 <Chip label={label} selected={filters.place === value} />
               </Pressable>
             ))}
@@ -909,13 +1106,19 @@ function FilterSheet({
             ].map(([value, label]) => (
               <Pressable
                 key={value}
-                onPress={() => updateFilter('reservation', value as ReservationFilter)}>
+                onPress={() =>
+                  updateFilter('reservation', value as ReservationFilter)
+                }
+              >
                 <Chip label={label} selected={filters.reservation === value} />
               </Pressable>
             ))}
           </View>
 
-          <Pressable style={[styles.primaryButton, styles.sheetApplyButton]} onPress={onClose}>
+          <Pressable
+            style={[styles.primaryButton, styles.sheetApplyButton]}
+            onPress={onClose}
+          >
             <Text style={styles.primaryButtonText}>결과 보기</Text>
           </Pressable>
         </ScrollView>
@@ -937,17 +1140,32 @@ function EventCard({
   tone: number;
   onPress: () => void;
 }) {
-  const color = [colors.primarySoft, colors.blue, colors.mint, colors.lilac][tone % 4];
+  const color = [colors.primarySoft, colors.blue, colors.mint, colors.lilac][
+    tone % 4
+  ];
 
   return (
-    <Pressable style={[styles.eventCard, compact && styles.eventCardCompact]} onPress={onPress}>
+    <Pressable
+      style={[styles.eventCard, compact && styles.eventCardCompact]}
+      onPress={onPress}
+      accessibilityLabel={`Open ${event.title}`}
+    >
       {showSequence ? (
         <View style={styles.sequenceBadge}>
           <Text style={styles.sequenceText}>{event.csvSequence}</Text>
         </View>
       ) : null}
       <View style={[styles.thumbnail, { backgroundColor: color }]}>
-        <Text style={styles.thumbnailText}>{event.category.slice(0, 2).toUpperCase()}</Text>
+        {event.imageUrl ? (
+          <Image
+            source={{ uri: event.imageUrl }}
+            resizeMode="cover"
+            style={styles.thumbnailImage}
+            accessibilityIgnoresInvertColors
+          />
+        ) : (
+          <EventThumbnailFallback event={event} tone={tone} />
+        )}
       </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardTitle} numberOfLines={compact ? 2 : 3}>
@@ -956,12 +1174,56 @@ function EventCard({
         <Text style={styles.cardMeta} numberOfLines={2}>
           {event.venueName} · {formatAge(event)}
         </Text>
+        {showSequence && event.tags.length > 0 ? (
+          <View style={styles.cardTagRow}>
+            {event.tags.slice(0, 3).map(tag => (
+              <Chip key={tag} label={tag} dense />
+            ))}
+          </View>
+        ) : null}
         <View style={styles.cardFooter}>
-          <Chip label={event.indoor ? '실내' : '확인필요'} dense />
+          {event.indoor === undefined ? null : (
+            <Chip label={event.indoor ? '실내' : '야외'} dense />
+          )}
           <Text style={styles.cardDate}>{formatShortDate(event.startsAt)}</Text>
         </View>
       </View>
     </Pressable>
+  );
+}
+
+function EventThumbnailFallback({
+  event,
+  tone,
+}: {
+  event: BabyrooEvent;
+  tone: number;
+}) {
+  const palette = [
+    [colors.primary, colors.mint, colors.blue],
+    [colors.blueText, colors.primarySoft, colors.lilac],
+    [colors.mintText, colors.blue, colors.primarySoft],
+    [colors.lilacText, colors.mint, colors.blue],
+  ][tone % 4];
+
+  return (
+    <View style={styles.thumbnailFallback}>
+      <View
+        style={[styles.thumbnailBackdrop, { backgroundColor: palette[1] }]}
+      />
+      <View
+        style={[styles.thumbnailAccentLarge, { backgroundColor: palette[0] }]}
+      />
+      <View
+        style={[styles.thumbnailAccentSmall, { backgroundColor: palette[2] }]}
+      />
+      <Text style={styles.thumbnailSourceText} numberOfLines={1}>
+        {thumbnailSourceLabel(event)}
+      </Text>
+      <Text style={styles.thumbnailCategoryText} numberOfLines={1}>
+        {thumbnailCategoryLabel(event)}
+      </Text>
+    </View>
   );
 }
 
@@ -975,8 +1237,16 @@ function Chip({
   dense?: boolean;
 }) {
   return (
-    <View style={[styles.chip, selected && styles.chipSelected, dense && styles.chipDense]}>
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+    <View
+      style={[
+        styles.chip,
+        selected && styles.chipSelected,
+        dense && styles.chipDense,
+      ]}
+    >
+      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -1010,9 +1280,17 @@ function BottomTabs({
       {tabs.map(tab => {
         const active = tab.id === activeTab;
         return (
-          <Pressable key={tab.id} style={styles.tabButton} onPress={() => onChange(tab.id)}>
-            <Text style={[styles.tabMark, active && styles.tabMarkActive]}>{tab.mark}</Text>
-            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{tab.label}</Text>
+          <Pressable
+            key={tab.id}
+            style={styles.tabButton}
+            onPress={() => onChange(tab.id)}
+          >
+            <Text style={[styles.tabMark, active && styles.tabMarkActive]}>
+              {tab.mark}
+            </Text>
+            <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
+              {tab.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -1027,18 +1305,26 @@ function filterEvents(
   selectedChildren: Child[],
 ) {
   const normalizedQuery = normalizeSearchText(searchQuery);
-  const selectedChildAges = selectedChildren.map(child => calculateAgeMonths(child.birthDate));
+  const selectedChildAges = selectedChildren.map(child =>
+    calculateAgeMonths(child.birthDate),
+  );
 
   return events.filter(event => {
     if (normalizedQuery && !eventMatchesSearchQuery(event, normalizedQuery)) {
       return false;
     }
 
-    if (filters.ageFit && !eventFitsAllSelectedChildren(event, selectedChildAges)) {
+    if (
+      filters.ageFit &&
+      !eventFitsAllSelectedChildren(event, selectedChildAges)
+    ) {
       return false;
     }
 
-    if (filters.date !== 'all' && !eventMatchesDateFilter(event, filters.date)) {
+    if (
+      filters.date !== 'all' &&
+      !eventMatchesDateFilter(event, filters.date)
+    ) {
       return false;
     }
 
@@ -1076,7 +1362,48 @@ function eventMatchesSearchQuery(event: BabyrooEvent, normalizedQuery: string) {
   return searchableText.includes(normalizedQuery);
 }
 
-function eventFitsAllSelectedChildren(event: BabyrooEvent, childAges: number[]) {
+function thumbnailSourceLabel(event: BabyrooEvent) {
+  if (event.source === 'seoul_culture') {
+    return '서울';
+  }
+  if (event.source === 'nfm_kids') {
+    return '민속';
+  }
+  if (event.source === 'dikidiki') {
+    return 'DDP';
+  }
+  if (event.source === 'namu') {
+    return '자연사';
+  }
+  if (event.source === 'seoul_childcare') {
+    return '육아';
+  }
+  return event.region;
+}
+
+function thumbnailCategoryLabel(event: BabyrooEvent) {
+  if (event.category === 'experience') {
+    return '체험';
+  }
+  if (event.category === 'exhibition') {
+    return '전시';
+  }
+  if (event.category === 'play_space') {
+    return '놀이';
+  }
+  if (event.category === 'museum') {
+    return '박물관';
+  }
+  if (event.category === 'performance') {
+    return '공연';
+  }
+  return event.category.slice(0, 6).toUpperCase();
+}
+
+function eventFitsAllSelectedChildren(
+  event: BabyrooEvent,
+  childAges: number[],
+) {
   if (childAges.length === 0) {
     return true;
   }
@@ -1109,7 +1436,10 @@ function eventMatchesDateFilter(event: BabyrooEvent, dateFilter: DateFilter) {
   return true;
 }
 
-function eventMatchesReservationFilter(event: BabyrooEvent, reservationFilter: ReservationFilter) {
+function eventMatchesReservationFilter(
+  event: BabyrooEvent,
+  reservationFilter: ReservationFilter,
+) {
   if (reservationFilter === 'all') {
     return true;
   }
@@ -1172,16 +1502,67 @@ function getAvailableLocalities(events: BabyrooEvent[]) {
 }
 
 function formatAge(event: BabyrooEvent) {
-  if (event.ageMinMonths == null && event.ageMaxMonths == null) {
+  const minAge = event.ageMinMonths;
+  const maxAge = event.ageMaxMonths;
+
+  if (minAge == null && maxAge == null) {
     return '월령 확인필요';
   }
-  if (event.ageMinMonths != null && event.ageMaxMonths != null) {
-    return `${event.ageMinMonths}-${event.ageMaxMonths}개월`;
+  if (minAge != null && maxAge != null) {
+    return formatAgeRange(minAge, maxAge);
   }
-  if (event.ageMinMonths != null) {
-    return `${event.ageMinMonths}개월 이상`;
+  if (minAge != null) {
+    return `${formatAgePoint(minAge)} 이상`;
   }
-  return `${event.ageMaxMonths}개월 이하`;
+
+  return `${formatAgePoint(maxAge)} 이하`;
+}
+
+function formatAgeRange(minMonths: number, maxMonths: number) {
+  if (minMonths < 48 || maxMonths < 48) {
+    return `${minMonths}-${maxMonths}개월`;
+  }
+
+  if (minMonths === 0) {
+    return `${formatAgePoint(maxMonths)} 이하`;
+  }
+
+  const minLabel = formatAgePoint(minMonths);
+  const maxLabel = formatAgePoint(maxMonths);
+
+  if (minLabel === maxLabel) {
+    return minLabel;
+  }
+
+  if (isExactYear(minMonths) && isYearRangeEnd(maxMonths)) {
+    return `${monthToYear(minMonths)}-${monthToYear(maxMonths)}세`;
+  }
+
+  return `${minLabel}-${maxLabel}`;
+}
+
+function formatAgePoint(months: number | undefined) {
+  if (months == null) {
+    return '월령 확인필요';
+  }
+
+  if (months < 48 || !isExactYear(months)) {
+    return `${months}개월`;
+  }
+
+  return `${months / 12}세`;
+}
+
+function isExactYear(months: number) {
+  return months % 12 === 0;
+}
+
+function isYearRangeEnd(months: number) {
+  return isExactYear(months) || months % 12 === 11;
+}
+
+function monthToYear(months: number) {
+  return Math.floor(months / 12);
 }
 
 function formatChildAge(child: Child) {
@@ -1190,7 +1571,8 @@ function formatChildAge(child: Child) {
 
 function sortChildrenByAge(children: Child[]) {
   return [...children].sort((left, right) => {
-    const ageDifference = calculateAgeMonths(right.birthDate) - calculateAgeMonths(left.birthDate);
+    const ageDifference =
+      calculateAgeMonths(right.birthDate) - calculateAgeMonths(left.birthDate);
 
     if (ageDifference !== 0) {
       return ageDifference;
@@ -1300,16 +1682,6 @@ function formatReservation(event: BabyrooEvent) {
     return '예약 마감';
   }
   return '예약 필요';
-}
-
-function getRecommendationReason(event: BabyrooEvent) {
-  if (event.ageMinMonths != null && event.ageMinMonths > 18) {
-    return `18개월 아이에게는 월령이 맞지 않을 수 있어요. 원문에서 대상 연령 ${formatAge(event)}을 확인해 주세요.`;
-  }
-  if (event.indoor) {
-    return `${formatAge(event)} 아이에게 맞고, 실내에서 진행돼요. 날씨 영향을 적게 받는 후보입니다.`;
-  }
-  return '월령과 지역 조건을 먼저 확인한 뒤 원문에서 상세 운영 정보를 확인해 주세요.';
 }
 
 const styles = StyleSheet.create({
@@ -1804,12 +2176,55 @@ const styles = StyleSheet.create({
     height: 88,
     justifyContent: 'center',
     marginRight: spacing.lg,
+    overflow: 'hidden',
     width: 88,
   },
-  thumbnailText: {
-    color: colors.primaryStrong,
-    fontSize: 14,
+  thumbnailImage: {
+    height: '100%',
+    width: '100%',
+  },
+  thumbnailFallback: {
+    height: '100%',
+    justifyContent: 'flex-end',
+    padding: spacing.sm,
+    width: '100%',
+  },
+  thumbnailBackdrop: {
+    bottom: 0,
+    left: 0,
+    opacity: 0.9,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  thumbnailAccentLarge: {
+    borderRadius: 28,
+    height: 58,
+    opacity: 0.85,
+    position: 'absolute',
+    right: -18,
+    top: -14,
+    width: 58,
+  },
+  thumbnailAccentSmall: {
+    borderRadius: 16,
+    bottom: 30,
+    height: 32,
+    left: -10,
+    opacity: 0.9,
+    position: 'absolute',
+    width: 32,
+  },
+  thumbnailSourceText: {
+    color: colors.text,
+    fontSize: 17,
     fontWeight: '900',
+  },
+  thumbnailCategoryText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
   },
   cardBody: {
     flex: 1,
@@ -1826,6 +2241,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 17,
     marginTop: spacing.xs,
+  },
+  cardTagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing.sm,
+    rowGap: spacing.xs,
   },
   cardFooter: {
     alignItems: 'center',
@@ -1849,7 +2270,23 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     height: 260,
     justifyContent: 'flex-end',
+    overflow: 'hidden',
     padding: spacing.xl,
+  },
+  detailHeroImage: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  detailHeroScrim: {
+    backgroundColor: 'rgba(31, 41, 51, 0.18)',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   backButton: {
     alignItems: 'center',
@@ -1869,9 +2306,12 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   heroSource: {
-    color: colors.primaryStrong,
+    color: colors.surface,
     fontSize: 18,
     fontWeight: '900',
+    textShadowColor: 'rgba(31, 41, 51, 0.24)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
   },
   detailPanel: {
     backgroundColor: colors.surface,
@@ -1920,24 +2360,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     lineHeight: 18,
-  },
-  reasonBox: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    marginVertical: spacing.xl,
-    padding: spacing.lg,
-  },
-  reasonTitle: {
-    color: colors.primaryStrong,
-    fontSize: 13,
-    fontWeight: '900',
-    marginBottom: spacing.xs,
-  },
-  reasonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 21,
   },
   bodyText: {
     color: colors.muted,
