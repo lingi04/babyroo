@@ -91,68 +91,88 @@ def parse_locality(address: str | None) -> str | None:
 
 
 def parse_age_min_months(text: str) -> int | None:
-    elementary_range_match = re.search(r"초\s*(?P<grade>\d+)\s*[~\-]\s*\d+\s*학년", text)
-    if elementary_range_match:
-        return elementary_grade_to_months(int(elementary_range_match.group("grade")))
+    candidates = []
 
-    elementary_match = re.search(r"초\s*(?P<grade>\d+)\s*학년", text)
-    if elementary_match:
-        return elementary_grade_to_months(int(elementary_match.group("grade")))
+    if "취학 전 누리과정" in text:
+        candidates.append(36)
 
     month_range_match = re.search(r"(?P<months>\d+)\s*개월\s*[~\-]", text)
     if month_range_match:
-        return int(month_range_match.group("months"))
+        candidates.append(int(month_range_match.group("months")))
 
     range_match = re.search(r"만?\s*(?P<years>\d+)\s*(?:세)?\s*[~\-]\s*\d+\s*세", text)
     if range_match:
-        return int(range_match.group("years")) * 12
+        candidates.append(int(range_match.group("years")) * 12)
+
+    elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*[~\-]\s*\d+\s*학년", text)
+    if elementary_range_match:
+        candidates.append(elementary_grade_to_months(int(elementary_range_match.group("grade"))))
+
+    elementary_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        candidates.append(elementary_grade_to_months(int(elementary_match.group("grade"))))
+
+    if "초등학생" in text and not elementary_range_match and not elementary_match:
+        candidates.append(elementary_grade_to_months(1))
 
     for pattern in AGE_MONTH_PATTERNS:
         match = pattern.search(text)
         if not match:
             continue
         if match.groupdict().get("months"):
-            return int(match.group("months"))
+            candidates.append(int(match.group("months")))
         if match.groupdict().get("years"):
-            return int(match.group("years")) * 12
-    if any(token in text for token in ["영유아", "아기", "베이비"]):
-        return 0
-    return None
+            candidates.append(int(match.group("years")) * 12)
+    if any(token in text for token in ["영유아", "아기", "베이비"]) and not candidates:
+        candidates.append(0)
+    if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
+        candidates.append(0)
+    return min(candidates) if candidates else None
 
 
 def parse_age_max_months(text: str) -> int | None:
-    elementary_range_match = re.search(r"초\s*\d+\s*[~\-]\s*(?P<grade>\d+)\s*학년", text)
-    if elementary_range_match:
-        return elementary_grade_to_months(int(elementary_range_match.group("grade")))
+    candidates = []
 
-    elementary_match = re.search(r"초\s*(?P<grade>\d+)\s*학년", text)
-    if elementary_match:
-        return elementary_grade_to_months(int(elementary_match.group("grade")))
+    if "취학 전 누리과정" in text:
+        candidates.append(72)
 
     month_to_year_match = re.search(
         r"\d+\s*개월\s*[~\-]\s*만?\s*(?P<years>\d+)\s*세",
         text,
     )
     if month_to_year_match:
-        return int(month_to_year_match.group("years")) * 12
+        candidates.append(int(month_to_year_match.group("years")) * 12)
 
     range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
     if range_match:
-        return int(range_match.group("years")) * 12
+        candidates.append(int(range_match.group("years")) * 12)
+
+    elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?\d+\s*[~\-]\s*(?P<grade>\d+)\s*학년", text)
+    if elementary_range_match:
+        candidates.append(elementary_grade_to_months(int(elementary_range_match.group("grade"))))
+
+    elementary_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*학년", text)
+    if elementary_match:
+        candidates.append(elementary_grade_to_months(int(elementary_match.group("grade"))))
+
+    if "초등학생" in text and not elementary_range_match and not elementary_match:
+        candidates.append(elementary_grade_to_months(6))
 
     match = re.search(r"(?P<months>\d+)\s*개월\s*(이하|까지|미만)", text)
     if match:
         months = int(match.group("months"))
-        return months - 1 if "미만" in match.group(0) else months
+        candidates.append(months - 1 if "미만" in match.group(0) else months)
 
     match = re.search(r"(?P<years>\d+)\s*세\s*(이하|까지|미만)", text)
     if match:
         months = int(match.group("years")) * 12
-        return months - 1 if "미만" in match.group(0) else months
+        candidates.append(months - 1 if "미만" in match.group(0) else months)
 
     if "0~3세" in text or "0-3세" in text:
-        return 36
-    return None
+        candidates.append(36)
+    if any(token in text for token in ["어린이 동반 가족", "어린이 및 보호자"]) and not candidates:
+        candidates.append(144)
+    return max(candidates) if candidates else None
 
 
 def elementary_grade_to_months(grade: int) -> int:

@@ -104,6 +104,79 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(event.age_min_months, 120)
         self.assertEqual(event.age_max_months, 144)
 
+    def test_normalize_nfm_kids_age_formats(self):
+        year_range = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "전시몰입",
+                "url": "https://example.com/program",
+                "payload": {
+                    "age_text": "6세~10세, 어린이 포함 및 가족",
+                    "starts_at": "2026-02-26",
+                    "region": "서울",
+                },
+            }
+        )
+        elementary_range = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "교과연계",
+                "url": "https://example.com/program",
+                "payload": {
+                    "age_text": "초등학생(1~2학년)",
+                    "starts_at": "2026-04-22",
+                    "region": "서울",
+                },
+            }
+        )
+        preschool = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "유아교육",
+                "url": "https://example.com/program",
+                "payload": {
+                    "age_text": "취학 전 누리과정 어린이 단체 및 기관(20명 내외)",
+                    "starts_at": "2026-04-15",
+                    "region": "서울",
+                },
+            }
+        )
+        mixed_range = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "찾아가는 어린이박물관",
+                "url": "https://example.com/program",
+                "payload": {
+                    "age_text": "25명 내외(1회 기준) 유아(만5~6세), 초등학생(1~2학년)",
+                    "starts_at": "2026-04-22",
+                    "region": "서울",
+                },
+            }
+        )
+        broad_school = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "문화나눔",
+                "url": "https://example.com/program",
+                "payload": {
+                    "age_text": "초·중·고등 특수학급(장애 어린이), 장애인, 노인 단체",
+                    "starts_at": "2026-08-19",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(year_range.age_min_months, 72)
+        self.assertEqual(year_range.age_max_months, 120)
+        self.assertEqual(elementary_range.age_min_months, 84)
+        self.assertEqual(elementary_range.age_max_months, 96)
+        self.assertEqual(preschool.age_min_months, 36)
+        self.assertEqual(preschool.age_max_months, 72)
+        self.assertEqual(mixed_range.age_min_months, 60)
+        self.assertEqual(mixed_range.age_max_months, 96)
+        self.assertIsNone(broad_school.age_min_months)
+        self.assertIsNone(broad_school.age_max_months)
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {

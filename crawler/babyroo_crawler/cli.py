@@ -6,6 +6,7 @@ from babyroo_crawler.pipeline import normalize_all, publish
 from sources.dikidiki import collect as collect_dikidiki
 from sources.manual_sample import collect as collect_manual_sample
 from sources.namu import collect as collect_namu
+from sources.nfm_kids import collect as collect_nfm_kids
 from sources.seoul_childcare import collect as collect_seoul_childcare
 from sources.seoul_culture import collect as collect_seoul_culture
 
@@ -29,6 +30,10 @@ def main() -> None:
         "collect-namu",
         help="Collect Seodaemun Natural History Museum admission, exhibitions, and programs",
     )
+    subparsers.add_parser(
+        "collect-nfm-kids",
+        help="Collect National Folk Museum Children's Museum admission and programs",
+    )
     subparsers.add_parser("normalize", help="Normalize raw files into data/normalized/events.json")
     subparsers.add_parser("publish", help="Publish normalized events into public/events.json")
     subparsers.add_parser("run-sample", help="Run collect-sample, normalize, and publish")
@@ -49,6 +54,10 @@ def main() -> None:
     subparsers.add_parser(
         "run-namu",
         help="Collect Seodaemun Natural History Museum, normalize, and publish",
+    )
+    subparsers.add_parser(
+        "run-nfm-kids",
+        help="Collect National Folk Museum Children's Museum, normalize, and publish",
     )
     run_all_parser = subparsers.add_parser(
         "run-all",
@@ -73,6 +82,9 @@ def main() -> None:
     elif args.command == "collect-namu":
         events = collect_namu()
         print(f"collected {len(events)} Namu events")
+    elif args.command == "collect-nfm-kids":
+        events = collect_nfm_kids()
+        print(f"collected {len(events)} NFM Kids events")
     elif args.command == "normalize":
         events = normalize_all()
         print(f"normalized {len(events)} events")
@@ -113,17 +125,26 @@ def main() -> None:
         print(f"collected {len(collected)} Namu events")
         print(f"normalized {len(events)} events")
         print(f"published {payload['count']} events")
+    elif args.command == "run-nfm-kids":
+        collected = collect_nfm_kids()
+        events = normalize_all()
+        payload = publish()
+        print(f"collected {len(collected)} NFM Kids events")
+        print(f"normalized {len(events)} events")
+        print(f"published {payload['count']} events")
     elif args.command == "run-all":
         seoul_events = collect_seoul_culture(max_pages=args.pages)
         childcare_events = collect_seoul_childcare(months=args.months)
         dikidiki_events = collect_dikidiki()
         namu_events = collect_namu()
+        nfm_kids_events = collect_nfm_kids()
         events = normalize_all()
         payload = publish()
         print(f"collected {len(seoul_events)} Seoul Culture Portal events")
         print(f"collected {len(childcare_events)} Seoul Childcare Center events")
         print(f"collected {len(dikidiki_events)} DikiDiki events")
         print(f"collected {len(namu_events)} Namu events")
+        print(f"collected {len(nfm_kids_events)} NFM Kids events")
         print(f"normalized {len(events)} events")
         print(f"published {payload['count']} events")
 

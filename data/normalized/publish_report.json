@@ -190,6 +190,42 @@
       "title": "키마키마(어린이 ESG 프로젝트)"
     },
     {
+      "id": "nfm-kids-23b116d3d3d3",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13908",
+      "title": "[2026년 특별전 연계 교육] 생일, 모두의 잔치"
+    },
+    {
+      "id": "nfm-kids-a3ecba0e27be",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13913",
+      "title": "[2026년 상반기 주말 교육] 찾아라! 민속"
+    },
+    {
+      "id": "nfm-kids-c37da717dae4",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13910",
+      "title": "[2026년 상반기] 유아교육(단체)"
+    },
+    {
+      "id": "nfm-kids-7db0d5503be4",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13914",
+      "title": "[2026년] 찾아가는 어린이박물관(지역박물관)"
+    },
+    {
       "id": "manual-sample-f02640693f49",
       "reasons": [
         "ended"
@@ -307,8 +343,8 @@
       "title": "【여름방학 특강 1강】 진화란 무엇인가?"
     }
   ],
-  "excluded_count": 34,
-  "generated_at": "2026-07-21",
-  "input_count": 58,
-  "published_count": 24
+  "excluded_count": 38,
+  "generated_at": "2026-07-22",
+  "input_count": 69,
+  "published_count": 31
 }
