@@ -29,7 +29,8 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
     source_url = str(raw.get("url") or payload.get("url") or "").strip()
 
     event_id = make_event_id(source, source_event_id, title, source_url)
-    age_min_months = parse_age_min_months(text)
+    age_source_text = clean_string(payload.get("age_text")) or text
+    age_min_months = parse_age_min_months(age_source_text)
     address = clean_string(payload.get("address"))
 
     return NormalizedEvent(
@@ -44,7 +45,7 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         venue_detail=clean_string(payload.get("venue_detail")),
         address=address,
         age_min_months=age_min_months,
-        age_max_months=parse_age_max_months(text),
+        age_max_months=parse_age_max_months(age_source_text),
         guardian_required=parse_bool_from_text(text, ["보호자", "양육자"]),
         price_type=normalize_price_type(payload.get("price_text"), text),
         price_text=clean_string(payload.get("price_text")),
@@ -105,6 +106,13 @@ def parse_age_min_months(text: str) -> int | None:
     if range_match:
         candidates.append(int(range_match.group("years")) * 12)
 
+    year_to_elementary_match = re.search(
+        r"만?\s*(?P<years>\d+)\s*세\s*[~\-]\s*초(?:등|등학생)?\s*(?P<grade>\d+)\s*학년",
+        text,
+    )
+    if year_to_elementary_match:
+        candidates.append(int(year_to_elementary_match.group("years")) * 12)
+
     elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?(?P<grade>\d+)\s*[~\-]\s*\d+\s*학년", text)
     if elementary_range_match:
         candidates.append(elementary_grade_to_months(int(elementary_range_match.group("grade"))))
@@ -147,6 +155,13 @@ def parse_age_max_months(text: str) -> int | None:
     range_match = re.search(r"만?\s*\d+\s*(?:세)?\s*[~\-]\s*(?P<years>\d+)\s*세", text)
     if range_match:
         candidates.append(int(range_match.group("years")) * 12)
+
+    year_to_elementary_match = re.search(
+        r"만?\s*\d+\s*세\s*[~\-]\s*초(?:등|등학생)?\s*(?P<grade>\d+)\s*학년",
+        text,
+    )
+    if year_to_elementary_match:
+        candidates.append(elementary_grade_to_months(int(year_to_elementary_match.group("grade"))))
 
     elementary_range_match = re.search(r"초(?:등|등학생)?\s*\(?\d+\s*[~\-]\s*(?P<grade>\d+)\s*학년", text)
     if elementary_range_match:

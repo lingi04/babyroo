@@ -3,10 +3,71 @@ import unittest
 from pathlib import Path
 
 from babyroo_crawler.io import read_json, write_json
-from babyroo_crawler.pipeline import publish
+from babyroo_crawler.pipeline import normalize_all, publish
 
 
 class PublishTest(unittest.TestCase):
+    def test_normalize_reports_unsupported_age_text_formats(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw_dir = root / "raw"
+            normalized_dir = root / "normalized"
+
+            write_json(
+                raw_dir / "sample.json",
+                {
+                    "events": [
+                        {
+                            "source": "test",
+                            "source_event_id": "known-age",
+                            "title": "Known age",
+                            "url": "https://example.com/known",
+                            "captured_at": "2026-07-22",
+                            "payload": {
+                                "title": "Known age",
+                                "age_text": "6세~초1 학년",
+                                "starts_at": "2026-08-01",
+                                "region": "서울",
+                            },
+                        },
+                        {
+                            "source": "test",
+                            "source_event_id": "unknown-age",
+                            "title": "Unknown age",
+                            "url": "https://example.com/unknown",
+                            "captured_at": "2026-07-22",
+                            "payload": {
+                                "title": "Unknown age",
+                                "age_text": "초·중·고등 특수학급 등 교육복지 대상",
+                                "summary": "6세 이상 같은 문장이 있어도 age_text가 우선입니다.",
+                                "starts_at": "2026-08-01",
+                                "region": "서울",
+                            },
+                        },
+                    ]
+                },
+            )
+
+            events = normalize_all(raw_dir=raw_dir, normalized_dir=normalized_dir)
+
+            unknown = next(event for event in events if event["source_event_id"] == "unknown-age")
+            self.assertIsNone(unknown["age_min_months"])
+            self.assertIsNone(unknown["age_max_months"])
+
+            report = read_json(normalized_dir / "normalize_report.json")
+            self.assertEqual(report["age_warning_count"], 1)
+            self.assertEqual(
+                report["age_warnings"][0],
+                {
+                    "source": "test",
+                    "source_event_id": "unknown-age",
+                    "title": "Unknown age",
+                    "source_url": "https://example.com/unknown",
+                    "age_text": "초·중·고등 특수학급 등 교육복지 대상",
+                    "reason": "unsupported_age_text_format",
+                },
+            )
+
     def test_publish_filters_events_that_should_not_be_public(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -177,6 +177,23 @@ class NormalizeTest(unittest.TestCase):
         self.assertIsNone(broad_school.age_min_months)
         self.assertIsNone(broad_school.age_max_months)
 
+    def test_normalize_year_to_elementary_grade_age_range(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "유치부 투어",
+                "url": "https://example.com/tour",
+                "payload": {
+                    "age_text": "6세~초1 학년",
+                    "starts_at": "2026-07-12",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.age_min_months, 72)
+        self.assertEqual(event.age_max_months, 84)
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {

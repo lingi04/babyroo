@@ -707,8 +707,8 @@
     },
     {
       "address": "서울  광진구 능동로 216",
-      "age_max_months": 35,
-      "age_min_months": 0,
+      "age_max_months": null,
+      "age_min_months": null,
       "category": "play_space",
       "ends_at": "2026-11-15",
       "guardian_required": true,
@@ -730,7 +730,6 @@
       "stroller_friendly": null,
       "summary": "서울상상나라 2F 기획전시 사랑하는 모양이야 서울상상나라 2층에 서울형 키즈카페 시립 서울상상나라점이 문을 엽니다. (36개월 미만 영아와 보호자만 이용 가능합니다.) 2F 기획전시 <사랑하는 모양이야> 성수정 작가의 그림책 <사랑하는 모양이야>를 설치 작품으로 확장한 이번 전시는, 아기와 양육자의 관계 속에서 피어하는 감정을 새로운 형태의 사랑으로 표현합니다. 비정형의 도형, 삐뚤빼뚤한 선, 따뜻한 손길로 만들어진 조각들이 사랑의 모양을 부드럽게 전해요. 우리만의 사랑의 모양을 상상해보세요! 자료출처 : 서울상상나라 홈페이지 ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
       "tags": [
-        "24개월이하",
         "보호자동반"
       ],
       "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]",
@@ -1165,7 +1164,7 @@
     {
       "address": "서울시 서대문구 연희로32길 51",
       "age_max_months": 84,
-      "age_min_months": 84,
+      "age_min_months": 72,
       "category": "experience",
       "ends_at": "2026-07-11",
       "guardian_required": null,
@@ -1293,7 +1292,7 @@
     {
       "address": "서울시 서대문구 연희로32길 51",
       "age_max_months": 84,
-      "age_min_months": 84,
+      "age_min_months": 72,
       "category": "experience",
       "ends_at": "2026-07-12",
       "guardian_required": null,
@@ -1617,7 +1616,7 @@
     {
       "address": "서울시 서대문구 연희로32길 51",
       "age_max_months": 84,
-      "age_min_months": 84,
+      "age_min_months": 72,
       "category": "experience",
       "ends_at": "2026-07-25",
       "guardian_required": null,
@@ -1649,7 +1648,7 @@
     {
       "address": "서울시 서대문구 연희로32길 51",
       "age_max_months": 84,
-      "age_min_months": 84,
+      "age_min_months": 72,
       "category": "experience",
       "ends_at": "2026-07-25",
       "guardian_required": null,
