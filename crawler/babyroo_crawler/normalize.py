@@ -27,8 +27,10 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
     source = str(raw.get("source") or "").strip()
     source_event_id = str(raw.get("source_event_id") or "").strip()
     source_url = str(raw.get("url") or payload.get("url") or "").strip()
+    starts_at = clean_string(payload.get("starts_at"))
+    venue_name = clean_string(payload.get("venue_name"))
 
-    event_id = make_event_id(source, source_event_id, title, source_url)
+    event_id = make_event_id(source, source_event_id, title, source_url, starts_at, venue_name)
     age_source_text = clean_string(payload.get("age_text")) or text
     age_min_months = parse_age_min_months(age_source_text)
     address = clean_string(payload.get("address"))
@@ -37,11 +39,11 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         id=event_id,
         title=title,
         category=normalize_category(payload.get("category"), text),
-        starts_at=clean_string(payload.get("starts_at")),
+        starts_at=starts_at,
         ends_at=clean_string(payload.get("ends_at")),
         region=clean_string(payload.get("region")),
         locality=clean_string(payload.get("locality")) or parse_locality(address),
-        venue_name=clean_string(payload.get("venue_name")),
+        venue_name=venue_name,
         venue_detail=clean_string(payload.get("venue_detail")),
         image_url=clean_string(payload.get("image_url")),
         address=address,
@@ -65,11 +67,37 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
     )
 
 
-def make_event_id(source: str, source_event_id: str, title: str, url: str) -> str:
-    stable_key = "|".join([source, source_event_id, title, url])
+def make_event_id(
+    source: str,
+    source_event_id: str,
+    title: str,
+    url: str,
+    starts_at: str | None = None,
+    venue_name: str | None = None,
+) -> str:
+    if source_event_id:
+        stable_key = "|".join([source, "source_event_id", source_event_id])
+    else:
+        stable_key = "|".join(
+            [
+                source,
+                normalize_identity_text(title),
+                starts_at or "",
+                normalize_identity_text(venue_name),
+                normalize_identity_url(url),
+            ]
+        )
     digest = hashlib.sha1(stable_key.encode("utf-8")).hexdigest()[:12]
     slug_source = re.sub(r"[^a-z0-9]+", "-", source.lower()).strip("-") or "event"
     return f"{slug_source}-{digest}"
+
+
+def normalize_identity_text(value: str | None) -> str:
+    return " ".join(str(value or "").casefold().split())
+
+
+def normalize_identity_url(value: str | None) -> str:
+    return str(value or "").strip().rstrip("/")
 
 
 def clean_string(value: Any) -> str | None:

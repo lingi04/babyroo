@@ -211,6 +211,72 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(event.age_min_months, 72)
         self.assertEqual(event.age_max_months, 84)
 
+    def test_normalized_id_prefers_source_event_id(self):
+        first = normalize_raw_event(
+            {
+                "source": "test",
+                "source_event_id": "event-123",
+                "title": "Original title",
+                "url": "https://example.com/events/old",
+                "payload": {
+                    "starts_at": "2026-07-24",
+                    "venue_name": "Original venue",
+                },
+            }
+        )
+        changed_metadata = normalize_raw_event(
+            {
+                "source": "test",
+                "source_event_id": "event-123",
+                "title": "Updated title",
+                "url": "https://example.com/events/new",
+                "payload": {
+                    "starts_at": "2026-08-01",
+                    "venue_name": "Updated venue",
+                },
+            }
+        )
+
+        self.assertEqual(first.id, changed_metadata.id)
+
+    def test_normalized_id_falls_back_to_event_fingerprint_without_source_event_id(self):
+        first = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "  Baby Art Class  ",
+                "url": "https://example.com/events/art/",
+                "payload": {
+                    "starts_at": "2026-07-24",
+                    "venue_name": " Main Hall ",
+                },
+            }
+        )
+        same_fingerprint = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "Baby   Art   Class",
+                "url": "https://example.com/events/art",
+                "payload": {
+                    "starts_at": "2026-07-24",
+                    "venue_name": "Main   Hall",
+                },
+            }
+        )
+        different_date = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "Baby Art Class",
+                "url": "https://example.com/events/art",
+                "payload": {
+                    "starts_at": "2026-07-25",
+                    "venue_name": "Main Hall",
+                },
+            }
+        )
+
+        self.assertEqual(first.id, same_fingerprint.id)
+        self.assertNotEqual(first.id, different_date.id)
+
     def test_normalize_baby_event_fields(self):
         event = normalize_raw_event(
             {
