@@ -11,42 +11,49 @@ data/raw/*.json -> data/normalized/events.json -> public/events.json
 샘플 데이터로 전체 흐름 확인:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-sample
 ```
 
 서울문화포털 실제 데이터 수집부터 공개까지:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-seoul --pages 5
 ```
 
 서울시육아종합지원센터 부모·가족 대상 행사 수집:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-childcare --months 3
 ```
 
 디키디키 입장 및 워크샵 프로그램 수집:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-dikidiki
 ```
 
 서대문자연사박물관 관람, 현재 전시, 교육일정 수집:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-namu
 ```
 
 국립민속박물관 어린이박물관 관람 및 교육일정 수집:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-nfm-kids
 ```
 
 실제 수집원을 한 번에 실행:
 
 ```bash
+cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-all --pages 5 --months 3
 ```
 

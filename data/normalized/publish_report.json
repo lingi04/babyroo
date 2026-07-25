@@ -235,24 +235,6 @@
       "title": "아기와 함께하는 감각놀이 체험"
     },
     {
-      "id": "seoul-childcare-d946a3cd2c78",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_childcare",
-      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51650",
-      "title": "[6/10] 다문화부모 양육클래스(중국어) 2차"
-    },
-    {
-      "id": "seoul-childcare-c0a23a4cb069",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_childcare",
-      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51810",
-      "title": "[6/24] 다문화부모 양육클래스(베트남어) 1차"
-    },
-    {
       "id": "namu-228486285ce9",
       "reasons": [
         "ended"
@@ -352,8 +334,8 @@
       "title": "【올해의 과학도서 1강】 나는 달로 출근한다"
     }
   ],
-  "excluded_count": 39,
+  "excluded_count": 37,
   "generated_at": "2026-07-24",
-  "input_count": 69,
-  "published_count": 30
+  "input_count": 72,
+  "published_count": 35
 }

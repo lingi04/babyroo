@@ -1,14 +1,14 @@
 {
-  "captured_at": "2026-07-22",
+  "captured_at": "2026-07-24",
   "events": [
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "0~12세 어린이 및 가족",
         "category": "박물관",
         "description": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
-        "ends_at": "2027-01-18",
+        "ends_at": "2027-01-20",
         "item_type": "venue_admission",
         "locality": "서대문구",
         "notes": "입장권 사전 예매는 불가하며 현장 예매만 가능합니다.",
@@ -16,7 +16,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-07-22",
+        "starts_at": "2026-07-24",
         "tags": [
           "실내"
         ],
@@ -29,7 +29,7 @@
       "url": "https://namu.sdm.go.kr/web/main/contents/guide_info_fee"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -57,7 +57,7 @@
       "url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -85,7 +85,7 @@
       "url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -115,7 +115,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -145,7 +145,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -175,7 +175,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -205,7 +205,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -235,7 +235,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -265,7 +265,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -295,7 +295,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -325,7 +325,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -355,7 +355,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
@@ -368,7 +368,7 @@
         "price_text": "0원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-23",
         "summary": "○ 강연 내용 : 도서 『나는 달로 출근한다』 이 책은 우리나라 최초의 달 탐사선 다누리와 여기에 실린 탑재체 폴캠의 개발 과정을 기록한 글이다. 다누리는 우리나라 최초로 지구를 벗어나 달을 중심으로 도는 탐사선이다. 한국은 다누리 발사로 지구의 중력을 벗어나 목표 지점까지 도달할 수 있는 능력과, 다른 천체의 중력을 이용해 궤도운동을 할 수 있는 위성 정밀 제어 능력을 보유하게 되었다. 달 과학자가 들려주는 우리나라의 지구 밖 첫 여정, 다누리의 개발 과정을 만나보자. ○ 강연자 : 정민섭 박사(한국천문연구원 행성탐사센터) 충북대학교 천문우주학과를 졸업하고 경희대학교 우주탐사학과에서 박사학위를 받았다. 우주와 은하의 생성 원리를 연구하다 운명처럼 달 과학으로 빠져들었다. 한국천문연구원에서 다누리에 탑재된 광시야 편광카메라 개발에 참여했으며, 지금은 아르테미스 계획, 달 착륙선 탑재체 개발, 화성 탐사 임무, 소행성 탐사 임무에 참여하고 있다.",
         "tags": [
@@ -385,7 +385,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "관심 있는 누구나",
@@ -398,7 +398,7 @@
         "price_text": "0원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "unknown",
         "starts_at": "2026-07-24",
         "summary": "○ 강연 내용 도시는 야생이 사라진 공간처럼 보인다. 회색 도시, 아파트 숲에서 야생이라는 말은 쉽게 떠오르지 않는다. 도시의 반의어로 생각될 지경이다. 하지만 도시의 틈새를 자세히 살펴보면, 도처에 야생의 존재들이 이미 함께 살아가고 있다. 이번 강연에서는 도시와 야생의 관계를 접촉, 갈등, 공존이라는 세 가지 키워드로 살펴본다. ○ 강연자 : 성민규(생명다양성재단 연구원) 대만에서 환경학을 공부하고, 국립대만박물관(자연사관)에서 국제도슨트로 활동했다. 이후 생명다양성재단 연구원으로 근무하며 도시의 생물다양성과 야생생물 서식지 보전 활동을 이어가고 있다.",
         "tags": [
@@ -415,7 +415,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -445,7 +445,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26072"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -475,7 +475,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26073"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -505,7 +505,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -535,7 +535,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -565,7 +565,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -595,7 +595,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26119"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -625,7 +625,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25996"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -655,7 +655,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25997"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -685,7 +685,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25998"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -715,7 +715,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25999"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -745,7 +745,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26086"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -775,7 +775,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26114"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -805,7 +805,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26087"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -835,7 +835,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26115"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -865,7 +865,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26000"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -895,7 +895,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26001"
     },
     {
-      "captured_at": "2026-07-22",
+      "captured_at": "2026-07-24",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
