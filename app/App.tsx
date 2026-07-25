@@ -34,7 +34,7 @@ import {
   getSelectedChildren,
   User,
 } from './src/data/user';
-import { loadUser, saveUser } from './src/storage/userStorage';
+import { clearSavedUser, loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
 
 type Tab = 'home' | 'explore' | 'saved';
@@ -71,6 +71,7 @@ function App() {
     defaultExploreFilters,
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const skipNextUserSaveRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -94,6 +95,11 @@ function App() {
 
   useEffect(() => {
     if (userLoaded) {
+      if (skipNextUserSaveRef.current) {
+        skipNextUserSaveRef.current = false;
+        return;
+      }
+
       saveUser(user).catch(() => undefined);
     }
   }, [user, userLoaded]);
@@ -217,6 +223,26 @@ function App() {
     });
   };
 
+  const resetUser = () => {
+    Alert.alert(
+      '사용자 정보 초기화',
+      '보호자 이름, 아이 정보, 추천 기준을 처음 상태로 되돌릴까요?',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '초기화',
+          style: 'destructive',
+          onPress: async () => {
+            await clearSavedUser().catch(() => undefined);
+            skipNextUserSaveRef.current = true;
+            setUser(cloneUser(currentUser));
+            setSettingsOpen(false);
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <SafeAreaView style={styles.root}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
@@ -232,6 +258,7 @@ function App() {
           onUpdateDisplayName={updateDisplayName}
           onToggleChild={toggleActiveChild}
           onSelectRegion={updateHomeRegion}
+          onResetUser={resetUser}
         />
       ) : (
         <>
@@ -500,7 +527,11 @@ function ExploreScreen({
         <Text style={styles.pageTitle}>행사 탐색</Text>
         <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
 
-        <Pressable style={styles.profileCard} onPress={onOpenSettings}>
+        <Pressable
+          style={styles.profileCard}
+          onPress={onOpenSettings}
+          accessibilityLabel="Open user settings"
+        >
           <View>
             <Text style={styles.profileTitle}>
               {formatChildrenAges(selectedChildren)} · {user.homeRegion}
@@ -692,6 +723,7 @@ function SettingsScreen({
   onUpdateDisplayName,
   onToggleChild,
   onSelectRegion,
+  onResetUser,
 }: {
   user: User;
   onBack: () => void;
@@ -704,6 +736,7 @@ function SettingsScreen({
   onUpdateDisplayName: (displayName: string) => void;
   onToggleChild: (childId: string) => void;
   onSelectRegion: (region: string) => void;
+  onResetUser: () => void;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
@@ -974,6 +1007,20 @@ function SettingsScreen({
             <Chip key={locality} label={locality} selected />
           ))}
         </View>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>초기화</Text>
+        <Text style={styles.sectionMeta}>
+          이 기기에 저장된 보호자 정보와 아이 정보를 처음 상태로 되돌립니다.
+        </Text>
+        <Pressable
+          style={styles.resetUserButton}
+          onPress={onResetUser}
+          accessibilityLabel="Reset user information"
+        >
+          <Text style={styles.resetUserButtonText}>사용자 정보 초기화</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -1583,12 +1630,20 @@ function sortChildrenByAge(children: Child[]) {
 }
 
 function formatChildrenAges(children: Child[]) {
+  if (children.length === 0) {
+    return '아이 정보 없음';
+  }
+
   const uniqueAges = [...new Set(children.map(formatChildAge))];
 
   return uniqueAges.join(', ');
 }
 
 function formatChildrenNames(children: Child[]) {
+  if (children.length === 0) {
+    return '아이를 추가하면';
+  }
+
   return children.map(child => child.nickname).join(', ');
 }
 
@@ -1606,6 +1661,15 @@ function datePickerValue(target: string, children: Child[]) {
   const child = children.find(candidate => candidate.id === target);
 
   return child ? parseDateInput(child.birthDate) : defaultBirthDate();
+}
+
+function cloneUser(user: User): User {
+  return {
+    ...user,
+    children: user.children.map(child => ({ ...child })),
+    activeChildIds: [...user.activeChildIds],
+    preferredLocalities: [...user.preferredLocalities],
+  };
 }
 
 function parseDateInput(value: string) {
@@ -2006,6 +2070,22 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: colors.danger,
     fontSize: 12,
+    fontWeight: '900',
+  },
+  resetUserButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface,
+    borderColor: colors.danger,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  resetUserButtonText: {
+    color: colors.danger,
+    fontSize: 14,
     fontWeight: '900',
   },
   addChildButton: {
