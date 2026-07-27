@@ -21,13 +21,15 @@ type SafeAreaFrameProps = {
   children: ReactNode;
 };
 
-export function SafeAreaFrame({ children }: SafeAreaFrameProps) {
+export function MobileLayoutProvider({ children }: SafeAreaFrameProps) {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       {children}
     </SafeAreaProvider>
   );
 }
+
+export const SafeAreaFrame = MobileLayoutProvider;
 
 export function useBottomSafeAreaInset() {
   return useSafeAreaInsets().bottom;

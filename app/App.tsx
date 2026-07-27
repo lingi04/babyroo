@@ -37,18 +37,14 @@ import {
   detailContentBottomPadding,
   FLOATING_RECOMMENDATION_BOTTOM,
   floatingRecommendationBottomOffset,
-  SafeAreaFrame,
+  MobileLayoutProvider,
+  SwipeableTabs,
   TAB_BAR_HEIGHT,
   TAB_SCREEN_BOTTOM_PADDING,
   tabScreenBottomPadding,
   useBottomSafeAreaInset,
-} from './src/layout/safeArea';
-import {
-  SwipeableTabView,
-  TabSwipeHandlers,
-  useSwipeableTabs,
   useTabSwipePressGuard,
-} from './src/navigation/tabSwipe';
+} from './src/mobileLayout';
 import { RecommendationSession } from './src/data/recommendation';
 import {
   Child,
@@ -88,9 +84,9 @@ const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
 
 function App() {
   return (
-    <SafeAreaFrame>
+    <MobileLayoutProvider>
       <BabyrooApp />
-    </SafeAreaFrame>
+    </MobileLayoutProvider>
   );
 }
 
@@ -106,14 +102,9 @@ function BabyrooApp() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const skipNextUserSaveRef = useRef(false);
-  const swipeableTabs = useSwipeableTabs<Tab>({
-    activeTab: tab,
-    onChangeTab: setTab,
-    tabOrder: TAB_ORDER,
-  });
   const renderTabScreen = (
     screenTab: Tab,
-    tabSwipeHandlers: TabSwipeHandlers,
+    navigateToTab: (tab: Tab) => void,
   ) => {
     if (screenTab === 'home') {
       return (
@@ -122,7 +113,6 @@ function BabyrooApp() {
           onOpenEvent={openDetail}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
-          tabSwipeHandlers={tabSwipeHandlers}
         />
       );
     }
@@ -134,10 +124,9 @@ function BabyrooApp() {
           filters={exploreFilters}
           onOpenEvent={openDetail}
           onOpenFilter={() => setFilterOpen(true)}
-          onOpenRecommendation={() => swipeableTabs.navigateToTab('home')}
+          onOpenRecommendation={() => navigateToTab('home')}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
-          tabSwipeHandlers={tabSwipeHandlers}
         />
       );
     }
@@ -331,19 +320,20 @@ function BabyrooApp() {
         />
       ) : (
         <>
-          <SwipeableTabView
+          <SwipeableTabs
             activeTab={tab}
-            controller={swipeableTabs}
-            paneStyle={styles.tabPane}
-            renderTab={renderTabScreen}
-            stripStyle={styles.tabStrip}
+            onChangeTab={setTab}
+            renderBottomNavigation={({ activeTab, navigateToTab }) => (
+              <BottomTabs
+                activeTab={activeTab}
+                bottomInset={bottomInset}
+                onChange={navigateToTab}
+              />
+            )}
+            renderTab={(screenTab, { navigateToTab }) =>
+              renderTabScreen(screenTab, navigateToTab)
+            }
             tabOrder={TAB_ORDER}
-            viewportStyle={styles.tabViewport}
-          />
-          <BottomTabs
-            activeTab={tab}
-            bottomInset={bottomInset}
-            onChange={swipeableTabs.navigateToTab}
           />
           {filterOpen ? (
             <FilterSheet
@@ -371,13 +361,11 @@ function HomeScreen({
   onOpenEvent,
   onOpenSettings,
   bottomInset,
-  tabSwipeHandlers,
 }: {
   user: User;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenSettings: () => void;
   bottomInset: number;
-  tabSwipeHandlers: TabSwipeHandlers;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [recommendationSessions, setRecommendationSessions] = useState<
@@ -508,7 +496,6 @@ function HomeScreen({
             compact
             tone={index}
             onPress={() => onOpenEvent(event)}
-            tabSwipeHandlers={tabSwipeHandlers}
           />
         ))
       ) : (
@@ -572,7 +559,6 @@ function ExploreScreen({
   onOpenRecommendation,
   onOpenSettings,
   bottomInset,
-  tabSwipeHandlers,
 }: {
   user: User;
   filters: ExploreFilters;
@@ -581,7 +567,6 @@ function ExploreScreen({
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
   bottomInset: number;
-  tabSwipeHandlers: TabSwipeHandlers;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [searchQuery, setSearchQuery] = useState('');
@@ -673,7 +658,6 @@ function ExploreScreen({
               tone={index}
               showSequence
               onPress={() => onOpenEvent(event)}
-              tabSwipeHandlers={tabSwipeHandlers}
             />
           ))
         ) : (
@@ -1292,19 +1276,17 @@ function EventCard({
   showSequence,
   tone,
   onPress,
-  tabSwipeHandlers,
 }: {
   event: BabyrooEvent;
   compact?: boolean;
   showSequence?: boolean;
   tone: number;
   onPress: () => void;
-  tabSwipeHandlers?: TabSwipeHandlers;
 }) {
   const color = [colors.primarySoft, colors.blue, colors.mint, colors.lilac][
     tone % 4
   ];
-  const tabSwipePress = useTabSwipePressGuard(onPress, tabSwipeHandlers);
+  const tabSwipePress = useTabSwipePressGuard(onPress);
 
   return (
     <Pressable
@@ -1882,17 +1864,6 @@ const styles = StyleSheet.create({
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   exploreRoot: {
-    flex: 1,
-  },
-  tabViewport: {
-    flex: 1,
-    overflow: 'hidden',
-  },
-  tabStrip: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  tabPane: {
     flex: 1,
   },
   floatingRecommendationCta: {

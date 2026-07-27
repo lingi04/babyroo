@@ -1,14 +1,19 @@
-import { useCallback, useMemo, useRef } from 'react';
-import { ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+} from 'react';
+import type { ReactNode } from 'react';
 import {
   Animated,
   Dimensions,
-  GestureResponderEvent,
   PanResponder,
-  StyleProp,
+  StyleSheet,
   View,
-  ViewStyle,
 } from 'react-native';
+import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native';
 
 export type TabSwipeDirection = 'previous' | 'next';
 
@@ -25,6 +30,10 @@ export const TAB_SWIPE = {
   transitionDistance: Dimensions.get('window').width,
   transitionDurationMs: 180,
 } as const;
+
+const TabSwipeHandlersContext = createContext<TabSwipeHandlers | undefined>(
+  undefined,
+);
 
 type SwipeableTabsOptions<TabId extends string> = {
   activeTab: TabId;
@@ -53,6 +62,35 @@ type SwipeableTabViewProps<TabId extends string> = {
   stripAccessibilityLabel?: string;
   stripStyle?: StyleProp<ViewStyle>;
   tabOrder: readonly TabId[];
+  viewportAccessibilityLabel?: string;
+  viewportStyle?: StyleProp<ViewStyle>;
+};
+
+type SwipeableTabsRenderContext<TabId extends string> = {
+  activeTab: TabId;
+  navigateToTab: (tab: TabId) => void;
+  tabSwipeHandlers: TabSwipeHandlers;
+};
+
+type SwipeableTabsProps<TabId extends string> = {
+  activeTab: TabId;
+  activationDistance?: number;
+  commitDistance?: number;
+  horizontalRatio?: number;
+  onChangeTab: (tab: TabId) => void;
+  paneStyle?: StyleProp<ViewStyle>;
+  renderBottomNavigation?: (
+    context: SwipeableTabsRenderContext<TabId>,
+  ) => ReactNode;
+  renderTab: (
+    tab: TabId,
+    context: SwipeableTabsRenderContext<TabId>,
+  ) => ReactNode;
+  stripAccessibilityLabel?: string;
+  stripStyle?: StyleProp<ViewStyle>;
+  tabOrder: readonly TabId[];
+  transitionDistance?: number;
+  transitionDurationMs?: number;
   viewportAccessibilityLabel?: string;
   viewportStyle?: StyleProp<ViewStyle>;
 };
@@ -316,7 +354,7 @@ export function SwipeableTabView<TabId extends string>({
 
   return (
     <View
-      style={viewportStyle}
+      style={[styles.viewport, viewportStyle]}
       accessibilityLabel={viewportAccessibilityLabel}
       onTouchStart={tabSwipeHandlers.onStart}
       onTouchMove={tabSwipeHandlers.onMove}
@@ -325,6 +363,7 @@ export function SwipeableTabView<TabId extends string>({
     >
       <Animated.View
         style={[
+          styles.strip,
           stripStyle,
           {
             width: transitionDistance * tabOrder.length,
@@ -336,7 +375,7 @@ export function SwipeableTabView<TabId extends string>({
         {tabOrder.map(tab => (
           <View
             key={tab}
-            style={[paneStyle, { width: transitionDistance }]}
+            style={[styles.pane, paneStyle, { width: transitionDistance }]}
             pointerEvents={tab === activeTab ? 'auto' : 'none'}
             accessibilityElementsHidden={tab !== activeTab}
             importantForAccessibility={
@@ -351,10 +390,65 @@ export function SwipeableTabView<TabId extends string>({
   );
 }
 
+export function SwipeableTabs<TabId extends string>({
+  activeTab,
+  activationDistance,
+  commitDistance,
+  horizontalRatio,
+  onChangeTab,
+  paneStyle,
+  renderBottomNavigation,
+  renderTab,
+  stripAccessibilityLabel,
+  stripStyle,
+  tabOrder,
+  transitionDistance,
+  transitionDurationMs,
+  viewportAccessibilityLabel,
+  viewportStyle,
+}: SwipeableTabsProps<TabId>) {
+  const controller = useSwipeableTabs<TabId>({
+    activeTab,
+    activationDistance,
+    commitDistance,
+    horizontalRatio,
+    onChangeTab,
+    tabOrder,
+    transitionDistance,
+    transitionDurationMs,
+  });
+  const context = {
+    activeTab,
+    navigateToTab: controller.navigateToTab,
+    tabSwipeHandlers: controller.tabSwipeHandlers,
+  };
+
+  return (
+    <>
+      <TabSwipeHandlersContext.Provider value={controller.tabSwipeHandlers}>
+        <SwipeableTabView
+          activeTab={activeTab}
+          controller={controller}
+          paneStyle={paneStyle}
+          renderTab={tab => renderTab(tab, context)}
+          stripAccessibilityLabel={stripAccessibilityLabel}
+          stripStyle={stripStyle}
+          tabOrder={tabOrder}
+          viewportAccessibilityLabel={viewportAccessibilityLabel}
+          viewportStyle={viewportStyle}
+        />
+        {renderBottomNavigation ? renderBottomNavigation(context) : null}
+      </TabSwipeHandlersContext.Provider>
+    </>
+  );
+}
+
 export function useTabSwipePressGuard(
   onPress: () => void,
   tabSwipeHandlers?: TabSwipeHandlers,
 ) {
+  const contextTabSwipeHandlers = useContext(TabSwipeHandlersContext);
+  const resolvedTabSwipeHandlers = tabSwipeHandlers ?? contextTabSwipeHandlers;
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const swipeCommittedRef = useRef(false);
 
@@ -364,7 +458,7 @@ export function useTabSwipePressGuard(
       y: touchEvent.nativeEvent.pageY,
     };
     swipeCommittedRef.current = false;
-    tabSwipeHandlers?.onStart(touchEvent);
+    resolvedTabSwipeHandlers?.onStart(touchEvent);
   };
 
   const handleTouchMove = (touchEvent: GestureResponderEvent) => {
@@ -385,7 +479,7 @@ export function useTabSwipePressGuard(
       swipeCommittedRef.current = true;
     }
 
-    tabSwipeHandlers?.onMove(touchEvent);
+    resolvedTabSwipeHandlers?.onMove(touchEvent);
   };
 
   const handleTouchEnd = (touchEvent: GestureResponderEvent) => {
@@ -404,7 +498,7 @@ export function useTabSwipePressGuard(
       swipeCommittedRef.current = true;
     }
 
-    tabSwipeHandlers?.onEnd(touchEvent);
+    resolvedTabSwipeHandlers?.onEnd(touchEvent);
   };
 
   const handlePress = () => {
@@ -526,3 +620,17 @@ function isTestEnvironment() {
       ?.NODE_ENV === 'test'
   );
 }
+
+const styles = StyleSheet.create({
+  pane: {
+    flex: 1,
+  },
+  strip: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  viewport: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+});
