@@ -59,13 +59,14 @@ import { colors, radius, spacing } from './src/theme/tokens';
 type Tab = 'home' | 'explore' | 'saved';
 type PriceFilter = 'all' | 'free' | 'paid';
 type PlaceFilter = 'all' | 'indoor' | 'outdoor';
-type ReservationFilter = 'all' | 'required' | 'notRequired' | 'available';
-type DateFilter = 'all' | 'upcoming' | 'ended';
+type ReservationFilter = 'all' | 'required' | 'notRequired';
+type DateFilter = 'active' | 'scheduled' | 'ongoing';
+type RegionFilter = 'all' | 'seoul' | 'gyeonggi' | 'other';
 
 type ExploreFilters = {
   ageFit: boolean;
   date: DateFilter;
-  locality: string;
+  region: RegionFilter;
   place: PlaceFilter;
   price: PriceFilter;
   reservation: ReservationFilter;
@@ -73,8 +74,8 @@ type ExploreFilters = {
 
 const defaultExploreFilters: ExploreFilters = {
   ageFit: false,
-  date: 'all',
-  locality: 'all',
+  date: 'active',
+  region: 'all',
   place: 'all',
   price: 'all',
   reservation: 'all',
@@ -637,7 +638,10 @@ function ExploreScreen({
           {activeFilterLabels.map(chip => (
             <Chip key={chip} label={chip} selected />
           ))}
-          <Pressable onPress={onOpenFilter}>
+          <Pressable
+            onPress={onOpenFilter}
+            accessibilityLabel="Open filters"
+          >
             <Chip
               label={
                 activeFilterCount > 0 ? `필터 ${activeFilterCount}` : '필터'
@@ -1120,10 +1124,6 @@ function FilterSheet({
   onChangeFilters: (filters: ExploreFilters) => void;
   onClose: () => void;
 }) {
-  const localities = useMemo(
-    () => getAvailableLocalities(eventsNewestFirst),
-    [],
-  );
   const updateFilter = <Key extends keyof ExploreFilters>(
     key: Key,
     value: ExploreFilters[Key],
@@ -1167,33 +1167,37 @@ function FilterSheet({
           <Text style={styles.fieldLabel}>일정</Text>
           <View style={styles.wrapRow}>
             {[
-              ['all', '전체'],
-              ['upcoming', '예정/진행중'],
-              ['ended', '종료됨'],
+              ['scheduled', '예정'],
+              ['ongoing', '진행중'],
             ].map(([value, label]) => (
               <Pressable
                 key={value}
+                accessibilityLabel={`Filter schedule ${label}`}
                 onPress={() => updateFilter('date', value as DateFilter)}
               >
-                <Chip label={label} selected={filters.date === value} />
+                <Chip
+                  label={label}
+                  selected={
+                    filters.date === 'active' || filters.date === value
+                  }
+                />
               </Pressable>
             ))}
           </View>
 
           <Text style={styles.fieldLabel}>지역</Text>
           <View style={styles.wrapRow}>
-            <Pressable onPress={() => updateFilter('locality', 'all')}>
-              <Chip label="전체" selected={filters.locality === 'all'} />
-            </Pressable>
-            {localities.map(locality => (
+            {[
+              ['all', '전체'],
+              ['seoul', '서울'],
+              ['gyeonggi', '경기'],
+              ['other', '기타 지역'],
+            ].map(([value, label]) => (
               <Pressable
-                key={locality}
-                onPress={() => updateFilter('locality', locality)}
+                key={value}
+                onPress={() => updateFilter('region', value as RegionFilter)}
               >
-                <Chip
-                  label={locality}
-                  selected={filters.locality === locality}
-                />
+                <Chip label={label} selected={filters.region === value} />
               </Pressable>
             ))}
           </View>
@@ -1234,7 +1238,6 @@ function FilterSheet({
           <View style={styles.wrapRow}>
             {[
               ['all', '전체'],
-              ['available', '신청 가능'],
               ['required', '예약 필요'],
               ['notRequired', '예약 불필요'],
             ].map(([value, label]) => (
@@ -1252,6 +1255,7 @@ function FilterSheet({
           <Pressable
             style={[styles.primaryButton, styles.sheetApplyButton]}
             onPress={onClose}
+            accessibilityLabel="Apply filters"
           >
             <Text style={styles.primaryButtonText}>결과 보기</Text>
           </Pressable>
@@ -1464,14 +1468,11 @@ function filterEvents(
       return false;
     }
 
-    if (
-      filters.date !== 'all' &&
-      !eventMatchesDateFilter(event, filters.date)
-    ) {
+    if (!eventMatchesDateFilter(event, filters.date)) {
       return false;
     }
 
-    if (filters.locality !== 'all' && event.locality !== filters.locality) {
+    if (!eventMatchesRegionFilter(event, filters.region)) {
       return false;
     }
 
@@ -1566,17 +1567,37 @@ function eventFitsAllSelectedChildren(
 
 function eventMatchesDateFilter(event: BabyrooEvent, dateFilter: DateFilter) {
   const today = parseDateInput(formatDateInput(new Date()));
+  const eventStart = parseDateInput(event.startsAt);
   const eventEnd = parseDateInput(event.endsAt);
 
-  if (dateFilter === 'upcoming') {
+  if (dateFilter === 'active') {
     return eventEnd >= today;
   }
 
-  if (dateFilter === 'ended') {
-    return eventEnd < today;
+  if (dateFilter === 'scheduled') {
+    return eventStart > today;
   }
 
-  return true;
+  return eventStart <= today && eventEnd >= today;
+}
+
+function eventMatchesRegionFilter(
+  event: BabyrooEvent,
+  regionFilter: RegionFilter,
+) {
+  if (regionFilter === 'all') {
+    return true;
+  }
+
+  if (regionFilter === 'seoul') {
+    return event.region === '서울';
+  }
+
+  if (regionFilter === 'gyeonggi') {
+    return event.region === '경기';
+  }
+
+  return event.region !== '서울' && event.region !== '경기';
 }
 
 function eventMatchesReservationFilter(
@@ -1585,10 +1606,6 @@ function eventMatchesReservationFilter(
 ) {
   if (reservationFilter === 'all') {
     return true;
-  }
-
-  if (reservationFilter === 'available') {
-    return event.reservationStatus !== 'closed';
   }
 
   if (reservationFilter === 'required') {
@@ -1609,12 +1626,18 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
     labels.push('월령 맞춤');
   }
 
-  if (filters.date !== 'all') {
-    labels.push(filters.date === 'upcoming' ? '예정/진행중' : '종료됨');
+  if (filters.date !== 'active') {
+    labels.push(filters.date === 'scheduled' ? '예정' : '진행중');
   }
 
-  if (filters.locality !== 'all') {
-    labels.push(filters.locality);
+  if (filters.region !== 'all') {
+    const regionLabels: Record<RegionFilter, string> = {
+      all: '전체',
+      seoul: '서울',
+      gyeonggi: '경기',
+      other: '기타 지역',
+    };
+    labels.push(regionLabels[filters.region]);
   }
 
   if (filters.price !== 'all') {
@@ -1628,7 +1651,6 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
   if (filters.reservation !== 'all') {
     const reservationLabels: Record<ReservationFilter, string> = {
       all: '전체',
-      available: '신청 가능',
       required: '예약 필요',
       notRequired: '예약 불필요',
     };
@@ -1636,12 +1658,6 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
   }
 
   return labels;
-}
-
-function getAvailableLocalities(events: BabyrooEvent[]) {
-  return [...new Set(events.map(event => event.locality))].sort((left, right) =>
-    left.localeCompare(right, 'ko'),
-  );
 }
 
 function formatAge(event: BabyrooEvent) {

@@ -269,15 +269,83 @@ test('shows residence choices in user settings', async () => {
   });
 
   expect(renderer!.root.findByProps({ children: '거주지' })).toBeTruthy();
-  expect(renderer!.root.findByProps({ children: '서울' })).toBeTruthy();
-  expect(renderer!.root.findByProps({ children: '경기' })).toBeTruthy();
-  expect(renderer!.root.findByProps({ children: '기타 지역' })).toBeTruthy();
+  expect(renderer!.root.findAllByProps({ children: '서울' }).length).toBeGreaterThan(
+    0,
+  );
+  expect(renderer!.root.findAllByProps({ children: '경기' }).length).toBeGreaterThan(
+    0,
+  );
+  expect(
+    renderer!.root.findAllByProps({ children: '기타 지역' }).length,
+  ).toBeGreaterThan(0);
   expect(renderer!.root.findAllByProps({ children: '서울/경기' })).toHaveLength(
     0,
   );
   expect(
     renderer!.root.findAllByProps({ children: '자주 보는 동네' }),
   ).toHaveLength(0);
+});
+
+test('shows simplified filters for schedule, region, and reservation', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Open filters' }).props
+      .onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '예정' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '진행중' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '서울' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '경기' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '기타 지역' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findByProps({ children: '예약 필요' }),
+  ).toBeTruthy();
+  expect(
+    renderer!.root.findByProps({ children: '예약 불필요' }),
+  ).toBeTruthy();
+  expect(renderer!.root.findAllByProps({ children: '종료됨' })).toHaveLength(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '신청 가능' }),
+  ).toHaveLength(0);
+  expect(renderer!.root.findAllByProps({ children: '종로구' })).toHaveLength(0);
+});
+
+test('filters schedule by scheduled and ongoing states separately', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Open filters' }).props
+      .onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Filter schedule 예정' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Apply filters' }).props
+      .onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '필터 1' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '예정' })).toBeTruthy();
 });
 
 async function swipeTabs(
