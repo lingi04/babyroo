@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Alert, BackHandler, Linking } from 'react-native';
+import { Alert, BackHandler, Linking, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { eventsNewestFirst } from '../src/data/events';
@@ -15,6 +15,114 @@ test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);
   });
+});
+
+test('keeps bottom navigation above the phone safe area', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const bottomNavigation = renderer!.root.findByProps({
+    accessibilityLabel: 'Bottom navigation',
+  });
+  const bottomNavigationStyle = StyleSheet.flatten(
+    bottomNavigation.props.style,
+  );
+
+  expect(bottomNavigationStyle.height).toBe(116);
+  expect(bottomNavigationStyle.paddingBottom).toBe(34);
+});
+
+test('switches adjacent tabs with horizontal swipes', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(renderer!.root.findByProps({ children: '행사 탐색' })).toBeTruthy();
+
+  await swipeTabs(renderer!, -96);
+  expect(renderer!.root.findByProps({ children: '저장한 행사' })).toBeTruthy();
+
+  await swipeTabs(renderer!, 96);
+  expect(renderer!.root.findByProps({ children: '행사 탐색' })).toBeTruthy();
+
+  await swipeTabs(renderer!, 96);
+  expect(
+    renderer!.root.findByProps({ children: '이번 주말 추천' }),
+  ).toBeTruthy();
+
+  await swipeTabs(renderer!, 96);
+  expect(
+    renderer!.root.findByProps({ children: '이번 주말 추천' }),
+  ).toBeTruthy();
+});
+
+test('switches tabs when swiping from an event card area', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(
+    renderer!.root.findByProps({
+      accessibilityLabel: `Open ${eventsNewestFirst[0].title}`,
+    }),
+  ).toBeTruthy();
+
+  await swipeEventCard(renderer!, -96);
+
+  expect(renderer!.root.findByProps({ children: '저장한 행사' })).toBeTruthy();
+});
+
+test('moves the tab strip while a card swipe is in progress', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const eventCard = renderer!.root.findByProps({
+    accessibilityLabel: `Open ${eventsNewestFirst[0].title}`,
+  });
+  const tabStrip = renderer!.root.findByProps({
+    accessibilityLabel: 'Tab strip',
+  });
+  const translateX = StyleSheet.flatten(tabStrip.props.style).transform[0]
+    .translateX;
+  const initialOffset = translateX.__getValue();
+
+  await ReactTestRenderer.act(() => {
+    eventCard.props.onTouchStart({
+      nativeEvent: { pageX: 200, pageY: 200 },
+    });
+    eventCard.props.onTouchMove({
+      nativeEvent: { pageX: 140, pageY: 202 },
+    });
+  });
+
+  expect(translateX.__getValue()).toBe(initialOffset - 60);
+});
+
+test('does not open event detail when an event card gesture is a tab swipe', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await swipeEventCard(renderer!, -96);
+
+  expect(
+    renderer!.root.findAllByProps({
+      accessibilityLabel: 'Open source or reservation page',
+    }),
+  ).toHaveLength(0);
+  expect(renderer!.root.findByProps({ children: '저장한 행사' })).toBeTruthy();
 });
 
 test('opens the source URL from the event detail CTA', async () => {
@@ -30,6 +138,12 @@ test('opens the source URL from the event detail CTA', async () => {
       .findByProps({ accessibilityLabel: `Open ${eventsNewestFirst[0].title}` })
       .props.onPress();
   });
+
+  expect(
+    renderer!.root.findAllByProps({
+      accessibilityLabel: `Open ${eventsNewestFirst[0].title}`,
+    }),
+  ).not.toHaveLength(0);
 
   await ReactTestRenderer.act(() => {
     renderer!.root
@@ -106,7 +220,8 @@ test('resets locally saved user information from settings', async () => {
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Open user settings' })
+      .findAllByProps({ accessibilityLabel: 'Open user settings' })
+      .filter(node => typeof node.props.onPress === 'function')[0]
       .props.onPress();
   });
 
@@ -138,3 +253,44 @@ test('resets locally saved user information from settings', async () => {
     }),
   ).toHaveLength(0);
 });
+
+async function swipeTabs(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  dx: number,
+) {
+  const swipeArea = renderer.root.findByProps({
+    accessibilityLabel: 'Tab swipe area',
+  });
+  const event = {
+    start: { nativeEvent: { pageX: 200, pageY: 200 } },
+    move: { nativeEvent: { pageX: 200 + dx / 2, pageY: 202 } },
+    end: { nativeEvent: { pageX: 200 + dx, pageY: 204 } },
+  };
+
+  await ReactTestRenderer.act(() => {
+    swipeArea.props.onTouchStart(event.start);
+    swipeArea.props.onTouchMove(event.move);
+    swipeArea.props.onTouchEnd(event.end);
+  });
+}
+
+async function swipeEventCard(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  dx: number,
+) {
+  const eventCard = renderer.root.findByProps({
+    accessibilityLabel: `Open ${eventsNewestFirst[0].title}`,
+  });
+  const event = {
+    start: { nativeEvent: { pageX: 200, pageY: 200 } },
+    move: { nativeEvent: { pageX: 200 + dx / 2, pageY: 202 } },
+    end: { nativeEvent: { pageX: 200 + dx, pageY: 204 } },
+  };
+
+  await ReactTestRenderer.act(() => {
+    eventCard.props.onTouchStart(event.start);
+    eventCard.props.onTouchMove(event.move);
+    eventCard.props.onTouchEnd(event.end);
+    eventCard.props.onPress();
+  });
+}

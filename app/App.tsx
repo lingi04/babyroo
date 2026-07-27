@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Alert,
   BackHandler,
@@ -26,6 +31,24 @@ import {
   eventsNewestFirst,
   recommendedEvents,
 } from './src/data/events';
+import {
+  bottomInsetPadding,
+  bottomTabsSafeArea,
+  detailContentBottomPadding,
+  FLOATING_RECOMMENDATION_BOTTOM,
+  floatingRecommendationBottomOffset,
+  SafeAreaFrame,
+  TAB_BAR_HEIGHT,
+  TAB_SCREEN_BOTTOM_PADDING,
+  tabScreenBottomPadding,
+  useBottomSafeAreaInset,
+} from './src/layout/safeArea';
+import {
+  SwipeableTabView,
+  TabSwipeHandlers,
+  useSwipeableTabs,
+  useTabSwipePressGuard,
+} from './src/navigation/tabSwipe';
 import { RecommendationSession } from './src/data/recommendation';
 import {
   Child,
@@ -61,7 +84,18 @@ const defaultExploreFilters: ExploreFilters = {
   reservation: 'all',
 };
 
+const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
+
 function App() {
+  return (
+    <SafeAreaFrame>
+      <BabyrooApp />
+    </SafeAreaFrame>
+  );
+}
+
+function BabyrooApp() {
+  const bottomInset = useBottomSafeAreaInset();
   const [user, setUser] = useState<User>(currentUser);
   const [userLoaded, setUserLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
@@ -72,7 +106,44 @@ function App() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const skipNextUserSaveRef = useRef(false);
+  const swipeableTabs = useSwipeableTabs<Tab>({
+    activeTab: tab,
+    onChangeTab: setTab,
+    tabOrder: TAB_ORDER,
+  });
+  const renderTabScreen = (
+    screenTab: Tab,
+    tabSwipeHandlers: TabSwipeHandlers,
+  ) => {
+    if (screenTab === 'home') {
+      return (
+        <HomeScreen
+          user={user}
+          onOpenEvent={openDetail}
+          onOpenSettings={openSettings}
+          bottomInset={bottomInset}
+          tabSwipeHandlers={tabSwipeHandlers}
+        />
+      );
+    }
 
+    if (screenTab === 'explore') {
+      return (
+        <ExploreScreen
+          user={user}
+          filters={exploreFilters}
+          onOpenEvent={openDetail}
+          onOpenFilter={() => setFilterOpen(true)}
+          onOpenRecommendation={() => swipeableTabs.navigateToTab('home')}
+          onOpenSettings={openSettings}
+          bottomInset={bottomInset}
+          tabSwipeHandlers={tabSwipeHandlers}
+        />
+      );
+    }
+
+    return <SavedScreen bottomInset={bottomInset} />;
+  };
   useEffect(() => {
     let mounted = true;
 
@@ -244,11 +315,9 @@ function App() {
   };
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      {selectedEvent ? (
-        <EventDetail event={selectedEvent} onBack={closeDetail} />
-      ) : settingsOpen ? (
+      {settingsOpen ? (
         <SettingsScreen
           user={user}
           onBack={closeSettings}
@@ -262,30 +331,33 @@ function App() {
         />
       ) : (
         <>
-          {tab === 'home' ? (
-            <HomeScreen
-              user={user}
-              onOpenEvent={openDetail}
-              onOpenSettings={openSettings}
-            />
-          ) : tab === 'explore' ? (
-            <ExploreScreen
-              user={user}
-              filters={exploreFilters}
-              onOpenEvent={openDetail}
-              onOpenFilter={() => setFilterOpen(true)}
-              onOpenRecommendation={() => setTab('home')}
-              onOpenSettings={openSettings}
-            />
-          ) : (
-            <SavedScreen />
-          )}
-          <BottomTabs activeTab={tab} onChange={setTab} />
+          <SwipeableTabView
+            activeTab={tab}
+            controller={swipeableTabs}
+            paneStyle={styles.tabPane}
+            renderTab={renderTabScreen}
+            stripStyle={styles.tabStrip}
+            tabOrder={TAB_ORDER}
+            viewportStyle={styles.tabViewport}
+          />
+          <BottomTabs
+            activeTab={tab}
+            bottomInset={bottomInset}
+            onChange={swipeableTabs.navigateToTab}
+          />
           {filterOpen ? (
             <FilterSheet
               filters={exploreFilters}
+              bottomInset={bottomInset}
               onChangeFilters={setExploreFilters}
               onClose={() => setFilterOpen(false)}
+            />
+          ) : null}
+          {selectedEvent ? (
+            <EventDetail
+              event={selectedEvent}
+              bottomInset={bottomInset}
+              onBack={closeDetail}
             />
           ) : null}
         </>
@@ -298,10 +370,14 @@ function HomeScreen({
   user,
   onOpenEvent,
   onOpenSettings,
+  bottomInset,
+  tabSwipeHandlers,
 }: {
   user: User;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenSettings: () => void;
+  bottomInset: number;
+  tabSwipeHandlers: TabSwipeHandlers;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [recommendationSessions, setRecommendationSessions] = useState<
@@ -338,7 +414,12 @@ function HomeScreen({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenWithTabs}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.screenWithTabs,
+        tabScreenBottomPadding(bottomInset),
+      ]}
+    >
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
@@ -427,6 +508,7 @@ function HomeScreen({
             compact
             tone={index}
             onPress={() => onOpenEvent(event)}
+            tabSwipeHandlers={tabSwipeHandlers}
           />
         ))
       ) : (
@@ -489,6 +571,8 @@ function ExploreScreen({
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
+  bottomInset,
+  tabSwipeHandlers,
 }: {
   user: User;
   filters: ExploreFilters;
@@ -496,6 +580,8 @@ function ExploreScreen({
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
+  bottomInset: number;
+  tabSwipeHandlers: TabSwipeHandlers;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [searchQuery, setSearchQuery] = useState('');
@@ -520,7 +606,10 @@ function ExploreScreen({
   return (
     <View style={styles.exploreRoot}>
       <ScrollView
-        contentContainerStyle={styles.screenWithTabs}
+        contentContainerStyle={[
+          styles.screenWithTabs,
+          tabScreenBottomPadding(bottomInset),
+        ]}
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
@@ -584,6 +673,7 @@ function ExploreScreen({
               tone={index}
               showSequence
               onPress={() => onOpenEvent(event)}
+              tabSwipeHandlers={tabSwipeHandlers}
             />
           ))
         ) : (
@@ -598,7 +688,10 @@ function ExploreScreen({
 
       {recommendationCtaVisible ? (
         <Pressable
-          style={styles.floatingRecommendationCta}
+          style={[
+            styles.floatingRecommendationCta,
+            floatingRecommendationBottomOffset(bottomInset),
+          ]}
           onPress={onOpenRecommendation}
           accessibilityLabel="Open recommendation page"
         >
@@ -619,9 +712,11 @@ function ExploreScreen({
 
 function EventDetail({
   event,
+  bottomInset,
   onBack,
 }: {
   event: BabyrooEvent;
+  bottomInset: number;
   onBack: () => void;
 }) {
   const openSourceUrl = () => {
@@ -632,7 +727,12 @@ function EventDetail({
 
   return (
     <View style={styles.detailRoot}>
-      <ScrollView contentContainerStyle={styles.detailContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.detailContent,
+          detailContentBottomPadding(bottomInset),
+        ]}
+      >
         <View style={styles.detailHero}>
           {event.imageUrl ? (
             <Image
@@ -689,7 +789,9 @@ function EventDetail({
         </View>
       </ScrollView>
 
-      <View style={styles.ctaBar}>
+      <View
+        style={[styles.ctaBar, bottomInsetPadding(bottomInset, spacing.xl)]}
+      >
         <Pressable
           style={styles.primaryButton}
           onPress={openSourceUrl}
@@ -703,9 +805,15 @@ function EventDetail({
   );
 }
 
-function SavedScreen() {
+function SavedScreen({ bottomInset }: { bottomInset: number }) {
   return (
-    <View style={[styles.screenWithTabs, styles.emptyState]}>
+    <View
+      style={[
+        styles.screenWithTabs,
+        tabScreenBottomPadding(bottomInset),
+        styles.emptyState,
+      ]}
+    >
       <Text style={styles.pageTitle}>저장한 행사</Text>
       <Text style={styles.pageSubtitle}>
         관심 있는 행사를 저장하면 여기에 모입니다.
@@ -1028,10 +1136,12 @@ function SettingsScreen({
 
 function FilterSheet({
   filters,
+  bottomInset,
   onChangeFilters,
   onClose,
 }: {
   filters: ExploreFilters;
+  bottomInset: number;
   onChangeFilters: (filters: ExploreFilters) => void;
   onClose: () => void;
 }) {
@@ -1049,7 +1159,9 @@ function FilterSheet({
   return (
     <View style={styles.sheetOverlay}>
       <Pressable style={styles.sheetDim} onPress={onClose} />
-      <View style={styles.sheet}>
+      <View
+        style={[styles.sheet, bottomInsetPadding(bottomInset, spacing.xxxl)]}
+      >
         <View style={styles.grabber} />
         <View style={styles.sheetHeader}>
           <View>
@@ -1180,21 +1292,27 @@ function EventCard({
   showSequence,
   tone,
   onPress,
+  tabSwipeHandlers,
 }: {
   event: BabyrooEvent;
   compact?: boolean;
   showSequence?: boolean;
   tone: number;
   onPress: () => void;
+  tabSwipeHandlers?: TabSwipeHandlers;
 }) {
   const color = [colors.primarySoft, colors.blue, colors.mint, colors.lilac][
     tone % 4
   ];
+  const tabSwipePress = useTabSwipePressGuard(onPress, tabSwipeHandlers);
 
   return (
     <Pressable
       style={[styles.eventCard, compact && styles.eventCardCompact]}
-      onPress={onPress}
+      onPress={tabSwipePress.onPress}
+      onTouchStart={tabSwipePress.onTouchStart}
+      onTouchMove={tabSwipePress.onTouchMove}
+      onTouchEnd={tabSwipePress.onTouchEnd}
       accessibilityLabel={`Open ${event.title}`}
     >
       {showSequence ? (
@@ -1311,9 +1429,11 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 function BottomTabs({
   activeTab,
+  bottomInset,
   onChange,
 }: {
   activeTab: Tab;
+  bottomInset: number;
   onChange: (tab: Tab) => void;
 }) {
   const tabs: Array<{ id: Tab; label: string; mark: string }> = [
@@ -1323,7 +1443,10 @@ function BottomTabs({
   ];
 
   return (
-    <View style={styles.bottomTabs}>
+    <View
+      style={[styles.bottomTabs, bottomTabsSafeArea(bottomInset)]}
+      accessibilityLabel="Bottom navigation"
+    >
       {tabs.map(tab => {
         const active = tab.id === activeTab;
         return (
@@ -1756,16 +1879,27 @@ const styles = StyleSheet.create({
   screenWithTabs: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxl,
-    paddingBottom: 112,
+    paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   exploreRoot: {
+    flex: 1,
+  },
+  tabViewport: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  tabStrip: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  tabPane: {
     flex: 1,
   },
   floatingRecommendationCta: {
     alignItems: 'center',
     backgroundColor: colors.text,
     borderRadius: radius.lg,
-    bottom: 96,
+    bottom: FLOATING_RECOMMENDATION_BOTTOM,
     flexDirection: 'row',
     justifyContent: 'space-between',
     left: spacing.xl,
@@ -2340,11 +2474,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   detailRoot: {
-    flex: 1,
     backgroundColor: colors.background,
+    bottom: 0,
+    elevation: 12,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 12,
   },
   detailContent: {
-    paddingBottom: 112,
+    paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   detailHero: {
     backgroundColor: colors.primarySoft,
@@ -2571,7 +2711,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
-    height: 82,
+    height: TAB_BAR_HEIGHT,
     left: 0,
     paddingTop: spacing.sm,
     position: 'absolute',
