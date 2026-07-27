@@ -832,7 +832,7 @@ function SettingsScreen({
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
-  const regions = ['서울', '서울/경기', '경기'];
+  const regions = ['서울', '경기', '기타 지역'];
   const [displayNameDraft, setDisplayNameDraft] = useState(user.displayName);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<string | null>(null);
@@ -1079,24 +1079,15 @@ function SettingsScreen({
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>기본 지역</Text>
+        <Text style={styles.sectionTitle}>거주지</Text>
         <Text style={styles.sectionMeta}>
-          추천과 탐색 필터의 기본 지역으로 사용됩니다.
+          추천과 탐색 필터에서 우선 참고하는 지역입니다.
         </Text>
         <View style={styles.wrapRow}>
           {regions.map(region => (
             <Pressable key={region} onPress={() => onSelectRegion(region)}>
               <Chip label={region} selected={region === user.homeRegion} />
             </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>자주 보는 동네</Text>
-        <View style={styles.wrapRow}>
-          {user.preferredLocalities.map(locality => (
-            <Chip key={locality} label={locality} selected />
           ))}
         </View>
       </View>
