@@ -51,13 +51,117 @@ test('switches adjacent tabs with horizontal swipes', async () => {
   expect(renderer!.root.findByProps({ children: '행사 탐색' })).toBeTruthy();
 
   await swipeTabs(renderer!, 96);
-  expect(
-    renderer!.root.findByProps({ children: '이번 주말 추천' }),
-  ).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '맞춤 추천' })).toBeTruthy();
 
   await swipeTabs(renderer!, 96);
+  expect(renderer!.root.findByProps({ children: '맞춤 추천' })).toBeTruthy();
+});
+
+test('answers recommendation questions before requesting results', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await swipeTabs(renderer!, 96);
+
+  expect(renderer!.root.findByProps({ children: '추천 준비' })).toBeTruthy();
+  expect(renderer!.root.findAllByProps({ children: '질문' })).toHaveLength(0);
+  expect(renderer!.root.findAllByProps({ children: '출발 지역' })).toHaveLength(
+    0,
+  );
+  expect(renderer!.root.findAllByProps({ children: '이동 방식' })).toHaveLength(
+    0,
+  );
+  expect(renderer!.root.findAllByProps({ children: '실내 선호' })).toHaveLength(
+    0,
+  );
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Request recommendation' })
+      .props.onPress();
+  });
+
   expect(
-    renderer!.root.findByProps({ children: '이번 주말 추천' }),
+    renderer!.root.findByProps({
+      children: '오늘 어디에서 출발하세요?',
+    }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Answer recommendation 서울' })
+      .props.onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '출발 지역' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '서울' }).length,
+  ).toBeGreaterThan(0);
+
+  for (const answer of [
+    '가능해요',
+    '한적한 곳',
+    '무료 위주',
+    '예약 없이 가고 싶어요',
+    '직접 체험',
+  ]) {
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({
+          accessibilityLabel: `Answer recommendation ${answer}`,
+        })
+        .props.onPress();
+    });
+  }
+
+  expect(renderer!.root.findByProps({ children: '추천 결과' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '예약 없이 가고 싶어요' }).length,
+  ).toBeGreaterThan(0);
+});
+
+test('moves backward in the recommendation question flow', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await swipeTabs(renderer!, 96);
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Request recommendation' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Answer recommendation 서울' })
+      .props.onPress();
+  });
+
+  expect(
+    renderer!.root.findByProps({ children: '차로 이동할 수 있나요?' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Previous recommendation question' })
+      .props.onPress();
+  });
+
+  expect(
+    renderer!.root.findByProps({
+      children: '오늘 어디에서 출발하세요?',
+    }),
   ).toBeTruthy();
 });
 
@@ -298,8 +402,12 @@ test('shows simplified filters for schedule, region, and reservation', async () 
       .onPress();
   });
 
-  expect(renderer!.root.findByProps({ children: '예정' })).toBeTruthy();
-  expect(renderer!.root.findByProps({ children: '진행중' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '예정' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '진행중' }).length,
+  ).toBeGreaterThan(0);
   expect(
     renderer!.root.findAllByProps({ children: '서울' }).length,
   ).toBeGreaterThan(0);
@@ -345,7 +453,9 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
   });
 
   expect(renderer!.root.findByProps({ children: '필터 1' })).toBeTruthy();
-  expect(renderer!.root.findByProps({ children: '예정' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '예정' }).length,
+  ).toBeGreaterThan(0);
 });
 
 async function swipeTabs(

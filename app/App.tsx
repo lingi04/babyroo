@@ -29,7 +29,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   BabyrooEvent,
   eventsNewestFirst,
-  recommendedEvents,
 } from './src/data/events';
 import {
   bottomInsetPadding,
@@ -45,7 +44,13 @@ import {
   useBottomSafeAreaInset,
   useTabSwipePressGuard,
 } from './src/mobileLayout';
-import { RecommendationSession } from './src/data/recommendation';
+import {
+  RecommendationAnswerMap,
+  RecommendationAnswerValue,
+  RecommendationQuestion,
+  RecommendationQuestionId,
+  RecommendationSession,
+} from './src/data/recommendation';
 import {
   Child,
   ChildGender,
@@ -80,6 +85,53 @@ const defaultExploreFilters: ExploreFilters = {
   price: 'all',
   reservation: 'all',
 };
+const coreRecommendationQuestions: RecommendationQuestion[] = [
+  {
+    id: 'startRegion',
+    prompt: '오늘 어디에서 출발하세요?',
+    options: [
+      { label: '서울', value: 'region_seoul' },
+      { label: '경기', value: 'region_gyeonggi' },
+      { label: '기타 지역', value: 'region_other' },
+    ],
+  },
+  {
+    id: 'mobility',
+    prompt: '차로 이동할 수 있나요?',
+    options: [
+      { label: '가능해요', value: 'mobility_car' },
+      { label: '대중교통이 좋아요', value: 'mobility_transit' },
+      { label: '가까운 곳만', value: 'mobility_nearby' },
+    ],
+  },
+  {
+    id: 'vibe',
+    prompt: '오늘은 어떤 분위기가 좋으세요?',
+    options: [
+      { label: '한적한 곳', value: 'vibe_quiet' },
+      { label: '활기찬 곳', value: 'vibe_lively' },
+      { label: '상관없어요', value: 'vibe_any' },
+    ],
+  },
+  {
+    id: 'priceComfort',
+    prompt: '입장료는 어느 정도 괜찮으세요?',
+    options: [
+      { label: '무료 위주', value: 'price_free' },
+      { label: '저렴하면 괜찮아요', value: 'price_low' },
+      { label: '유료도 괜찮아요', value: 'price_any' },
+    ],
+  },
+  {
+    id: 'reservationComfort',
+    prompt: '예약이 필요한 행사도 괜찮으세요?',
+    options: [
+      { label: '예약 없이 가고 싶어요', value: 'reservation_none' },
+      { label: '예약 가능하면 괜찮아요', value: 'reservation_ok' },
+      { label: '상관없어요', value: 'reservation_any' },
+    ],
+  },
+];
 
 const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
 
@@ -374,6 +426,18 @@ function HomeScreen({
   >([]);
   const [selectedRecommendationSessionId, setSelectedRecommendationSessionId] =
     useState<string | null>(null);
+  const [recommendationAnswers, setRecommendationAnswers] =
+    useState<RecommendationAnswerMap>({});
+  const [recommendationInterviewOpen, setRecommendationInterviewOpen] =
+    useState(false);
+  const [recommendationQuestionIndex, setRecommendationQuestionIndex] =
+    useState(0);
+  const recommendationQuestions = useMemo(
+    () => buildRecommendationQuestions(eventsNewestFirst, selectedChildren),
+    [selectedChildren],
+  );
+  const currentRecommendationQuestion =
+    recommendationQuestions[recommendationQuestionIndex];
   const latestRecommendationSession = recommendationSessions[0];
   const selectedRecommendationSession =
     recommendationSessions.find(
@@ -385,13 +449,28 @@ function HomeScreen({
         .filter((event): event is BabyrooEvent => Boolean(event))
     : [];
 
-  const requestRecommendation = () => {
+  const startRecommendationInterview = () => {
+    setRecommendationAnswers({});
+    setRecommendationQuestionIndex(0);
+    setRecommendationInterviewOpen(true);
+  };
+
+  const finishRecommendation = (answers: RecommendationAnswerMap) => {
+    const resultEventIds = recommendEvents({
+      answers,
+      events: eventsNewestFirst,
+      fallbackHomeRegion: user.homeRegion,
+      limit: 3,
+      selectedChildren,
+    }).map(event => event.id);
+
     const session: RecommendationSession = {
       id: `recommendation-${Date.now()}`,
       createdAt: new Date().toISOString(),
       userId: user.id,
       childIds: selectedChildren.map(child => child.id),
-      resultEventIds: recommendedEvents.map(event => event.id),
+      answers,
+      resultEventIds,
       creditCost: 1,
     };
 
@@ -400,6 +479,27 @@ function HomeScreen({
       ...previousSessions,
     ]);
     setSelectedRecommendationSessionId(session.id);
+    setRecommendationInterviewOpen(false);
+  };
+
+  const answerRecommendationQuestion = (
+    questionId: RecommendationQuestionId,
+    value: RecommendationAnswerMap[RecommendationQuestionId],
+  ) => {
+    const nextAnswers = {
+      ...recommendationAnswers,
+      [questionId]: value,
+    };
+    const nextIndex = recommendationQuestionIndex + 1;
+
+    setRecommendationAnswers(nextAnswers);
+
+    if (nextIndex >= recommendationQuestions.length) {
+      finishRecommendation(nextAnswers);
+      return;
+    }
+
+    setRecommendationQuestionIndex(nextIndex);
   };
 
   return (
@@ -412,7 +512,7 @@ function HomeScreen({
       <View style={styles.headerRow}>
         <View>
           <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
-          <Text style={styles.pageTitle}>이번 주말 추천</Text>
+          <Text style={styles.pageTitle}>맞춤 추천</Text>
         </View>
         <Pressable
           style={styles.iconButton}
@@ -439,26 +539,32 @@ function HomeScreen({
         <Text style={styles.settingsLabel}>추천 준비</Text>
         <Text style={styles.settingsTitle}>조건에 맞는 후보만 추려볼까요?</Text>
         <Text style={styles.settingsMeta}>
-          추천은 현재 아이 정보와 지역을 기준으로 후보를 좁혀 보여주는
-          기능입니다.
+          선택한 조건을 기준으로 아이에게 맞는 후보를 먼저 보여드립니다.
         </Text>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipRow}
-        >
-          {[
-            formatChildrenAges(selectedChildren),
-            user.homeRegion,
-            '이번 주말',
-            '실내 선호',
-          ].map(chip => (
-            <Chip key={chip} label={chip} selected />
-          ))}
-        </ScrollView>
+        <View style={styles.recommendationCriteriaGroup}>
+          <Text style={styles.fieldLabel}>기준</Text>
+          <View style={styles.wrapRow}>
+            <Pressable
+              onPress={onOpenSettings}
+              accessibilityLabel="Edit recommendation children"
+            >
+              <Chip label={formatChildrenAges(selectedChildren)} selected />
+            </Pressable>
+            <Pressable
+              onPress={onOpenSettings}
+              accessibilityLabel="Edit recommendation residence"
+            >
+              <Chip label={user.homeRegion} selected />
+            </Pressable>
+          </View>
+        </View>
 
-        <Pressable style={styles.primaryButton} onPress={requestRecommendation}>
+        <Pressable
+          style={styles.primaryButton}
+          onPress={startRecommendationInterview}
+          accessibilityLabel="Request recommendation"
+        >
           <Text style={styles.primaryButtonText}>
             {latestRecommendationSession
               ? '다시 추천 받기 · 1회 사용'
@@ -476,6 +582,23 @@ function HomeScreen({
         ) : null}
       </View>
 
+      {recommendationInterviewOpen && currentRecommendationQuestion ? (
+        <RecommendationQuestionCard
+          answers={recommendationAnswers}
+          question={currentRecommendationQuestion}
+          questionIndex={recommendationQuestionIndex}
+          questionCount={recommendationQuestions.length}
+          questions={recommendationQuestions}
+          onAnswer={answerRecommendationQuestion}
+          onBack={() =>
+            setRecommendationQuestionIndex(previousIndex =>
+              Math.max(previousIndex - 1, 0),
+            )
+          }
+          onClose={() => setRecommendationInterviewOpen(false)}
+        />
+      ) : null}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
           {selectedRecommendationSession ? '추천 결과' : '추천 전 확인'}
@@ -485,11 +608,18 @@ function HomeScreen({
             ? `${formatRecommendationSessionTime(
                 selectedRecommendationSession.createdAt,
               )} 추천 · ${selectedRecommendationSession.creditCost}회 사용`
-            : '추천 받기를 누르면 후보가 표시됩니다'}
+            : '추천 받기를 누르면 선택한 조건으로 후보가 표시됩니다'}
         </Text>
       </View>
 
       {selectedRecommendationSession ? (
+        <RecommendationAnswerSummary
+          answers={selectedRecommendationSession.answers}
+          questions={recommendationQuestions}
+        />
+      ) : null}
+
+      {selectedRecommendationSession && selectedRecommendedEvents.length > 0 ? (
         selectedRecommendedEvents.map((event, index) => (
           <EventCard
             key={event.id}
@@ -499,6 +629,13 @@ function HomeScreen({
             onPress={() => onOpenEvent(event)}
           />
         ))
+      ) : selectedRecommendationSession ? (
+        <View style={styles.recommendationEmptyState}>
+          <Text style={styles.emptyStateTitle}>조건에 맞는 추천이 없어요</Text>
+          <Text style={styles.emptyStateText}>
+            일정이나 장소 조건을 넓혀서 다시 추천받아 보세요.
+          </Text>
+        </View>
       ) : (
         <View style={styles.recommendationEmptyState}>
           <Text style={styles.emptyStateTitle}>
@@ -549,6 +686,106 @@ function HomeScreen({
         <Text style={styles.linkText}>전체 보기</Text>
       </View>
     </ScrollView>
+  );
+}
+
+function RecommendationQuestionCard({
+  answers,
+  question,
+  questionIndex,
+  questionCount,
+  questions,
+  onAnswer,
+  onBack,
+  onClose,
+}: {
+  answers: RecommendationAnswerMap;
+  question: RecommendationQuestion;
+  questionIndex: number;
+  questionCount: number;
+  questions: RecommendationQuestion[];
+  onAnswer: (
+    questionId: RecommendationQuestionId,
+    value: RecommendationAnswerValue,
+  ) => void;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <View style={styles.recommendationQuestionCard}>
+      <View style={styles.recommendationQuestionHeader}>
+        <View>
+          <Text style={styles.settingsLabel}>
+            질문 {questionIndex + 1}/{questionCount}
+          </Text>
+          <Text style={styles.settingsTitle}>{question.prompt}</Text>
+        </View>
+        <Pressable onPress={onClose} accessibilityLabel="Close recommendation questions">
+          <Text style={styles.linkText}>닫기</Text>
+        </Pressable>
+      </View>
+
+      <RecommendationAnswerSummary answers={answers} questions={questions} />
+
+      <View style={styles.recommendationOptionList}>
+        {question.options.map(option => (
+          <Pressable
+            key={option.value}
+            style={styles.recommendationOption}
+            onPress={() => onAnswer(question.id, option.value)}
+            accessibilityLabel={`Answer recommendation ${option.label}`}
+          >
+            <Text style={styles.recommendationOptionText}>
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {questionIndex > 0 ? (
+        <Pressable
+          style={styles.recommendationBackButton}
+          onPress={onBack}
+          accessibilityLabel="Previous recommendation question"
+        >
+          <Text style={styles.linkText}>이전 질문</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function RecommendationAnswerSummary({
+  answers,
+  questions,
+}: {
+  answers: RecommendationAnswerMap;
+  questions: RecommendationQuestion[];
+}) {
+  const answeredQuestions = questions.filter(question =>
+    Boolean(answers[question.id]),
+  );
+
+  if (answeredQuestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <View style={styles.recommendationAnswerSummary}>
+      <Text style={styles.fieldLabel}>선택한 답변</Text>
+      <View style={styles.recommendationAnswerList}>
+        {answeredQuestions.map(question => (
+          <View key={question.id} style={styles.recommendationAnswerItem}>
+            <Text style={styles.recommendationAnswerQuestion}>
+              {recommendationQuestionLabel(question)}
+            </Text>
+            <Text style={styles.recommendationAnswerValue}>
+              {recommendationAnswerLabel(question, answers[question.id])}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 
@@ -1496,6 +1733,162 @@ function filterEvents(
   });
 }
 
+function recommendEvents({
+  answers,
+  events,
+  fallbackHomeRegion,
+  limit,
+  selectedChildren,
+}: {
+  answers: RecommendationAnswerMap;
+  events: BabyrooEvent[];
+  fallbackHomeRegion: string;
+  limit: number;
+  selectedChildren: Child[];
+}) {
+  const selectedChildAges = selectedChildren.map(child =>
+    calculateAgeMonths(child.birthDate),
+  );
+  const homeRegion = recommendationHomeRegion(answers, fallbackHomeRegion);
+  const candidates = events.filter(event => {
+    if (!eventMatchesDateFilter(event, 'active')) {
+      return false;
+    }
+
+    if (!eventMatchesRecommendationPlace(event, answers)) {
+      return false;
+    }
+
+    if (!eventMatchesRecommendationPrice(event, answers)) {
+      return false;
+    }
+
+    if (!eventMatchesRecommendationReservation(event, answers)) {
+      return false;
+    }
+
+    if (!eventFitsAllSelectedChildren(event, selectedChildAges)) {
+      return false;
+    }
+
+    return event.reservationStatus !== 'closed';
+  });
+  const homeRegionCandidates = candidates.filter(event =>
+    eventMatchesHomeRegion(event, homeRegion),
+  );
+  const fillCandidates =
+    homeRegionCandidates.length >= limit
+      ? homeRegionCandidates
+      : [
+          ...homeRegionCandidates,
+          ...candidates.filter(
+            event => !eventMatchesHomeRegion(event, homeRegion),
+          ),
+        ];
+
+  return [...fillCandidates]
+    .sort((left, right) =>
+      compareRecommendedEvents(left, right, homeRegion, answers),
+    )
+    .slice(0, limit);
+}
+
+function buildRecommendationQuestions(
+  events: BabyrooEvent[],
+  selectedChildren: Child[],
+) {
+  return [
+    ...coreRecommendationQuestions,
+    selectAdaptiveRecommendationQuestion(events, selectedChildren),
+  ];
+}
+
+function selectAdaptiveRecommendationQuestion(
+  events: BabyrooEvent[],
+  selectedChildren: Child[],
+): RecommendationQuestion {
+  const youngestChildAge = selectedChildren.reduce<number | null>(
+    (youngestAge, child) => {
+      const childAge = calculateAgeMonths(child.birthDate);
+
+      return youngestAge == null ? childAge : Math.min(youngestAge, childAge);
+    },
+    null,
+  );
+
+  if (youngestChildAge != null && youngestChildAge < 24) {
+    return {
+      id: 'duration',
+      prompt: '짧게 머물 수 있는 곳이 좋으세요?',
+      options: [
+        { label: '짧은 코스가 좋아요', value: 'duration_short' },
+        { label: '상관없어요', value: 'duration_any' },
+      ],
+    };
+  }
+
+  const hasIndoor = events.some(event => event.indoor === true);
+  const hasOutdoor = events.some(event => event.indoor === false);
+
+  if (hasIndoor && hasOutdoor) {
+    return {
+      id: 'place',
+      prompt: '실내와 야외 중 어디가 더 편하세요?',
+      options: [
+        { label: '실내 위주', value: 'place_indoor' },
+        { label: '야외도 좋아요', value: 'place_outdoor' },
+        { label: '상관없어요', value: 'place_any' },
+      ],
+    };
+  }
+
+  return {
+    id: 'activityStyle',
+    prompt: '어떤 활동이 더 끌리세요?',
+    options: [
+      { label: '직접 체험', value: 'activity_experience' },
+      { label: '전시 관람', value: 'activity_exhibition' },
+      { label: '상관없어요', value: 'activity_any' },
+    ],
+  };
+}
+
+function recommendationQuestionLabel(question: RecommendationQuestion) {
+  if (question.id === 'startRegion') {
+    return '출발 지역';
+  }
+  if (question.id === 'mobility') {
+    return '이동 방식';
+  }
+  if (question.id === 'vibe') {
+    return '분위기';
+  }
+  if (question.id === 'priceComfort') {
+    return '입장료';
+  }
+  if (question.id === 'reservationComfort') {
+    return '예약';
+  }
+  if (question.id === 'duration') {
+    return '체류 시간';
+  }
+  if (question.id === 'place') {
+    return '실내/야외';
+  }
+
+  return '활동 유형';
+}
+
+function recommendationAnswerLabel(
+  question: RecommendationQuestion,
+  value: RecommendationAnswerValue | undefined,
+) {
+  return (
+    question.options.find(option => option.value === value)?.label ??
+    '선택 안 함'
+  );
+}
+
 function normalizeSearchText(value: string) {
   return value.trim().toLocaleLowerCase();
 }
@@ -1600,6 +1993,72 @@ function eventMatchesRegionFilter(
   return event.region !== '서울' && event.region !== '경기';
 }
 
+function eventMatchesHomeRegion(event: BabyrooEvent, homeRegion: string) {
+  if (homeRegion === '서울' || homeRegion === '경기') {
+    return event.region === homeRegion;
+  }
+
+  return event.region !== '서울' && event.region !== '경기';
+}
+
+function recommendationHomeRegion(
+  answers: RecommendationAnswerMap,
+  fallbackHomeRegion: string,
+) {
+  if (answers.startRegion === 'region_seoul') {
+    return '서울';
+  }
+  if (answers.startRegion === 'region_gyeonggi') {
+    return '경기';
+  }
+  if (answers.startRegion === 'region_other') {
+    return '기타 지역';
+  }
+
+  return fallbackHomeRegion;
+}
+
+function eventMatchesRecommendationPlace(
+  event: BabyrooEvent,
+  answers: RecommendationAnswerMap,
+) {
+  if (answers.place === 'place_indoor' && event.indoor !== true) {
+    return false;
+  }
+
+  if (answers.place === 'place_outdoor' && event.indoor !== false) {
+    return false;
+  }
+
+  return true;
+}
+
+function eventMatchesRecommendationPrice(
+  event: BabyrooEvent,
+  answers: RecommendationAnswerMap,
+) {
+  if (answers.priceComfort === 'price_free') {
+    return event.priceType === 'free';
+  }
+
+  return true;
+}
+
+function eventMatchesRecommendationReservation(
+  event: BabyrooEvent,
+  answers: RecommendationAnswerMap,
+) {
+  if (answers.reservationComfort === 'reservation_none') {
+    return event.reservationRequired === false;
+  }
+
+  if (answers.reservationComfort === 'reservation_ok') {
+    return event.reservationStatus !== 'closed';
+  }
+
+  return true;
+}
+
 function eventMatchesReservationFilter(
   event: BabyrooEvent,
   reservationFilter: ReservationFilter,
@@ -1613,6 +2072,109 @@ function eventMatchesReservationFilter(
   }
 
   return event.reservationRequired === false;
+}
+
+function compareRecommendedEvents(
+  left: BabyrooEvent,
+  right: BabyrooEvent,
+  homeRegion: string,
+  answers: RecommendationAnswerMap,
+) {
+  const answerDifference =
+    recommendationAnswerScore(left, answers, homeRegion) -
+    recommendationAnswerScore(right, answers, homeRegion);
+
+  if (answerDifference !== 0) {
+    return answerDifference;
+  }
+
+  const regionDifference =
+    recommendationRegionScore(left, homeRegion) -
+    recommendationRegionScore(right, homeRegion);
+
+  if (regionDifference !== 0) {
+    return regionDifference;
+  }
+
+  const dateDifference =
+    recommendationDateScore(left) - recommendationDateScore(right);
+
+  if (dateDifference !== 0) {
+    return dateDifference;
+  }
+
+  return right.csvSequence - left.csvSequence;
+}
+
+function recommendationAnswerScore(
+  event: BabyrooEvent,
+  answers: RecommendationAnswerMap,
+  homeRegion: string,
+) {
+  let score = 0;
+
+  if (answers.mobility === 'mobility_nearby') {
+    score += eventMatchesHomeRegion(event, homeRegion) ? 0 : 4;
+  }
+
+  if (answers.mobility === 'mobility_transit' && event.indoor === false) {
+    score += 1;
+  }
+
+  if (answers.vibe === 'vibe_quiet' && event.category === 'performance') {
+    score += 2;
+  }
+
+  if (
+    answers.vibe === 'vibe_lively' &&
+    (event.category === 'exhibition' || event.category === 'museum')
+  ) {
+    score += 1;
+  }
+
+  if (answers.priceComfort === 'price_low' && event.priceType === 'paid') {
+    score += 1;
+  }
+
+  if (
+    answers.duration === 'duration_short' &&
+    event.category !== 'play_space'
+  ) {
+    score += 1;
+  }
+
+  if (
+    answers.activityStyle === 'activity_experience' &&
+    event.category !== 'experience'
+  ) {
+    score += 2;
+  }
+
+  if (
+    answers.activityStyle === 'activity_exhibition' &&
+    event.category !== 'exhibition' &&
+    event.category !== 'museum'
+  ) {
+    score += 2;
+  }
+
+  return score;
+}
+
+function recommendationRegionScore(event: BabyrooEvent, homeRegion: string) {
+  return eventMatchesHomeRegion(event, homeRegion) ? 0 : 1;
+}
+
+function recommendationDateScore(event: BabyrooEvent) {
+  const today = parseDateInput(formatDateInput(new Date())).getTime();
+  const eventStart = parseDateInput(event.startsAt).getTime();
+  const eventEnd = parseDateInput(event.endsAt).getTime();
+
+  if (eventStart <= today && eventEnd >= today) {
+    return eventEnd - today;
+  }
+
+  return Math.abs(eventStart - today);
 }
 
 function countActiveExploreFilters(filters: ExploreFilters) {
@@ -1973,6 +2535,76 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginTop: spacing.xxl,
     padding: spacing.lg,
+  },
+  recommendationCriteriaGroup: {
+    marginTop: spacing.lg,
+  },
+  recommendationQuestionCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+  },
+  recommendationQuestionHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  recommendationOptionList: {
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  recommendationOption: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primarySoft,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  recommendationOptionText: {
+    color: colors.primaryStrong,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  recommendationBackButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+  },
+  recommendationAnswerSummary: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: spacing.lg,
+    padding: spacing.md,
+  },
+  recommendationAnswerList: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  recommendationAnswerItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  recommendationAnswerQuestion: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  recommendationAnswerValue: {
+    color: colors.text,
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'right',
   },
   recommendationEmptyState: {
     backgroundColor: colors.surface,
