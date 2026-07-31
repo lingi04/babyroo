@@ -45,12 +45,17 @@ import {
   useTabSwipePressGuard,
 } from './src/mobileLayout';
 import {
+  createRecommendationService,
+  Preferences,
   RecommendationAnswerMap,
   RecommendationAnswerValue,
+  RecommendationDebugInfo,
+  RecommendationErrorCode,
   RecommendationQuestion,
   RecommendationQuestionId,
+  RecommendationResult,
   RecommendationSession,
-} from './src/data/recommendation';
+} from './src/recommendation';
 import {
   Child,
   ChildGender,
@@ -450,13 +455,31 @@ function HomeScreen({
     useState<string | null>(null);
   const [recommendationAnswers, setRecommendationAnswers] =
     useState<RecommendationAnswerMap>({});
-  const [recommendationInterviewOpen, setRecommendationInterviewOpen] =
-    useState(false);
+  const [recommendationFlowStep, setRecommendationFlowStep] = useState<
+    'idle' | 'interview' | 'confirming'
+  >('idle');
   const [recommendationQuestionIndex, setRecommendationQuestionIndex] =
     useState(0);
+  const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
+    useState(false);
   const recommendationQuestions = useMemo(
     () => buildRecommendationQuestions(eventsNewestFirst, selectedChildren),
     [selectedChildren],
+  );
+  const recommendationService = useMemo(
+    () =>
+      createRecommendationService({
+        provider: 'mock',
+        mockOptions: {
+          delayMs: 0,
+          getLocalContext: () => ({
+            events: eventsNewestFirst,
+            selectedChildren,
+            user,
+          }),
+        },
+      }),
+    [selectedChildren, user],
   );
   const currentRecommendationQuestion =
     recommendationQuestions[recommendationQuestionIndex];
@@ -466,42 +489,90 @@ function HomeScreen({
       session => session.id === selectedRecommendationSessionId,
     ) ?? latestRecommendationSession;
   const selectedRecommendedEvents = selectedRecommendationSession
-    ? selectedRecommendationSession.resultEventIds
-        .map(eventId => eventsNewestFirst.find(event => event.id === eventId))
+    ? selectedRecommendationSession.results
+        .map(result => eventsNewestFirst.find(event => event.id === result.eventId))
         .filter((event): event is BabyrooEvent => Boolean(event))
     : [];
+  const selectedRecommendationResults = selectedRecommendationSession
+    ? selectedRecommendationSession.results
+    : [];
+  const visibleRecommendationSessions = recommendationSessions.filter(
+    session => session.status === 'success',
+  );
 
   const startRecommendationInterview = () => {
     setRecommendationAnswers({});
     setRecommendationQuestionIndex(0);
-    setRecommendationInterviewOpen(true);
+    setReturnToConfirmationAfterAnswer(false);
+    setRecommendationFlowStep('interview');
   };
 
-  const finishRecommendation = (answers: RecommendationAnswerMap) => {
-    const resultEventIds = recommendEvents({
-      answers,
-      events: eventsNewestFirst,
-      fallbackHomeRegion: user.homeRegion,
-      limit: 3,
-      selectedChildren,
-    }).map(event => event.id);
-
-    const session: RecommendationSession = {
-      id: `recommendation-${Date.now()}`,
+  const requestRecommendation = async (answers: RecommendationAnswerMap) => {
+    const sessionId = `recommendation-${Date.now()}`;
+    const preferences = answersToPreferences(answers);
+    const loadingSession: RecommendationSession = {
+      id: sessionId,
       createdAt: new Date().toISOString(),
       userId: user.id,
-      childIds: selectedChildren.map(child => child.id),
-      answers,
-      resultEventIds,
-      creditCost: 1,
+      selectedChildIds: selectedChildren.map(child => child.id),
+      preferences,
+      status: 'loading',
+      results: [],
+      credit: {
+        policy: 'none',
+        cost: 0,
+        consumed: false,
+      },
     };
 
+    setRecommendationFlowStep('idle');
     setRecommendationSessions(previousSessions => [
-      session,
+      loadingSession,
       ...previousSessions,
     ]);
-    setSelectedRecommendationSessionId(session.id);
-    setRecommendationInterviewOpen(false);
+    setSelectedRecommendationSessionId(sessionId);
+
+    const response = await recommendationService.recommend({
+      sessionId,
+      userId: user.id,
+      selectedChildIds: selectedChildren.map(child => child.id),
+      preferences,
+      client: {
+        locale: 'ko-KR',
+        timezone: 'Asia/Seoul',
+        requestedAt: loadingSession.createdAt,
+      },
+      debug: __DEV__,
+    });
+
+    setRecommendationSessions(previousSessions =>
+      previousSessions.map(session => {
+        if (session.id !== sessionId) {
+          return session;
+        }
+
+        if (response.status === 'success') {
+          return {
+            ...session,
+            status: 'success',
+            results: response.results,
+            debug: response.debug,
+          };
+        }
+
+        return {
+          ...session,
+          status: 'failed',
+          results: [],
+          debug: response.debug,
+          error: {
+            code: response.errorCode,
+            message: response.errorMessage,
+            retryable: response.retryable,
+          },
+        };
+      }),
+    );
   };
 
   const answerRecommendationQuestion = (
@@ -516,12 +587,32 @@ function HomeScreen({
 
     setRecommendationAnswers(nextAnswers);
 
+    if (returnToConfirmationAfterAnswer) {
+      setReturnToConfirmationAfterAnswer(false);
+      setRecommendationFlowStep('confirming');
+      return;
+    }
+
     if (nextIndex >= recommendationQuestions.length) {
-      finishRecommendation(nextAnswers);
+      setRecommendationFlowStep('confirming');
       return;
     }
 
     setRecommendationQuestionIndex(nextIndex);
+  };
+
+  const editRecommendationAnswer = (questionId: RecommendationQuestionId) => {
+    const nextQuestionIndex = recommendationQuestions.findIndex(
+      question => question.id === questionId,
+    );
+
+    if (nextQuestionIndex < 0) {
+      return;
+    }
+
+    setRecommendationQuestionIndex(nextQuestionIndex);
+    setReturnToConfirmationAfterAnswer(true);
+    setRecommendationFlowStep('interview');
   };
 
   return (
@@ -604,7 +695,8 @@ function HomeScreen({
         ) : null}
       </View>
 
-      {recommendationInterviewOpen && currentRecommendationQuestion ? (
+      {recommendationFlowStep === 'interview' &&
+      currentRecommendationQuestion ? (
         <RecommendationQuestionCard
           answers={recommendationAnswers}
           question={currentRecommendationQuestion}
@@ -617,7 +709,16 @@ function HomeScreen({
               Math.max(previousIndex - 1, 0),
             )
           }
-          onClose={() => setRecommendationInterviewOpen(false)}
+          onClose={() => setRecommendationFlowStep('idle')}
+        />
+      ) : null}
+
+      {recommendationFlowStep === 'confirming' ? (
+        <RecommendationConfirmationCard
+          answers={recommendationAnswers}
+          questions={recommendationQuestions}
+          onConfirm={() => requestRecommendation(recommendationAnswers)}
+          onEditAnswer={editRecommendationAnswer}
         />
       ) : null}
 
@@ -629,34 +730,49 @@ function HomeScreen({
           {selectedRecommendationSession
             ? `${formatRecommendationSessionTime(
                 selectedRecommendationSession.createdAt,
-              )} 추천 · ${selectedRecommendationSession.creditCost}회 사용`
+              )} 추천`
             : '추천 받기를 누르면 선택한 조건으로 후보가 표시됩니다'}
         </Text>
       </View>
 
-      {selectedRecommendationSession ? (
+      {selectedRecommendationSession?.status === 'success' ? (
         <RecommendationAnswerSummary
-          answers={selectedRecommendationSession.answers}
+          answers={preferencesToAnswers(selectedRecommendationSession.preferences)}
           questions={recommendationQuestions}
         />
       ) : null}
 
-      {__DEV__ && selectedRecommendationSession ? (
+      {__DEV__ && selectedRecommendationSession?.debug ? (
         <RecommendationDebugPrompt
-          answers={selectedRecommendationSession.answers}
-          events={selectedRecommendedEvents}
-          questions={recommendationQuestions}
-          selectedChildren={selectedChildren}
-          user={user}
+          debug={selectedRecommendationSession.debug}
         />
       ) : null}
 
-      {selectedRecommendationSession && selectedRecommendedEvents.length > 0 ? (
+      {selectedRecommendationSession?.status === 'loading' ? (
+        <View style={styles.recommendationEmptyState}>
+          <Text style={styles.emptyStateTitle}>
+            아이에게 맞는 후보를 고르고 있어요
+          </Text>
+          <Text style={styles.emptyStateText}>
+            조건과 행사 정보를 비교하는 중입니다.
+          </Text>
+        </View>
+      ) : selectedRecommendationSession?.status === 'failed' ? (
+        <RecommendationFailureState
+          errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
+          retryable={selectedRecommendationSession.error?.retryable ?? true}
+          onRetry={() => requestRecommendation(recommendationAnswers)}
+        />
+      ) : selectedRecommendationSession &&
+        selectedRecommendedEvents.length > 0 ? (
         selectedRecommendedEvents.map((event, index) => (
           <EventCard
             key={event.id}
             event={event}
             compact
+            recommendationResult={selectedRecommendationResults.find(
+              result => result.eventId === event.id,
+            )}
             tone={index}
             onPress={() => onOpenEvent(event)}
           />
@@ -680,10 +796,10 @@ function HomeScreen({
         </View>
       )}
 
-      {recommendationSessions.length > 1 ? (
+      {visibleRecommendationSessions.length > 1 ? (
         <View style={styles.recommendationHistorySection}>
           <Text style={styles.sectionTitle}>지난 추천</Text>
-          {recommendationSessions.map(session => {
+          {visibleRecommendationSessions.map(session => {
             const selected = session.id === selectedRecommendationSession?.id;
 
             return (
@@ -700,8 +816,7 @@ function HomeScreen({
                     {formatRecommendationSessionTime(session.createdAt)} 추천
                   </Text>
                   <Text style={styles.recommendationHistoryMeta}>
-                    후보 {session.resultEventIds.length}개 ·{' '}
-                    {session.creditCost}회 사용
+                    후보 {session.results.length}개
                   </Text>
                 </View>
                 <Text style={styles.recommendationHistoryBadge}>
@@ -790,9 +905,11 @@ function RecommendationQuestionCard({
 function RecommendationAnswerSummary({
   answers,
   questions,
+  onEditAnswer,
 }: {
   answers: RecommendationAnswerMap;
   questions: RecommendationQuestion[];
+  onEditAnswer?: (questionId: RecommendationQuestionId) => void;
 }) {
   const answeredQuestions = questions.filter(question =>
     Boolean(answers[question.id]),
@@ -807,48 +924,134 @@ function RecommendationAnswerSummary({
       <Text style={styles.fieldLabel}>선택한 답변</Text>
       <View style={styles.recommendationAnswerList}>
         {answeredQuestions.map(question => (
-          <View key={question.id} style={styles.recommendationAnswerItem}>
+          <Pressable
+            key={question.id}
+            style={styles.recommendationAnswerItem}
+            onPress={
+              onEditAnswer ? () => onEditAnswer(question.id) : undefined
+            }
+            accessibilityLabel={`Edit answer ${recommendationQuestionLabel(
+              question,
+            )}`}
+          >
             <Text style={styles.recommendationAnswerQuestion}>
               {recommendationQuestionLabel(question)}
             </Text>
             <Text style={styles.recommendationAnswerValue}>
               {recommendationAnswerLabel(question, answers[question.id])}
             </Text>
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>
   );
 }
 
-function RecommendationDebugPrompt({
+function RecommendationConfirmationCard({
   answers,
-  events,
+  onConfirm,
+  onEditAnswer,
   questions,
-  selectedChildren,
-  user,
 }: {
   answers: RecommendationAnswerMap;
-  events: BabyrooEvent[];
+  onConfirm: () => void;
+  onEditAnswer: (questionId: RecommendationQuestionId) => void;
   questions: RecommendationQuestion[];
-  selectedChildren: Child[];
-  user: User;
+}) {
+  return (
+    <View style={styles.recommendationQuestionCard}>
+      <Text style={styles.settingsLabel}>추천 확인</Text>
+      <Text style={styles.settingsTitle}>이 조건으로 추천 받을까요?</Text>
+      <Text style={styles.settingsMeta}>
+        지금은 추천권이 차감되지 않아요. 추천 결과가 있으면 나중에 1회가
+        사용될 수 있어요.
+      </Text>
+      <RecommendationAnswerSummary
+        answers={answers}
+        questions={questions}
+        onEditAnswer={onEditAnswer}
+      />
+      {__DEV__ ? (
+        <View style={styles.recommendationDebugInline}>
+          <Text style={styles.recommendationDebugInlineText}>
+            DEBUG · maxPromptCandidates=20 · maxInitialResults=3
+          </Text>
+        </View>
+      ) : null}
+      <Pressable
+        style={styles.primaryButton}
+        onPress={onConfirm}
+        accessibilityLabel="Confirm recommendation request"
+      >
+        <Text style={styles.primaryButtonText}>추천 받기</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function RecommendationFailureState({
+  errorCode,
+  onRetry,
+  retryable,
+}: {
+  errorCode: RecommendationErrorCode;
+  onRetry: () => void;
+  retryable: boolean;
+}) {
+  const message = recommendationErrorMessage(errorCode);
+
+  return (
+    <View style={styles.recommendationEmptyState}>
+      <Text style={styles.emptyStateTitle}>{message.title}</Text>
+      <Text style={styles.emptyStateText}>{message.body}</Text>
+      {retryable ? (
+        <Pressable
+          style={styles.retryButton}
+          onPress={onRetry}
+          accessibilityLabel="Retry recommendation"
+        >
+          <Text style={styles.linkText}>다시 시도</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function RecommendationDebugPrompt({
+  debug,
+}: {
+  debug: RecommendationDebugInfo;
 }) {
   return (
     <View style={styles.recommendationDebugPrompt}>
-      <Text style={styles.recommendationDebugLabel}>DEBUG LLM PROMPT</Text>
-      <Text
-        style={styles.recommendationDebugText}
-        selectable
-      >
-        {buildRecommendationPrompt({
-          answers,
-          events,
-          questions,
-          selectedChildren,
-          user,
-        })}
-      </Text>
+      {debug.prompt ? (
+        <>
+          <Text style={styles.recommendationDebugLabel}>DEBUG PROMPT</Text>
+          <Text style={styles.recommendationDebugText} selectable>
+            {debug.prompt}
+          </Text>
+        </>
+      ) : null}
+      {debug.rawResponse ? (
+        <>
+          <Text style={styles.recommendationDebugLabel}>
+            DEBUG RAW RESPONSE
+          </Text>
+          <Text style={styles.recommendationDebugText} selectable>
+            {debug.rawResponse}
+          </Text>
+        </>
+      ) : null}
+      {debug.normalizedResponse ? (
+        <>
+          <Text style={styles.recommendationDebugLabel}>
+            DEBUG NORMALIZED RESULT
+          </Text>
+          <Text style={styles.recommendationDebugText} selectable>
+            {JSON.stringify(debug.normalizedResponse, null, 2)}
+          </Text>
+        </>
+      ) : null}
     </View>
   );
 }
@@ -1569,12 +1772,14 @@ function FilterSheet({
 function EventCard({
   event,
   compact,
+  recommendationResult,
   showSequence,
   tone,
   onPress,
 }: {
   event: BabyrooEvent;
   compact?: boolean;
+  recommendationResult?: RecommendationResult;
   showSequence?: boolean;
   tone: number;
   onPress: () => void;
@@ -1630,6 +1835,26 @@ function EventCard({
           )}
           <Text style={styles.cardDate}>{formatShortDate(event.startsAt)}</Text>
         </View>
+        {recommendationResult ? (
+          <View style={styles.recommendationReasonBox}>
+            <Text style={styles.recommendationReasonTitle}>추천 이유</Text>
+            {recommendationResult.reasons.map(reason => (
+              <Text key={reason} style={styles.recommendationReasonText}>
+                {reason}
+              </Text>
+            ))}
+            {recommendationResult.caution ? (
+              <>
+                <Text style={styles.recommendationCautionTitle}>
+                  확인할 점
+                </Text>
+                <Text style={styles.recommendationReasonText}>
+                  {recommendationResult.caution}
+                </Text>
+              </>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     </Pressable>
   );
@@ -1797,71 +2022,6 @@ function filterEvents(
   });
 }
 
-function recommendEvents({
-  answers,
-  events,
-  fallbackHomeRegion,
-  limit,
-  selectedChildren,
-}: {
-  answers: RecommendationAnswerMap;
-  events: BabyrooEvent[];
-  fallbackHomeRegion: string;
-  limit: number;
-  selectedChildren: Child[];
-}) {
-  const selectedChildAges = selectedChildren.map(child =>
-    calculateAgeMonths(child.birthDate),
-  );
-  const homeRegion = recommendationHomeRegion(answers, fallbackHomeRegion);
-  const visitWindow = recommendationVisitWindow(answers);
-  const candidates = events.filter(event => {
-    if (!eventMatchesDateFilter(event, 'active')) {
-      return false;
-    }
-
-    if (visitWindow && !eventOverlapsDateRange(event, visitWindow)) {
-      return false;
-    }
-
-    if (!eventMatchesRecommendationPlace(event, answers)) {
-      return false;
-    }
-
-    if (!eventMatchesRecommendationPrice(event, answers)) {
-      return false;
-    }
-
-    if (!eventMatchesRecommendationReservation(event, answers)) {
-      return false;
-    }
-
-    if (!eventFitsAllSelectedChildren(event, selectedChildAges)) {
-      return false;
-    }
-
-    return event.reservationStatus !== 'closed';
-  });
-  const homeRegionCandidates = candidates.filter(event =>
-    eventMatchesHomeRegion(event, homeRegion),
-  );
-  const fillCandidates =
-    homeRegionCandidates.length >= limit
-      ? homeRegionCandidates
-      : [
-          ...homeRegionCandidates,
-          ...candidates.filter(
-            event => !eventMatchesHomeRegion(event, homeRegion),
-          ),
-        ];
-
-  return [...fillCandidates]
-    .sort((left, right) =>
-      compareRecommendedEvents(left, right, homeRegion, answers),
-    )
-    .slice(0, limit);
-}
-
 function buildRecommendationQuestions(
   events: BabyrooEvent[],
   selectedChildren: Child[],
@@ -1964,185 +2124,220 @@ function recommendationAnswerLabel(
   );
 }
 
-function recommendationVisitWindow(answers: RecommendationAnswerMap) {
-  const today = new Date();
-
-  if (answers.visitDay === 'visit_soon') {
-    return {
-      start: addDays(today, 1),
-      end: addDays(today, 2),
-      label: '1-2일 안에',
-    };
-  }
-
-  if (answers.visitDay === 'visit_this_weekend') {
-    return {
-      ...thisWeekendRange(today),
-      label: '이번 주말',
-    };
-  }
-
-  if (answers.visitDay === 'visit_next_week') {
-    return {
-      ...nextWeekRange(today),
-      label: '다음 주',
-    };
-  }
-
-  if (answers.visitDay === 'visit_flexible') {
-    return null;
-  }
-
-  return null;
-}
-
-function eventOverlapsDateRange(
-  event: BabyrooEvent,
-  range: { start: Date; end: Date },
-) {
-  const eventStart = parseDateInput(event.startsAt);
-  const eventEnd = parseDateInput(event.endsAt);
-  const rangeStart = parseDateInput(formatDateInput(range.start));
-  const rangeEnd = parseDateInput(formatDateInput(range.end));
-
-  return eventStart <= rangeEnd && eventEnd >= rangeStart;
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-
-  return nextDate;
-}
-
-function thisWeekendRange(referenceDate: Date) {
-  const day = referenceDate.getDay();
-
-  if (day === 5 || day === 6 || day === 0) {
-    return {
-      start: new Date(referenceDate),
-      end: nextWeekday(referenceDate, 0),
-    };
-  }
-
+function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
   return {
-    start: nextWeekday(referenceDate, 6),
-    end: nextWeekday(referenceDate, 0),
+    startRegion:
+      answers.startRegion === 'region_seoul'
+        ? 'seoul'
+        : answers.startRegion === 'region_gyeonggi'
+          ? 'gyeonggi'
+          : answers.startRegion === 'region_other'
+            ? 'other'
+            : undefined,
+    visitWindow:
+      answers.visitDay === 'visit_soon'
+        ? 'soon'
+        : answers.visitDay === 'visit_this_weekend'
+          ? 'this_weekend'
+          : answers.visitDay === 'visit_next_week'
+            ? 'next_week'
+            : answers.visitDay === 'visit_flexible'
+              ? 'flexible'
+              : undefined,
+    weather:
+      answers.weather === 'weather_sunny_cloudy'
+        ? 'clear_or_cloudy'
+        : answers.weather === 'weather_rain_snow'
+          ? 'rain_or_snow'
+          : answers.weather === 'weather_hot_cold'
+            ? 'hot_or_cold'
+            : answers.weather === 'weather_unknown'
+              ? 'unknown'
+              : undefined,
+    mobility:
+      answers.mobility === 'mobility_car'
+        ? 'car'
+        : answers.mobility === 'mobility_transit'
+          ? 'transit'
+          : answers.mobility === 'mobility_nearby'
+            ? 'nearby'
+            : undefined,
+    vibe:
+      answers.vibe === 'vibe_quiet'
+        ? 'quiet'
+        : answers.vibe === 'vibe_lively'
+          ? 'lively'
+          : answers.vibe === 'vibe_any'
+            ? 'any'
+            : undefined,
+    price:
+      answers.priceComfort === 'price_free'
+        ? 'free'
+        : answers.priceComfort === 'price_low'
+          ? 'low'
+          : answers.priceComfort === 'price_any'
+            ? 'any'
+            : undefined,
+    reservation:
+      answers.reservationComfort === 'reservation_none'
+        ? 'no_reservation'
+        : answers.reservationComfort === 'reservation_ok'
+          ? 'reservation_ok'
+          : answers.reservationComfort === 'reservation_any'
+            ? 'any'
+            : undefined,
+    duration:
+      answers.duration === 'duration_short'
+        ? 'short'
+        : answers.duration === 'duration_any'
+          ? 'any'
+          : undefined,
+    place:
+      answers.place === 'place_indoor'
+        ? 'indoor'
+        : answers.place === 'place_outdoor'
+          ? 'outdoor'
+          : answers.place === 'place_any'
+            ? 'any'
+            : undefined,
+    activity:
+      answers.activityStyle === 'activity_experience'
+        ? 'experience'
+        : answers.activityStyle === 'activity_exhibition'
+          ? 'exhibition'
+          : answers.activityStyle === 'activity_any'
+            ? 'any'
+            : undefined,
   };
 }
 
-function nextWeekRange(referenceDate: Date) {
-  const nextMonday = nextWeekday(addDays(referenceDate, 1), 1);
-
+function preferencesToAnswers(preferences: Preferences): RecommendationAnswerMap {
   return {
-    start: nextMonday,
-    end: addDays(nextMonday, 6),
+    startRegion:
+      preferences.startRegion === 'seoul'
+        ? 'region_seoul'
+        : preferences.startRegion === 'gyeonggi'
+          ? 'region_gyeonggi'
+          : preferences.startRegion === 'other'
+            ? 'region_other'
+            : undefined,
+    visitDay:
+      preferences.visitWindow === 'soon'
+        ? 'visit_soon'
+        : preferences.visitWindow === 'this_weekend'
+          ? 'visit_this_weekend'
+          : preferences.visitWindow === 'next_week'
+            ? 'visit_next_week'
+            : preferences.visitWindow === 'flexible'
+              ? 'visit_flexible'
+              : undefined,
+    weather:
+      preferences.weather === 'clear_or_cloudy'
+        ? 'weather_sunny_cloudy'
+        : preferences.weather === 'rain_or_snow'
+          ? 'weather_rain_snow'
+          : preferences.weather === 'hot_or_cold'
+            ? 'weather_hot_cold'
+            : preferences.weather === 'unknown'
+              ? 'weather_unknown'
+              : undefined,
+    mobility:
+      preferences.mobility === 'car'
+        ? 'mobility_car'
+        : preferences.mobility === 'transit'
+          ? 'mobility_transit'
+          : preferences.mobility === 'nearby'
+            ? 'mobility_nearby'
+            : undefined,
+    vibe:
+      preferences.vibe === 'quiet'
+        ? 'vibe_quiet'
+        : preferences.vibe === 'lively'
+          ? 'vibe_lively'
+          : preferences.vibe === 'any'
+            ? 'vibe_any'
+            : undefined,
+    priceComfort:
+      preferences.price === 'free'
+        ? 'price_free'
+        : preferences.price === 'low'
+          ? 'price_low'
+          : preferences.price === 'any'
+            ? 'price_any'
+            : undefined,
+    reservationComfort:
+      preferences.reservation === 'no_reservation'
+        ? 'reservation_none'
+        : preferences.reservation === 'reservation_ok'
+          ? 'reservation_ok'
+          : preferences.reservation === 'any'
+            ? 'reservation_any'
+            : undefined,
+    duration:
+      preferences.duration === 'short'
+        ? 'duration_short'
+        : preferences.duration === 'any'
+          ? 'duration_any'
+          : undefined,
+    place:
+      preferences.place === 'indoor'
+        ? 'place_indoor'
+        : preferences.place === 'outdoor'
+          ? 'place_outdoor'
+          : preferences.place === 'any'
+            ? 'place_any'
+            : undefined,
+    activityStyle:
+      preferences.activity === 'experience'
+        ? 'activity_experience'
+        : preferences.activity === 'exhibition'
+          ? 'activity_exhibition'
+          : preferences.activity === 'any'
+            ? 'activity_any'
+            : undefined,
   };
 }
 
-function nextWeekday(referenceDate: Date, weekday: number) {
-  const daysUntilWeekday = (weekday - referenceDate.getDay() + 7) % 7;
+function recommendationErrorMessage(errorCode: RecommendationErrorCode) {
+  const messages: Record<
+    RecommendationErrorCode,
+    { title: string; body: string }
+  > = {
+    network_error: {
+      title: '네트워크 연결이 불안정해요',
+      body: '연결 상태를 확인하고 다시 시도해 주세요.',
+    },
+    timeout: {
+      title: '추천 시간이 조금 오래 걸리고 있어요',
+      body: '잠시 후 다시 시도해 주세요.',
+    },
+    llm_unavailable: {
+      title: '지금은 추천이 어려워요',
+      body: '잠시 후 다시 시도해 주세요.',
+    },
+    invalid_response: {
+      title: '추천 결과를 정리하지 못했어요',
+      body: '다시 시도하면 다른 결과를 받을 수 있어요.',
+    },
+    no_candidates: {
+      title: '조건에 맞는 후보가 없어요',
+      body: '지역이나 일정 조건을 조금 넓혀보세요.',
+    },
+    no_results: {
+      title: '추천할 만한 결과를 찾지 못했어요',
+      body: '조건을 조금 바꾸거나 다시 시도해 주세요.',
+    },
+    not_configured: {
+      title: '추천 서비스가 아직 설정되지 않았어요',
+      body: '개발 설정을 확인해 주세요.',
+    },
+    unknown: {
+      title: '지금은 추천이 어려워요',
+      body: '조건을 조금 바꾸거나 다시 시도해 주세요.',
+    },
+  };
 
-  return addDays(referenceDate, daysUntilWeekday);
-}
-
-function buildRecommendationPrompt({
-  answers,
-  events,
-  questions,
-  selectedChildren,
-  user,
-}: {
-  answers: RecommendationAnswerMap;
-  events: BabyrooEvent[];
-  questions: RecommendationQuestion[];
-  selectedChildren: Child[];
-  user: User;
-}) {
-  const answerLines = questions
-    .filter(question => Boolean(answers[question.id]))
-    .map(
-      question =>
-        `- ${question.prompt}: ${recommendationAnswerLabel(
-          question,
-          answers[question.id],
-        )}`,
-    );
-  const childLines =
-    selectedChildren.length > 0
-      ? selectedChildren.map(
-          child =>
-            `- ${child.nickname}: ${formatChildAge(child)}, ${formatGender(
-              child.gender,
-            )}`,
-        )
-      : ['- 아이 정보 없음'];
-  const eventLines =
-    events.length > 0
-      ? events.map(event =>
-          JSON.stringify({
-            id: event.id,
-            title: event.title,
-            venueName: event.venueName,
-            region: event.region,
-            locality: event.locality,
-            date: formatDateRange(event),
-            age: formatAge(event),
-            indoor: event.indoor,
-            price: formatPriceType(event.priceType),
-            reservation: formatReservation(event),
-            category: event.category,
-            tags: event.tags,
-            summary: truncatePromptText(event.summary, 120),
-          }),
-        )
-      : ['후보 없음'];
-  const visitWindow = recommendationVisitWindow(answers);
-  const weatherQuestion = questions.find(question => question.id === 'weather');
-
-  return [
-    'You are Babyroo, a recommendation assistant for parents choosing outings for babies and toddlers.',
-    '',
-    'Goal:',
-    'Rank the candidate events and explain why each one fits this family. Use only the provided event data. Do not invent facts.',
-    '',
-    'Output requirements:',
-    '- Return 3 recommendations at most.',
-    '- For each recommendation, include: event id, title, 2-3 short Korean reasons, and 1 caution if needed.',
-    '- Prefer actionable events that fit child age, region, mobility, price, reservation comfort, and outing vibe.',
-    '',
-    `Today: ${formatDateInput(new Date())}`,
-    `User home region: ${user.homeRegion}`,
-    `Planned visit window: ${
-      visitWindow
-        ? `${visitWindow.label} (${formatDateInput(
-            visitWindow.start,
-          )} - ${formatDateInput(visitWindow.end)})`
-        : 'flexible'
-    }`,
-    `Visit-day weather: ${
-      weatherQuestion
-        ? recommendationAnswerLabel(weatherQuestion, answers.weather)
-        : 'not specified'
-    }`,
-    '',
-    'Selected children:',
-    ...childLines,
-    '',
-    'User answers:',
-    ...(answerLines.length > 0 ? answerLines : ['- 답변 없음']),
-    '',
-    'Candidate events:',
-    ...eventLines,
-  ].join('\n');
-}
-
-function truncatePromptText(value: string, maxLength: number) {
-  if (value.length <= maxLength) {
-    return value;
-  }
-
-  return `${value.slice(0, maxLength)}...`;
+  return messages[errorCode];
 }
 
 function normalizeSearchText(value: string) {
@@ -2249,72 +2444,6 @@ function eventMatchesRegionFilter(
   return event.region !== '서울' && event.region !== '경기';
 }
 
-function eventMatchesHomeRegion(event: BabyrooEvent, homeRegion: string) {
-  if (homeRegion === '서울' || homeRegion === '경기') {
-    return event.region === homeRegion;
-  }
-
-  return event.region !== '서울' && event.region !== '경기';
-}
-
-function recommendationHomeRegion(
-  answers: RecommendationAnswerMap,
-  fallbackHomeRegion: string,
-) {
-  if (answers.startRegion === 'region_seoul') {
-    return '서울';
-  }
-  if (answers.startRegion === 'region_gyeonggi') {
-    return '경기';
-  }
-  if (answers.startRegion === 'region_other') {
-    return '기타 지역';
-  }
-
-  return fallbackHomeRegion;
-}
-
-function eventMatchesRecommendationPlace(
-  event: BabyrooEvent,
-  answers: RecommendationAnswerMap,
-) {
-  if (answers.place === 'place_indoor' && event.indoor !== true) {
-    return false;
-  }
-
-  if (answers.place === 'place_outdoor' && event.indoor !== false) {
-    return false;
-  }
-
-  return true;
-}
-
-function eventMatchesRecommendationPrice(
-  event: BabyrooEvent,
-  answers: RecommendationAnswerMap,
-) {
-  if (answers.priceComfort === 'price_free') {
-    return event.priceType === 'free';
-  }
-
-  return true;
-}
-
-function eventMatchesRecommendationReservation(
-  event: BabyrooEvent,
-  answers: RecommendationAnswerMap,
-) {
-  if (answers.reservationComfort === 'reservation_none') {
-    return event.reservationRequired === false;
-  }
-
-  if (answers.reservationComfort === 'reservation_ok') {
-    return event.reservationStatus !== 'closed';
-  }
-
-  return true;
-}
-
 function eventMatchesReservationFilter(
   event: BabyrooEvent,
   reservationFilter: ReservationFilter,
@@ -2328,117 +2457,6 @@ function eventMatchesReservationFilter(
   }
 
   return event.reservationRequired === false;
-}
-
-function compareRecommendedEvents(
-  left: BabyrooEvent,
-  right: BabyrooEvent,
-  homeRegion: string,
-  answers: RecommendationAnswerMap,
-) {
-  const answerDifference =
-    recommendationAnswerScore(left, answers, homeRegion) -
-    recommendationAnswerScore(right, answers, homeRegion);
-
-  if (answerDifference !== 0) {
-    return answerDifference;
-  }
-
-  const regionDifference =
-    recommendationRegionScore(left, homeRegion) -
-    recommendationRegionScore(right, homeRegion);
-
-  if (regionDifference !== 0) {
-    return regionDifference;
-  }
-
-  const dateDifference =
-    recommendationDateScore(left) - recommendationDateScore(right);
-
-  if (dateDifference !== 0) {
-    return dateDifference;
-  }
-
-  return right.csvSequence - left.csvSequence;
-}
-
-function recommendationAnswerScore(
-  event: BabyrooEvent,
-  answers: RecommendationAnswerMap,
-  homeRegion: string,
-) {
-  let score = 0;
-
-  if (answers.mobility === 'mobility_nearby') {
-    score += eventMatchesHomeRegion(event, homeRegion) ? 0 : 4;
-  }
-
-  if (answers.mobility === 'mobility_transit' && event.indoor === false) {
-    score += 1;
-  }
-
-  if (
-    (answers.weather === 'weather_rain_snow' ||
-      answers.weather === 'weather_hot_cold') &&
-    event.indoor === false
-  ) {
-    score += 3;
-  }
-
-  if (answers.vibe === 'vibe_quiet' && event.category === 'performance') {
-    score += 2;
-  }
-
-  if (
-    answers.vibe === 'vibe_lively' &&
-    (event.category === 'exhibition' || event.category === 'museum')
-  ) {
-    score += 1;
-  }
-
-  if (answers.priceComfort === 'price_low' && event.priceType === 'paid') {
-    score += 1;
-  }
-
-  if (
-    answers.duration === 'duration_short' &&
-    event.category !== 'play_space'
-  ) {
-    score += 1;
-  }
-
-  if (
-    answers.activityStyle === 'activity_experience' &&
-    event.category !== 'experience'
-  ) {
-    score += 2;
-  }
-
-  if (
-    answers.activityStyle === 'activity_exhibition' &&
-    event.category !== 'exhibition' &&
-    event.category !== 'museum'
-  ) {
-    score += 2;
-  }
-
-  return score;
-}
-
-function recommendationRegionScore(event: BabyrooEvent, homeRegion: string) {
-  return eventMatchesHomeRegion(event, homeRegion) ? 0 : 1;
-}
-
-function recommendationDateScore(event: BabyrooEvent) {
-  const today = parseDateInput(formatDateInput(new Date())).getTime();
-  const eventStart = parseDateInput(event.startsAt).getTime();
-  const eventEnd = parseDateInput(event.endsAt).getTime();
-
-  if (eventStart <= today && eventEnd >= today) {
-    return eventEnd - today;
-  }
-
-  return Math.abs(eventStart - today);
 }
 
 function countActiveExploreFilters(filters: ExploreFilters) {
@@ -2892,6 +2910,17 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
   },
+  recommendationDebugInline: {
+    backgroundColor: colors.background,
+    borderRadius: radius.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+  },
+  recommendationDebugInlineText: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+  },
   recommendationEmptyState: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
@@ -2912,6 +2941,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 19,
     marginTop: spacing.sm,
+  },
+  retryButton: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
   },
   recommendationHistorySection: {
     marginTop: spacing.xxxl,
@@ -3368,6 +3401,33 @@ const styles = StyleSheet.create({
     color: colors.primaryStrong,
     fontSize: 12,
     fontWeight: '800',
+  },
+  recommendationReasonBox: {
+    backgroundColor: colors.background,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginTop: spacing.md,
+    padding: spacing.md,
+  },
+  recommendationReasonTitle: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: spacing.xs,
+  },
+  recommendationCautionTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  recommendationReasonText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
   },
   detailRoot: {
     backgroundColor: colors.background,

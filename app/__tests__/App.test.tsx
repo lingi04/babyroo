@@ -122,13 +122,23 @@ test('answers recommendation questions before requesting results', async () => {
     });
   }
 
+  expect(
+    renderer!.root.findByProps({ children: '이 조건으로 추천 받을까요?' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(async () => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Confirm recommendation request' })
+      .props.onPress();
+  });
+
   expect(renderer!.root.findByProps({ children: '추천 결과' })).toBeTruthy();
   expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
   expect(
     renderer!.root.findAllByProps({ children: '예약 없이 가고 싶어요' }).length,
   ).toBeGreaterThan(0);
   expect(
-    renderer!.root.findByProps({ children: 'DEBUG LLM PROMPT' }),
+    renderer!.root.findByProps({ children: 'DEBUG PROMPT' }),
   ).toBeTruthy();
   expect(
     renderer!.root.findAll(
@@ -143,16 +153,14 @@ test('answers recommendation questions before requesting results', async () => {
     renderer!.root.findAll(
       node =>
         typeof node.props.children === 'string' &&
-        node.props.children.includes(
-        '- 예약이 필요한 행사도 괜찮으세요?: 예약 없이 가고 싶어요',
-        ),
+        node.props.children.includes('- reservation: no_reservation'),
     ).length,
   ).toBeGreaterThan(0);
   expect(
     renderer!.root.findAll(
       node =>
         typeof node.props.children === 'string' &&
-        node.props.children.includes('Visit-day weather: 맑거나 흐려요'),
+        node.props.children.includes('- weather: clear_or_cloudy'),
     ).length,
   ).toBeGreaterThan(0);
 });
