@@ -619,6 +619,16 @@ function HomeScreen({
         />
       ) : null}
 
+      {__DEV__ && selectedRecommendationSession ? (
+        <RecommendationDebugPrompt
+          answers={selectedRecommendationSession.answers}
+          events={selectedRecommendedEvents}
+          questions={recommendationQuestions}
+          selectedChildren={selectedChildren}
+          user={user}
+        />
+      ) : null}
+
       {selectedRecommendationSession && selectedRecommendedEvents.length > 0 ? (
         selectedRecommendedEvents.map((event, index) => (
           <EventCard
@@ -785,6 +795,38 @@ function RecommendationAnswerSummary({
           </View>
         ))}
       </View>
+    </View>
+  );
+}
+
+function RecommendationDebugPrompt({
+  answers,
+  events,
+  questions,
+  selectedChildren,
+  user,
+}: {
+  answers: RecommendationAnswerMap;
+  events: BabyrooEvent[];
+  questions: RecommendationQuestion[];
+  selectedChildren: Child[];
+  user: User;
+}) {
+  return (
+    <View style={styles.recommendationDebugPrompt}>
+      <Text style={styles.recommendationDebugLabel}>DEBUG LLM PROMPT</Text>
+      <Text
+        style={styles.recommendationDebugText}
+        selectable
+      >
+        {buildRecommendationPrompt({
+          answers,
+          events,
+          questions,
+          selectedChildren,
+          user,
+        })}
+      </Text>
     </View>
   );
 }
@@ -1889,6 +1931,91 @@ function recommendationAnswerLabel(
   );
 }
 
+function buildRecommendationPrompt({
+  answers,
+  events,
+  questions,
+  selectedChildren,
+  user,
+}: {
+  answers: RecommendationAnswerMap;
+  events: BabyrooEvent[];
+  questions: RecommendationQuestion[];
+  selectedChildren: Child[];
+  user: User;
+}) {
+  const answerLines = questions
+    .filter(question => Boolean(answers[question.id]))
+    .map(
+      question =>
+        `- ${question.prompt}: ${recommendationAnswerLabel(
+          question,
+          answers[question.id],
+        )}`,
+    );
+  const childLines =
+    selectedChildren.length > 0
+      ? selectedChildren.map(
+          child =>
+            `- ${child.nickname}: ${formatChildAge(child)}, ${formatGender(
+              child.gender,
+            )}`,
+        )
+      : ['- 아이 정보 없음'];
+  const eventLines =
+    events.length > 0
+      ? events.map(event =>
+          JSON.stringify({
+            id: event.id,
+            title: event.title,
+            venueName: event.venueName,
+            region: event.region,
+            locality: event.locality,
+            date: formatDateRange(event),
+            age: formatAge(event),
+            indoor: event.indoor,
+            price: formatPriceType(event.priceType),
+            reservation: formatReservation(event),
+            category: event.category,
+            tags: event.tags,
+            summary: truncatePromptText(event.summary, 120),
+          }),
+        )
+      : ['후보 없음'];
+
+  return [
+    'You are Babyroo, a recommendation assistant for parents choosing outings for babies and toddlers.',
+    '',
+    'Goal:',
+    'Rank the candidate events and explain why each one fits this family. Use only the provided event data. Do not invent facts.',
+    '',
+    'Output requirements:',
+    '- Return 3 recommendations at most.',
+    '- For each recommendation, include: event id, title, 2-3 short Korean reasons, and 1 caution if needed.',
+    '- Prefer actionable events that fit child age, region, mobility, price, reservation comfort, and outing vibe.',
+    '',
+    `Today: ${formatDateInput(new Date())}`,
+    `User home region: ${user.homeRegion}`,
+    '',
+    'Selected children:',
+    ...childLines,
+    '',
+    'User answers:',
+    ...(answerLines.length > 0 ? answerLines : ['- 답변 없음']),
+    '',
+    'Candidate events:',
+    ...eventLines,
+  ].join('\n');
+}
+
+function truncatePromptText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength)}...`;
+}
+
 function normalizeSearchText(value: string) {
   return value.trim().toLocaleLowerCase();
 }
@@ -2605,6 +2732,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'right',
+  },
+  recommendationDebugPrompt: {
+    backgroundColor: colors.text,
+    borderRadius: radius.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+  },
+  recommendationDebugLabel: {
+    color: colors.primarySoft,
+    fontSize: 11,
+    fontWeight: '900',
+    marginBottom: spacing.sm,
+  },
+  recommendationDebugText: {
+    color: colors.surface,
+    fontFamily: Platform.select({
+      ios: 'Menlo',
+      android: 'monospace',
+      default: undefined,
+    }),
+    fontSize: 11,
+    lineHeight: 16,
   },
   recommendationEmptyState: {
     backgroundColor: colors.surface,
