@@ -105,6 +105,8 @@ test('answers recommendation questions before requesting results', async () => {
   ).toBeGreaterThan(0);
 
   for (const answer of [
+    '1-2일 안에',
+    '맑거나 흐려요',
     '가능해요',
     '한적한 곳',
     '무료 위주',
@@ -124,6 +126,34 @@ test('answers recommendation questions before requesting results', async () => {
   expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
   expect(
     renderer!.root.findAllByProps({ children: '예약 없이 가고 싶어요' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findByProps({ children: 'DEBUG LLM PROMPT' }),
+  ).toBeTruthy();
+  expect(
+    renderer!.root.findAll(
+      node =>
+        typeof node.props.children === 'string' &&
+        node.props.children.includes(
+          'Rank the candidate events and explain why each one fits this family.',
+        ),
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAll(
+      node =>
+        typeof node.props.children === 'string' &&
+        node.props.children.includes(
+        '- 예약이 필요한 행사도 괜찮으세요?: 예약 없이 가고 싶어요',
+        ),
+    ).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAll(
+      node =>
+        typeof node.props.children === 'string' &&
+        node.props.children.includes('Visit-day weather: 맑거나 흐려요'),
+    ).length,
   ).toBeGreaterThan(0);
 });
 
@@ -149,7 +179,7 @@ test('moves backward in the recommendation question flow', async () => {
   });
 
   expect(
-    renderer!.root.findByProps({ children: '차로 이동할 수 있나요?' }),
+    renderer!.root.findByProps({ children: '언제쯤 갈 생각인가요?' }),
   ).toBeTruthy();
 
   await ReactTestRenderer.act(() => {

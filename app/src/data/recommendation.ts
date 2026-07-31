@@ -12,6 +12,14 @@ export type RecommendationAnswerValue =
   | 'region_seoul'
   | 'region_gyeonggi'
   | 'region_other'
+  | 'visit_soon'
+  | 'visit_this_weekend'
+  | 'visit_next_week'
+  | 'visit_flexible'
+  | 'weather_sunny_cloudy'
+  | 'weather_rain_snow'
+  | 'weather_hot_cold'
+  | 'weather_unknown'
   | 'mobility_car'
   | 'mobility_transit'
   | 'mobility_nearby'
@@ -35,6 +43,8 @@ export type RecommendationAnswerValue =
 
 export type RecommendationQuestionId =
   | 'startRegion'
+  | 'visitDay'
+  | 'weather'
   | 'mobility'
   | 'vibe'
   | 'priceComfort'

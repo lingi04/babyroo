@@ -85,53 +85,75 @@ const defaultExploreFilters: ExploreFilters = {
   price: 'all',
   reservation: 'all',
 };
-const coreRecommendationQuestions: RecommendationQuestion[] = [
-  {
-    id: 'startRegion',
-    prompt: '오늘 어디에서 출발하세요?',
-    options: [
-      { label: '서울', value: 'region_seoul' },
-      { label: '경기', value: 'region_gyeonggi' },
-      { label: '기타 지역', value: 'region_other' },
-    ],
-  },
-  {
-    id: 'mobility',
-    prompt: '차로 이동할 수 있나요?',
-    options: [
-      { label: '가능해요', value: 'mobility_car' },
-      { label: '대중교통이 좋아요', value: 'mobility_transit' },
-      { label: '가까운 곳만', value: 'mobility_nearby' },
-    ],
-  },
-  {
-    id: 'vibe',
-    prompt: '오늘은 어떤 분위기가 좋으세요?',
-    options: [
-      { label: '한적한 곳', value: 'vibe_quiet' },
-      { label: '활기찬 곳', value: 'vibe_lively' },
-      { label: '상관없어요', value: 'vibe_any' },
-    ],
-  },
-  {
-    id: 'priceComfort',
-    prompt: '입장료는 어느 정도 괜찮으세요?',
-    options: [
-      { label: '무료 위주', value: 'price_free' },
-      { label: '저렴하면 괜찮아요', value: 'price_low' },
-      { label: '유료도 괜찮아요', value: 'price_any' },
-    ],
-  },
-  {
-    id: 'reservationComfort',
-    prompt: '예약이 필요한 행사도 괜찮으세요?',
-    options: [
-      { label: '예약 없이 가고 싶어요', value: 'reservation_none' },
-      { label: '예약 가능하면 괜찮아요', value: 'reservation_ok' },
-      { label: '상관없어요', value: 'reservation_any' },
-    ],
-  },
-];
+function coreRecommendationQuestions() {
+  return [
+    {
+      id: 'startRegion',
+      prompt: '오늘 어디에서 출발하세요?',
+      options: [
+        { label: '서울', value: 'region_seoul' },
+        { label: '경기', value: 'region_gyeonggi' },
+        { label: '기타 지역', value: 'region_other' },
+      ],
+    },
+    {
+      id: 'visitDay',
+      prompt: '언제쯤 갈 생각인가요?',
+      options: [
+        { label: '1-2일 안에', value: 'visit_soon' },
+        { label: '이번 주말', value: 'visit_this_weekend' },
+        { label: '다음 주', value: 'visit_next_week' },
+        { label: '날짜는 유연해요', value: 'visit_flexible' },
+      ],
+    },
+    {
+      id: 'weather',
+      prompt: '가는 날 날씨는 어떤가요?',
+      options: [
+        { label: '맑거나 흐려요', value: 'weather_sunny_cloudy' },
+        { label: '비나 눈이 와요', value: 'weather_rain_snow' },
+        { label: '덥거나 추워요', value: 'weather_hot_cold' },
+        { label: '아직 모르겠어요', value: 'weather_unknown' },
+      ],
+    },
+    {
+      id: 'mobility',
+      prompt: '차로 이동할 수 있나요?',
+      options: [
+        { label: '가능해요', value: 'mobility_car' },
+        { label: '대중교통이 좋아요', value: 'mobility_transit' },
+        { label: '가까운 곳만', value: 'mobility_nearby' },
+      ],
+    },
+    {
+      id: 'vibe',
+      prompt: '오늘은 어떤 분위기가 좋으세요?',
+      options: [
+        { label: '한적한 곳', value: 'vibe_quiet' },
+        { label: '활기찬 곳', value: 'vibe_lively' },
+        { label: '상관없어요', value: 'vibe_any' },
+      ],
+    },
+    {
+      id: 'priceComfort',
+      prompt: '입장료는 어느 정도 괜찮으세요?',
+      options: [
+        { label: '무료 위주', value: 'price_free' },
+        { label: '저렴하면 괜찮아요', value: 'price_low' },
+        { label: '유료도 괜찮아요', value: 'price_any' },
+      ],
+    },
+    {
+      id: 'reservationComfort',
+      prompt: '예약이 필요한 행사도 괜찮으세요?',
+      options: [
+        { label: '예약 없이 가고 싶어요', value: 'reservation_none' },
+        { label: '예약 가능하면 괜찮아요', value: 'reservation_ok' },
+        { label: '상관없어요', value: 'reservation_any' },
+      ],
+    },
+  ] satisfies RecommendationQuestion[];
+}
 
 const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
 
@@ -1792,8 +1814,13 @@ function recommendEvents({
     calculateAgeMonths(child.birthDate),
   );
   const homeRegion = recommendationHomeRegion(answers, fallbackHomeRegion);
+  const visitWindow = recommendationVisitWindow(answers);
   const candidates = events.filter(event => {
     if (!eventMatchesDateFilter(event, 'active')) {
+      return false;
+    }
+
+    if (visitWindow && !eventOverlapsDateRange(event, visitWindow)) {
       return false;
     }
 
@@ -1840,7 +1867,7 @@ function buildRecommendationQuestions(
   selectedChildren: Child[],
 ) {
   return [
-    ...coreRecommendationQuestions,
+    ...coreRecommendationQuestions(),
     selectAdaptiveRecommendationQuestion(events, selectedChildren),
   ];
 }
@@ -1899,6 +1926,12 @@ function recommendationQuestionLabel(question: RecommendationQuestion) {
   if (question.id === 'startRegion') {
     return '출발 지역';
   }
+  if (question.id === 'visitDay') {
+    return '가는 날';
+  }
+  if (question.id === 'weather') {
+    return '날씨';
+  }
   if (question.id === 'mobility') {
     return '이동 방식';
   }
@@ -1929,6 +1962,88 @@ function recommendationAnswerLabel(
     question.options.find(option => option.value === value)?.label ??
     '선택 안 함'
   );
+}
+
+function recommendationVisitWindow(answers: RecommendationAnswerMap) {
+  const today = new Date();
+
+  if (answers.visitDay === 'visit_soon') {
+    return {
+      start: addDays(today, 1),
+      end: addDays(today, 2),
+      label: '1-2일 안에',
+    };
+  }
+
+  if (answers.visitDay === 'visit_this_weekend') {
+    return {
+      ...thisWeekendRange(today),
+      label: '이번 주말',
+    };
+  }
+
+  if (answers.visitDay === 'visit_next_week') {
+    return {
+      ...nextWeekRange(today),
+      label: '다음 주',
+    };
+  }
+
+  if (answers.visitDay === 'visit_flexible') {
+    return null;
+  }
+
+  return null;
+}
+
+function eventOverlapsDateRange(
+  event: BabyrooEvent,
+  range: { start: Date; end: Date },
+) {
+  const eventStart = parseDateInput(event.startsAt);
+  const eventEnd = parseDateInput(event.endsAt);
+  const rangeStart = parseDateInput(formatDateInput(range.start));
+  const rangeEnd = parseDateInput(formatDateInput(range.end));
+
+  return eventStart <= rangeEnd && eventEnd >= rangeStart;
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+
+  return nextDate;
+}
+
+function thisWeekendRange(referenceDate: Date) {
+  const day = referenceDate.getDay();
+
+  if (day === 5 || day === 6 || day === 0) {
+    return {
+      start: new Date(referenceDate),
+      end: nextWeekday(referenceDate, 0),
+    };
+  }
+
+  return {
+    start: nextWeekday(referenceDate, 6),
+    end: nextWeekday(referenceDate, 0),
+  };
+}
+
+function nextWeekRange(referenceDate: Date) {
+  const nextMonday = nextWeekday(addDays(referenceDate, 1), 1);
+
+  return {
+    start: nextMonday,
+    end: addDays(nextMonday, 6),
+  };
+}
+
+function nextWeekday(referenceDate: Date, weekday: number) {
+  const daysUntilWeekday = (weekday - referenceDate.getDay() + 7) % 7;
+
+  return addDays(referenceDate, daysUntilWeekday);
 }
 
 function buildRecommendationPrompt({
@@ -1982,6 +2097,8 @@ function buildRecommendationPrompt({
           }),
         )
       : ['후보 없음'];
+  const visitWindow = recommendationVisitWindow(answers);
+  const weatherQuestion = questions.find(question => question.id === 'weather');
 
   return [
     'You are Babyroo, a recommendation assistant for parents choosing outings for babies and toddlers.',
@@ -1996,6 +2113,18 @@ function buildRecommendationPrompt({
     '',
     `Today: ${formatDateInput(new Date())}`,
     `User home region: ${user.homeRegion}`,
+    `Planned visit window: ${
+      visitWindow
+        ? `${visitWindow.label} (${formatDateInput(
+            visitWindow.start,
+          )} - ${formatDateInput(visitWindow.end)})`
+        : 'flexible'
+    }`,
+    `Visit-day weather: ${
+      weatherQuestion
+        ? recommendationAnswerLabel(weatherQuestion, answers.weather)
+        : 'not specified'
+    }`,
     '',
     'Selected children:',
     ...childLines,
@@ -2246,6 +2375,14 @@ function recommendationAnswerScore(
 
   if (answers.mobility === 'mobility_transit' && event.indoor === false) {
     score += 1;
+  }
+
+  if (
+    (answers.weather === 'weather_rain_snow' ||
+      answers.weather === 'weather_hot_cold') &&
+    event.indoor === false
+  ) {
+    score += 3;
   }
 
   if (answers.vibe === 'vibe_quiet' && event.category === 'performance') {
