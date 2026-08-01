@@ -24,7 +24,10 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import {
   BabyrooEvent,
@@ -180,10 +183,13 @@ function App() {
 
 function BabyrooApp() {
   const bottomInset = useBottomSafeAreaInset();
+  const { top: topInset } = useSafeAreaInsets();
   const [user, setUser] = useState<User>(currentUser);
   const [userLoaded, setUserLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
+  const [selectedRecommendationSession, setSelectedRecommendationSession] =
+    useState<RecommendationSession | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(
     defaultExploreFilters,
@@ -198,7 +204,7 @@ function BabyrooApp() {
       return (
         <HomeScreen
           user={user}
-          onOpenEvent={openDetail}
+          onOpenRecommendationDetail={openRecommendationDetail}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
         />
@@ -266,6 +272,11 @@ function BabyrooApp() {
           return true;
         }
 
+        if (selectedRecommendationSession) {
+          setSelectedRecommendationSession(null);
+          return true;
+        }
+
         if (settingsOpen) {
           setSettingsOpen(false);
           return true;
@@ -281,7 +292,7 @@ function BabyrooApp() {
     );
 
     return () => subscription.remove();
-  }, [filterOpen, selectedEvent, settingsOpen, tab]);
+  }, [filterOpen, selectedEvent, selectedRecommendationSession, settingsOpen, tab]);
 
   const openDetail = (event: BabyrooEvent) => {
     setSelectedEvent(event);
@@ -290,6 +301,14 @@ function BabyrooApp() {
   };
 
   const closeDetail = () => setSelectedEvent(null);
+
+  const openRecommendationDetail = (session: RecommendationSession) => {
+    setSelectedRecommendationSession(session);
+    setFilterOpen(false);
+    setSettingsOpen(false);
+  };
+
+  const closeRecommendationDetail = () => setSelectedRecommendationSession(null);
 
   const openSettings = () => {
     setFilterOpen(false);
@@ -431,6 +450,21 @@ function BabyrooApp() {
               onClose={() => setFilterOpen(false)}
             />
           ) : null}
+          {selectedRecommendationSession ? (
+            <RecommendationSessionDetail
+              bottomInset={bottomInset}
+              events={eventsNewestFirst}
+              questions={buildRecommendationQuestions(
+                eventsNewestFirst,
+                sortChildrenByAge(getSelectedChildren(user)),
+                preferencesToAnswers(selectedRecommendationSession.preferences),
+              )}
+              session={selectedRecommendationSession}
+              topInset={topInset}
+              onBack={closeRecommendationDetail}
+              onOpenEvent={openDetail}
+            />
+          ) : null}
           {selectedEvent ? (
             <EventDetail
               event={selectedEvent}
@@ -446,12 +480,12 @@ function BabyrooApp() {
 
 function HomeScreen({
   user,
-  onOpenEvent,
+  onOpenRecommendationDetail,
   onOpenSettings,
   bottomInset,
 }: {
   user: User;
-  onOpenEvent: (event: BabyrooEvent) => void;
+  onOpenRecommendationDetail: (session: RecommendationSession) => void;
   onOpenSettings: () => void;
   bottomInset: number;
 }) {
@@ -501,16 +535,8 @@ function HomeScreen({
     recommendationSessions.find(
       session => session.id === selectedRecommendationSessionId,
     ) ?? latestRecommendationSession;
-  const selectedRecommendedEvents = selectedRecommendationSession
-    ? selectedRecommendationSession.results
-        .map(result => eventsNewestFirst.find(event => event.id === result.eventId))
-        .filter((event): event is BabyrooEvent => Boolean(event))
-    : [];
-  const selectedRecommendationResults = selectedRecommendationSession
-    ? selectedRecommendationSession.results
-    : [];
-  const visibleRecommendationSessions = recommendationSessions.filter(
-    session => session.status === 'success',
+  const storedRecommendationSessions = recommendationSessions.filter(
+    session => session.status === 'success' && session.results.length > 0,
   );
 
   const startRecommendationInterview = () => {
@@ -558,34 +584,39 @@ function HomeScreen({
       debug: __DEV__,
     });
 
+    const resolvedSession: RecommendationSession =
+      response.status === 'success'
+        ? {
+            ...loadingSession,
+            status: 'success',
+            results: response.results,
+            debug: response.debug,
+          }
+        : {
+            ...loadingSession,
+            status: 'failed',
+            results: [],
+            debug: response.debug,
+            error: {
+              code: response.errorCode,
+              message: response.errorMessage,
+              retryable: response.retryable,
+            },
+          };
+
     setRecommendationSessions(previousSessions =>
       previousSessions.map(session => {
         if (session.id !== sessionId) {
           return session;
         }
 
-        if (response.status === 'success') {
-          return {
-            ...session,
-            status: 'success',
-            results: response.results,
-            debug: response.debug,
-          };
-        }
-
-        return {
-          ...session,
-          status: 'failed',
-          results: [],
-          debug: response.debug,
-          error: {
-            code: response.errorCode,
-            message: response.errorMessage,
-            retryable: response.retryable,
-          },
-        };
+        return resolvedSession;
       }),
     );
+
+    if (resolvedSession.status === 'success' && resolvedSession.results.length > 0) {
+      onOpenRecommendationDetail(resolvedSession);
+    }
   };
 
   const answerRecommendationQuestion = (
@@ -735,31 +766,35 @@ function HomeScreen({
         />
       ) : null}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          {selectedRecommendationSession ? '추천 결과' : '추천 전 확인'}
-        </Text>
-        <Text style={styles.sectionMeta}>
-          {selectedRecommendationSession
-            ? `${formatRecommendationSessionTime(
-                selectedRecommendationSession.createdAt,
-              )} 추천`
-            : '추천 받기를 누르면 선택한 조건으로 후보가 표시됩니다'}
-        </Text>
+      <View style={styles.recommendationHistorySection}>
+        <View style={styles.sectionHeaderCompact}>
+          <Text style={styles.sectionTitle}>추천 기록</Text>
+          <Text style={styles.sectionMeta}>
+            추천받은 결과를 조건별로 다시 볼 수 있어요
+          </Text>
+        </View>
+        {storedRecommendationSessions.length > 0 ? (
+          storedRecommendationSessions.map(session => (
+            <RecommendationSessionCard
+              key={session.id}
+              events={eventsNewestFirst}
+              questions={recommendationQuestions}
+              session={session}
+              onPress={() => {
+                setSelectedRecommendationSessionId(session.id);
+                onOpenRecommendationDetail(session);
+              }}
+            />
+          ))
+        ) : (
+          <View style={styles.recommendationHistoryEmpty}>
+            <Text style={styles.emptyStateTitle}>아직 추천 기록이 없어요</Text>
+            <Text style={styles.emptyStateText}>
+              추천을 받으면 조건과 결과가 여기에 쌓입니다.
+            </Text>
+          </View>
+        )}
       </View>
-
-      {selectedRecommendationSession?.status === 'success' ? (
-        <RecommendationAnswerSummary
-          answers={preferencesToAnswers(selectedRecommendationSession.preferences)}
-          questions={recommendationQuestions}
-        />
-      ) : null}
-
-      {__DEV__ && selectedRecommendationSession?.debug ? (
-        <RecommendationDebugPrompt
-          debug={selectedRecommendationSession.debug}
-        />
-      ) : null}
 
       {selectedRecommendationSession?.status === 'loading' ? (
         <View style={styles.recommendationEmptyState}>
@@ -776,75 +811,15 @@ function HomeScreen({
           retryable={selectedRecommendationSession.error?.retryable ?? true}
           onRetry={() => requestRecommendation(recommendationAnswers)}
         />
-      ) : selectedRecommendationSession &&
-        selectedRecommendedEvents.length > 0 ? (
-        selectedRecommendedEvents.map((event, index) => (
-          <EventCard
-            key={event.id}
-            event={event}
-            compact
-            recommendationResult={selectedRecommendationResults.find(
-              result => result.eventId === event.id,
-            )}
-            tone={index}
-            onPress={() => onOpenEvent(event)}
-          />
-        ))
-      ) : selectedRecommendationSession ? (
+      ) : selectedRecommendationSession?.status === 'success' &&
+        selectedRecommendationSession.results.length === 0 ? (
         <View style={styles.recommendationEmptyState}>
           <Text style={styles.emptyStateTitle}>조건에 맞는 추천이 없어요</Text>
           <Text style={styles.emptyStateText}>
             일정이나 장소 조건을 넓혀서 다시 추천받아 보세요.
           </Text>
         </View>
-      ) : (
-        <View style={styles.recommendationEmptyState}>
-          <Text style={styles.emptyStateTitle}>
-            추천 결과를 아직 만들지 않았어요
-          </Text>
-          <Text style={styles.emptyStateText}>
-            탐색에서 직접 고를 수도 있고, 추천을 요청하면 후보 3개를 먼저
-            추려드립니다.
-          </Text>
-        </View>
-      )}
-
-      {visibleRecommendationSessions.length > 1 ? (
-        <View style={styles.recommendationHistorySection}>
-          <Text style={styles.sectionTitle}>지난 추천</Text>
-          {visibleRecommendationSessions.map(session => {
-            const selected = session.id === selectedRecommendationSession?.id;
-
-            return (
-              <Pressable
-                key={session.id}
-                style={[
-                  styles.recommendationHistoryItem,
-                  selected && styles.recommendationHistoryItemSelected,
-                ]}
-                onPress={() => setSelectedRecommendationSessionId(session.id)}
-              >
-                <View>
-                  <Text style={styles.recommendationHistoryTitle}>
-                    {formatRecommendationSessionTime(session.createdAt)} 추천
-                  </Text>
-                  <Text style={styles.recommendationHistoryMeta}>
-                    후보 {session.results.length}개
-                  </Text>
-                </View>
-                <Text style={styles.recommendationHistoryBadge}>
-                  {selected ? '보는 중' : '보기'}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
       ) : null}
-
-      <View style={styles.latestTeaser}>
-        <Text style={styles.sectionTitle}>새로 추가된 행사</Text>
-        <Text style={styles.linkText}>전체 보기</Text>
-      </View>
     </ScrollView>
   );
 }
@@ -1002,6 +977,41 @@ function RecommendationConfirmationCard({
   );
 }
 
+function RecommendationSessionCard({
+  events,
+  onPress,
+  questions,
+  session,
+}: {
+  events: BabyrooEvent[];
+  onPress: () => void;
+  questions: RecommendationQuestion[];
+  session: RecommendationSession;
+}) {
+  return (
+    <Pressable
+      style={styles.recommendationHistoryItem}
+      onPress={onPress}
+      accessibilityLabel="Open stored recommendation"
+    >
+      <View style={styles.recommendationHistoryBody}>
+        <View style={styles.recommendationHistoryHeader}>
+          <Text style={styles.recommendationHistoryTitle}>
+            {formatRecommendationSessionTime(session.createdAt)} 추천
+          </Text>
+          <Text style={styles.recommendationHistoryBadge}>보기</Text>
+        </View>
+        <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
+          {formatRecommendationSessionAnswerSummary(session, questions)}
+        </Text>
+        <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
+          {formatRecommendationSessionEventPreview(session, events)}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
 function RecommendationFailureState({
   errorCode,
   onRetry,
@@ -1035,36 +1045,59 @@ function RecommendationDebugPrompt({
 }: {
   debug: RecommendationDebugInfo;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <View style={styles.recommendationDebugPrompt}>
-      {debug.prompt ? (
+      <Pressable
+        style={styles.recommendationDebugHeader}
+        onPress={() => setExpanded(previousExpanded => !previousExpanded)}
+        accessibilityLabel="Toggle recommendation debug"
+      >
+        <Text style={styles.recommendationDebugTitle}>
+          Recommendation Debug
+        </Text>
+        <Text style={styles.recommendationDebugToggle}>
+          {expanded ? '접기' : '펼치기'}
+        </Text>
+      </Pressable>
+
+      {expanded ? (
         <>
-          <Text style={styles.recommendationDebugLabel}>DEBUG PROMPT</Text>
-          <Text style={styles.recommendationDebugText} selectable>
-            {debug.prompt}
-          </Text>
+          {debug.prompt ? (
+            <>
+              <Text style={styles.recommendationDebugLabel}>DEBUG PROMPT</Text>
+              <Text style={styles.recommendationDebugText} selectable>
+                {debug.prompt}
+              </Text>
+            </>
+          ) : null}
+          {debug.rawResponse ? (
+            <>
+              <Text style={styles.recommendationDebugLabel}>
+                DEBUG RAW RESPONSE
+              </Text>
+              <Text style={styles.recommendationDebugText} selectable>
+                {debug.rawResponse}
+              </Text>
+            </>
+          ) : null}
+          {debug.normalizedResponse ? (
+            <>
+              <Text style={styles.recommendationDebugLabel}>
+                DEBUG NORMALIZED RESULT
+              </Text>
+              <Text style={styles.recommendationDebugText} selectable>
+                {JSON.stringify(debug.normalizedResponse, null, 2)}
+              </Text>
+            </>
+          ) : null}
         </>
-      ) : null}
-      {debug.rawResponse ? (
-        <>
-          <Text style={styles.recommendationDebugLabel}>
-            DEBUG RAW RESPONSE
-          </Text>
-          <Text style={styles.recommendationDebugText} selectable>
-            {debug.rawResponse}
-          </Text>
-        </>
-      ) : null}
-      {debug.normalizedResponse ? (
-        <>
-          <Text style={styles.recommendationDebugLabel}>
-            DEBUG NORMALIZED RESULT
-          </Text>
-          <Text style={styles.recommendationDebugText} selectable>
-            {JSON.stringify(debug.normalizedResponse, null, 2)}
-          </Text>
-        </>
-      ) : null}
+      ) : (
+        <Text style={styles.recommendationDebugCollapsedText}>
+          프롬프트와 응답 원문은 펼쳐서 확인할 수 있어요.
+        </Text>
+      )}
     </View>
   );
 }
@@ -1306,6 +1339,96 @@ function EventDetail({
           <Text style={styles.primaryButtonText}>원문 / 예약 페이지 열기</Text>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+function RecommendationSessionDetail({
+  bottomInset,
+  events,
+  onBack,
+  onOpenEvent,
+  questions,
+  session,
+  topInset,
+}: {
+  bottomInset: number;
+  events: BabyrooEvent[];
+  onBack: () => void;
+  onOpenEvent: (event: BabyrooEvent) => void;
+  questions: RecommendationQuestion[];
+  session: RecommendationSession;
+  topInset: number;
+}) {
+  const recommendedEvents = session.results
+    .map(result => events.find(event => event.id === result.eventId))
+    .filter((event): event is BabyrooEvent => Boolean(event));
+
+  return (
+    <View style={styles.detailRoot}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.recommendationDetailContent,
+          { paddingTop: spacing.xl + topInset },
+          detailContentBottomPadding(bottomInset),
+        ]}
+      >
+        <View style={styles.recommendationDetailHeader}>
+          <Pressable
+            style={styles.recommendationDetailBackButton}
+            onPress={onBack}
+            accessibilityLabel="Go back to recommendations"
+          >
+            <Text style={styles.recommendationDetailBackText}>‹</Text>
+          </Pressable>
+          <View style={styles.recommendationDetailHeaderText}>
+            <Text style={styles.recommendationDetailTitle}>추천 결과</Text>
+            <Text style={styles.recommendationDetailTime}>
+              {formatRecommendationSessionTime(session.createdAt)}에 저장된 추천
+            </Text>
+          </View>
+        </View>
+
+        <RecommendationAnswerSummary
+          answers={preferencesToAnswers(session.preferences)}
+          questions={questions}
+        />
+
+        {__DEV__ && session.debug ? (
+          <RecommendationDebugPrompt debug={session.debug} />
+        ) : null}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>추천 결과</Text>
+          <Text style={styles.sectionMeta}>
+            조건에 맞춰 고른 후보 {recommendedEvents.length}개
+          </Text>
+        </View>
+
+        {recommendedEvents.length > 0 ? (
+          recommendedEvents.map((event, index) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              compact
+              recommendationResult={session.results.find(
+                result => result.eventId === event.id,
+              )}
+              tone={index}
+              onPress={() => onOpenEvent(event)}
+            />
+          ))
+        ) : (
+          <View style={styles.recommendationEmptyState}>
+            <Text style={styles.emptyStateTitle}>
+              추천 후보를 다시 확인할 수 없어요
+            </Text>
+            <Text style={styles.emptyStateText}>
+              행사 데이터가 갱신되면서 저장된 후보가 사라졌을 수 있어요.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -2138,6 +2261,49 @@ function recommendationAnswerLabel(
   );
 }
 
+function formatRecommendationSessionAnswerSummary(
+  session: RecommendationSession,
+  questions: RecommendationQuestion[],
+) {
+  const answers = preferencesToAnswers(session.preferences);
+  const labels = questions
+    .map(question => recommendationAnswerLabel(question, answers[question.id]))
+    .filter(label => label !== '선택 안 함')
+    .slice(0, 4);
+
+  if (labels.length === 0) {
+    return '조건 정보 없음';
+  }
+
+  return labels.join(' · ');
+}
+
+function formatRecommendationSessionEventPreview(
+  session: RecommendationSession,
+  events: BabyrooEvent[],
+) {
+  const recommendedEvents = session.results
+    .map(result => events.find(event => event.id === result.eventId))
+    .filter((event): event is BabyrooEvent => Boolean(event));
+  const previewTitles = recommendedEvents
+    .slice(0, 2)
+    .map(event => event.title);
+  const remainingCount = Math.max(
+    recommendedEvents.length - previewTitles.length,
+    0,
+  );
+
+  if (previewTitles.length === 0) {
+    return '후보를 다시 확인할 수 없어요';
+  }
+
+  if (remainingCount > 0) {
+    return `${previewTitles.join(', ')} 외 ${remainingCount}개`;
+  }
+
+  return previewTitles.join(', ');
+}
+
 function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
   return {
     startRegion:
@@ -2953,6 +3119,29 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     padding: spacing.md,
   },
+  recommendationDebugHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  recommendationDebugTitle: {
+    color: colors.surface,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recommendationDebugToggle: {
+    color: colors.primarySoft,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recommendationDebugCollapsedText: {
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 16,
+    marginTop: spacing.sm,
+  },
   recommendationDebugLabel: {
     color: colors.primarySoft,
     fontSize: 11,
@@ -3008,20 +3197,31 @@ const styles = StyleSheet.create({
   recommendationHistorySection: {
     marginTop: spacing.xxxl,
   },
+  recommendationHistoryEmpty: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    marginTop: spacing.md,
+    padding: spacing.lg,
+  },
   recommendationHistoryItem: {
-    alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: radius.md,
     borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginTop: spacing.md,
     padding: spacing.lg,
   },
-  recommendationHistoryItemSelected: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
+  recommendationHistoryBody: {
+    gap: spacing.sm,
+  },
+  recommendationHistoryHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
   },
   recommendationHistoryTitle: {
     color: colors.text,
@@ -3032,7 +3232,12 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 12,
     fontWeight: '700',
-    marginTop: spacing.xs,
+  },
+  recommendationHistoryPreview: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
   },
   recommendationHistoryBadge: {
     color: colors.primaryStrong,
@@ -3272,6 +3477,9 @@ const styles = StyleSheet.create({
   sectionHeader: {
     marginTop: spacing.xxxl,
   },
+  sectionHeaderCompact: {
+    marginBottom: spacing.xs,
+  },
   sectionTitle: {
     color: colors.text,
     fontSize: 18,
@@ -3283,12 +3491,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginTop: 3,
-  },
-  latestTeaser: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxl,
   },
   searchField: {
     backgroundColor: colors.surface,
@@ -3554,6 +3756,54 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
     marginTop: -spacing.xxl,
     padding: spacing.xl,
+  },
+  recommendationDetailContent: {
+    padding: spacing.xl,
+  },
+  recommendationDetailHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  recommendationDetailBackButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  recommendationDetailBackText: {
+    color: colors.text,
+    fontSize: 34,
+    fontWeight: '500',
+    lineHeight: 38,
+  },
+  recommendationDetailHeaderText: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+    minHeight: 44,
+  },
+  recommendationDetailTitle: {
+    color: colors.text,
+    flexShrink: 0,
+    fontSize: 22,
+    fontWeight: '900',
+    lineHeight: 28,
+  },
+  recommendationDetailTime: {
+    color: colors.muted,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    textAlign: 'right',
   },
   detailPills: {
     marginBottom: spacing.md,
