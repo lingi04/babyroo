@@ -8,12 +8,146 @@ import { Alert, BackHandler, Linking, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { eventsNewestFirst } from '../src/data/events';
-import { currentUser } from '../src/data/user';
+import { currentUser, User } from '../src/data/user';
+import {
+  clearAuthSession,
+  saveAuthSession,
+} from '../src/storage/authStorage';
 import { loadUser, saveUser } from '../src/storage/userStorage';
+
+const testAuthSession = {
+  provider: 'google' as const,
+  providerUserId: 'google-user-001',
+  email: 'parent@example.com',
+  displayName: 'Google Parent',
+  idToken: 'mock-id-token',
+};
+
+const completeUser: User = {
+  ...currentUser,
+  id: 'google-google-user-001',
+  displayName: '테스트 보호자',
+  children: [
+    {
+      id: 'child-001',
+      nickname: '첫째',
+      birthDate: '2024-06-17',
+      gender: 'unknown',
+    },
+  ],
+  activeChildIds: ['child-001'],
+};
+
+beforeEach(async () => {
+  await AsyncStorage.clear();
+  await saveAuthSession(testAuthSession);
+  await saveUser(completeUser);
+});
 
 test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);
+  });
+});
+
+test('starts Google sign in when signed out', async () => {
+  await clearAuthSession();
+  await saveUser(currentUser);
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(
+    renderer!.root.findByProps({ accessibilityLabel: 'Continue with Google' }),
+  ).toBeTruthy();
+
+  await ReactTestRenderer.act(async () => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Continue with Google' })
+      .props.onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '회원가입' })).toBeTruthy();
+});
+
+test('allows browsing explore without login and gates personalization', async () => {
+  await clearAuthSession();
+  await saveUser(currentUser);
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Browse without login' })
+      .props.onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '행사 탐색' })).toBeTruthy();
+
+  await swipeTabs(renderer!, 96);
+
+  expect(
+    renderer!.root.findAllByProps({ children: '로그인이 필요해요' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({
+      accessibilityLabel: 'Sign in for personalization',
+    }).length,
+  ).toBeGreaterThan(0);
+});
+
+test('collects profile information during onboarding', async () => {
+  await saveUser({
+    ...currentUser,
+    id: 'google-google-user-001',
+  });
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(renderer!.root.findByProps({ children: '회원가입' })).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findAllByProps({ placeholder: '예: 로아 아빠' })[0]
+      .props.onChangeText('로아 아빠');
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Continue onboarding' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findAllByProps({ placeholder: '아이 이름 또는 별명' })[0]
+      .props.onChangeText('로아');
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Continue onboarding' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(async () => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Continue onboarding' })
+      .props.onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: '행사 탐색' })).toBeTruthy();
+  await expect(loadUser()).resolves.toMatchObject({
+    displayName: '로아 아빠',
+    children: [{ nickname: '로아' }],
   });
 });
 
@@ -106,7 +240,7 @@ test('answers recommendation questions before requesting results', async () => {
 
   for (const answer of [
     '1-2일 안에',
-    '맑거나 흐려요',
+    '날씨 괜찮으면 야외도 좋아요',
     '가능해요',
     '한적한 곳',
     '무료 위주',
@@ -132,14 +266,24 @@ test('answers recommendation questions before requesting results', async () => {
       .props.onPress();
   });
 
-  expect(renderer!.root.findByProps({ children: '추천 결과' })).toBeTruthy();
+  expect(
+    renderer!.root.findAllByProps({ children: '추천 결과' }).length,
+  ).toBeGreaterThan(0);
   expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
   expect(
     renderer!.root.findAllByProps({ children: '예약 없이 가고 싶어요' }).length,
   ).toBeGreaterThan(0);
   expect(
-    renderer!.root.findByProps({ children: 'DEBUG PROMPT' }),
+    renderer!.root.findByProps({ children: 'Recommendation Debug' }),
   ).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Toggle recommendation debug' })
+      .props.onPress();
+  });
+
+  expect(renderer!.root.findByProps({ children: 'DEBUG PROMPT' })).toBeTruthy();
   expect(
     renderer!.root.findAll(
       node =>
@@ -160,7 +304,7 @@ test('answers recommendation questions before requesting results', async () => {
     renderer!.root.findAll(
       node =>
         typeof node.props.children === 'string' &&
-        node.props.children.includes('- weather: clear_or_cloudy'),
+        node.props.children.includes('- weatherPlan: outdoor_if_suitable'),
     ).length,
   ).toBeGreaterThan(0);
 });

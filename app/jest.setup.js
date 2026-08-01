@@ -23,6 +23,30 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   default: mockAsyncStorage,
 }));
 
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn(() => Promise.resolve(true)),
+    signIn: jest.fn(() =>
+      Promise.resolve({
+        type: 'success',
+        data: {
+          user: {
+            id: 'google-user-001',
+            name: 'Google Parent',
+            email: 'parent@example.com',
+            photo: null,
+          },
+          scopes: ['email', 'profile'],
+          idToken: 'mock-id-token',
+          serverAuthCode: null,
+        },
+      }),
+    ),
+    signOut: jest.fn(() => Promise.resolve(null)),
+  },
+}));
+
 jest.mock('react-native-safe-area-context', () => {
   const React = require('react');
   const { View } = require('react-native');

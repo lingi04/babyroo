@@ -59,13 +59,25 @@ import {
   RecommendationResult,
   RecommendationSession,
 } from './src/recommendation';
+import { AuthSession } from './src/auth/types';
+import {
+  signInWithGoogle,
+  signOutFromGoogle,
+} from './src/auth/GoogleAuthService';
 import {
   Child,
   ChildGender,
+  createUserProfile,
   currentUser,
   getSelectedChildren,
+  isUserProfileComplete,
   User,
 } from './src/data/user';
+import {
+  clearAuthSession,
+  loadAuthSession,
+  saveAuthSession,
+} from './src/storage/authStorage';
 import { clearSavedUser, loadUser, saveUser } from './src/storage/userStorage';
 import { colors, radius, spacing } from './src/theme/tokens';
 
@@ -186,6 +198,9 @@ function BabyrooApp() {
   const { top: topInset } = useSafeAreaInsets();
   const [user, setUser] = useState<User>(currentUser);
   const [userLoaded, setUserLoaded] = useState(false);
+  const [authSession, setAuthSession] = useState<AuthSession | null>(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
+  const [browsingAsGuest, setBrowsingAsGuest] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
@@ -201,6 +216,15 @@ function BabyrooApp() {
     navigateToTab: (tab: Tab) => void,
   ) => {
     if (screenTab === 'home') {
+      if (!authSession) {
+        return (
+          <AuthRequiredScreen
+            bottomInset={bottomInset}
+            onSignIn={handleGoogleSignIn}
+          />
+        );
+      }
+
       return (
         <HomeScreen
           user={user}
@@ -218,9 +242,20 @@ function BabyrooApp() {
           filters={exploreFilters}
           onOpenEvent={openDetail}
           onOpenFilter={() => setFilterOpen(true)}
-          onOpenRecommendation={() => navigateToTab('home')}
+          onOpenRecommendation={() => {
+            navigateToTab('home');
+          }}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
+        />
+      );
+    }
+
+    if (!authSession) {
+      return (
+        <AuthRequiredScreen
+          bottomInset={bottomInset}
+          onSignIn={handleGoogleSignIn}
         />
       );
     }
@@ -230,15 +265,17 @@ function BabyrooApp() {
   useEffect(() => {
     let mounted = true;
 
-    loadUser()
-      .then(savedUser => {
+    Promise.all([loadUser(), loadAuthSession()])
+      .then(([savedUser, savedAuthSession]) => {
         if (mounted) {
           setUser(savedUser);
+          setAuthSession(savedAuthSession);
         }
       })
       .finally(() => {
         if (mounted) {
           setUserLoaded(true);
+          setAuthLoaded(true);
         }
       });
 
@@ -248,7 +285,7 @@ function BabyrooApp() {
   }, []);
 
   useEffect(() => {
-    if (userLoaded) {
+    if (userLoaded && authSession) {
       if (skipNextUserSaveRef.current) {
         skipNextUserSaveRef.current = false;
         return;
@@ -256,7 +293,7 @@ function BabyrooApp() {
 
       saveUser(user).catch(() => undefined);
     }
-  }, [user, userLoaded]);
+  }, [authSession, user, userLoaded]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -310,7 +347,55 @@ function BabyrooApp() {
 
   const closeRecommendationDetail = () => setSelectedRecommendationSession(null);
 
+  const handleGoogleSignIn = async () => {
+    const result = await signInWithGoogle();
+
+    if (result.status === 'cancelled') {
+      return;
+    }
+
+    if (result.status === 'failed') {
+      Alert.alert('로그인 실패', result.message);
+      return;
+    }
+
+    const nextUser =
+      user.id === currentUser.id
+        ? createUserProfile({
+            id: `google-${result.session.providerUserId}`,
+            displayName: '',
+          })
+        : user;
+
+    await saveAuthSession(result.session);
+    await saveUser(nextUser);
+    setAuthSession(result.session);
+    setBrowsingAsGuest(false);
+    setUser(nextUser);
+  };
+
+  const completeOnboarding = async (nextUser: User) => {
+    await saveUser(nextUser);
+    setUser(nextUser);
+  };
+
+  const signOut = async () => {
+    await signOutFromGoogle().catch(() => undefined);
+    await clearAuthSession().catch(() => undefined);
+    setAuthSession(null);
+    setBrowsingAsGuest(false);
+    setSettingsOpen(false);
+    setFilterOpen(false);
+    setSelectedEvent(null);
+    setSelectedRecommendationSession(null);
+  };
+
   const openSettings = () => {
+    if (!authSession) {
+      setBrowsingAsGuest(false);
+      return;
+    }
+
     setFilterOpen(false);
     setSettingsOpen(true);
   };
@@ -402,7 +487,14 @@ function BabyrooApp() {
           onPress: async () => {
             await clearSavedUser().catch(() => undefined);
             skipNextUserSaveRef.current = true;
-            setUser(cloneUser(currentUser));
+            setUser(
+              authSession
+                ? createUserProfile({
+                    id: `google-${authSession.providerUserId}`,
+                    displayName: '',
+                  })
+                : cloneUser(currentUser),
+            );
             setSettingsOpen(false);
           },
         },
@@ -413,7 +505,24 @@ function BabyrooApp() {
   return (
     <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      {settingsOpen ? (
+      {!authLoaded || !userLoaded ? (
+        <View style={styles.authScreen}>
+          <Text style={styles.pageTitle}>Babyroo</Text>
+          <Text style={styles.pageSubtitle}>앱을 준비하고 있어요.</Text>
+        </View>
+      ) : !authSession && !browsingAsGuest ? (
+        <AuthScreen
+          onBrowse={() => setBrowsingAsGuest(true)}
+          onSignIn={handleGoogleSignIn}
+        />
+      ) : authSession && !isUserProfileComplete(user) ? (
+        <OnboardingScreen
+          authSession={authSession}
+          initialUser={user}
+          onComplete={completeOnboarding}
+          onSignOut={signOut}
+        />
+      ) : settingsOpen ? (
         <SettingsScreen
           user={user}
           onBack={closeSettings}
@@ -424,6 +533,7 @@ function BabyrooApp() {
           onToggleChild={toggleActiveChild}
           onSelectRegion={updateHomeRegion}
           onResetUser={resetUser}
+          onSignOut={signOut}
         />
       ) : (
         <>
@@ -475,6 +585,265 @@ function BabyrooApp() {
         </>
       )}
     </SafeAreaView>
+  );
+}
+
+function AuthScreen({
+  onBrowse,
+  onSignIn,
+}: {
+  onBrowse?: () => void;
+  onSignIn: () => Promise<void>;
+}) {
+  const [signingIn, setSigningIn] = useState(false);
+
+  const handleSignIn = async () => {
+    setSigningIn(true);
+    await onSignIn().finally(() => setSigningIn(false));
+  };
+
+  return (
+    <View style={styles.authScreen}>
+      <Text style={styles.authEyebrow}>Babyroo</Text>
+      <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
+      <Text style={styles.authSubtitle}>
+        Google 계정으로 시작하고, 추천에 필요한 가족 정보를 이어서
+        설정합니다.
+      </Text>
+      <Pressable
+        style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
+        onPress={handleSignIn}
+        disabled={signingIn}
+        accessibilityLabel="Continue with Google"
+      >
+        <Text style={styles.primaryButtonText}>
+          {signingIn ? '로그인 중...' : 'Google로 계속하기'}
+        </Text>
+      </Pressable>
+      {onBrowse ? (
+        <Pressable
+          style={styles.browseButton}
+          onPress={onBrowse}
+          accessibilityLabel="Browse without login"
+        >
+          <Text style={styles.linkText}>로그인 없이 둘러보기</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function AuthRequiredScreen({
+  bottomInset,
+  onSignIn,
+}: {
+  bottomInset: number;
+  onSignIn: () => Promise<void>;
+}) {
+  return (
+    <View
+      style={[
+        styles.screenWithTabs,
+        tabScreenBottomPadding(bottomInset),
+        styles.emptyState,
+      ]}
+    >
+      <Text style={styles.pageTitle}>로그인이 필요해요</Text>
+      <Text style={styles.pageSubtitle}>
+        추천과 저장 기능은 Google 로그인 후 사용할 수 있어요.
+      </Text>
+      <Pressable
+        style={styles.authRequiredButton}
+        onPress={onSignIn}
+        accessibilityLabel="Sign in for personalization"
+      >
+        <Text style={styles.primaryButtonText}>Google로 계속하기</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function OnboardingScreen({
+  authSession,
+  initialUser,
+  onComplete,
+  onSignOut,
+}: {
+  authSession: AuthSession;
+  initialUser: User;
+  onComplete: (user: User) => Promise<void>;
+  onSignOut: () => Promise<void>;
+}) {
+  const [step, setStep] = useState(0);
+  const [displayName, setDisplayName] = useState(
+    initialUser.displayName || authSession.displayName,
+  );
+  const [childNickname, setChildNickname] = useState(
+    initialUser.children[0]?.nickname ?? '',
+  );
+  const [childBirthDate, setChildBirthDate] = useState(
+    initialUser.children[0]?.birthDate ?? formatDateInput(defaultBirthDate()),
+  );
+  const [childGender, setChildGender] = useState<ChildGender>(
+    initialUser.children[0]?.gender ?? 'unknown',
+  );
+  const [homeRegion, setHomeRegion] = useState(initialUser.homeRegion);
+  const [saving, setSaving] = useState(false);
+  const canProceed =
+    step === 0
+      ? displayName.trim().length > 0
+      : step === 1
+        ? childNickname.trim().length > 0 && isValidDateInput(childBirthDate)
+        : true;
+
+  const goNext = async () => {
+    if (!canProceed) {
+      return;
+    }
+
+    if (step < 2) {
+      setStep(previousStep => previousStep + 1);
+      return;
+    }
+
+    const childId = initialUser.children[0]?.id ?? `child-${Date.now()}`;
+    const nextUser: User = {
+      ...initialUser,
+      id: `google-${authSession.providerUserId}`,
+      displayName: displayName.trim(),
+      children: [
+        {
+          id: childId,
+          nickname: childNickname.trim(),
+          birthDate: childBirthDate,
+          gender: childGender,
+        },
+      ],
+      activeChildIds: [childId],
+      homeRegion,
+    };
+
+    setSaving(true);
+    await onComplete(nextUser).finally(() => setSaving(false));
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.onboardingScreen}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.eyebrow}>회원가입</Text>
+          <Text style={styles.pageTitle}>추천 준비를 마칠게요</Text>
+        </View>
+        <Pressable
+          style={styles.textButton}
+          onPress={onSignOut}
+          accessibilityLabel="Sign out"
+        >
+          <Text style={styles.linkText}>로그아웃</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.onboardingStepText}>Step {step + 1} / 3</Text>
+
+      {step === 0 ? (
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsLabel}>사용자 닉네임</Text>
+          <Text style={styles.settingsTitle}>앱에서 사용할 이름을 알려주세요</Text>
+          <TextInput
+            style={styles.textInput}
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="예: 로아 아빠"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="nickname"
+          />
+        </View>
+      ) : null}
+
+      {step === 1 ? (
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsLabel}>자녀 정보</Text>
+          <Text style={styles.settingsTitle}>
+            첫 추천에 사용할 아이 정보를 입력해주세요
+          </Text>
+          <TextInput
+            style={styles.textInput}
+            value={childNickname}
+            onChangeText={setChildNickname}
+            placeholder="아이 이름 또는 별명"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="nickname"
+          />
+          <TextInput
+            style={styles.textInput}
+            value={childBirthDate}
+            onChangeText={setChildBirthDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.muted}
+            keyboardType="numbers-and-punctuation"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <View style={styles.wrapRow}>
+            {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
+              <Pressable
+                key={gender}
+                onPress={() => setChildGender(gender)}
+                accessibilityLabel={`Select child gender ${gender}`}
+              >
+                <Chip label={formatGender(gender)} selected={gender === childGender} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {step === 2 ? (
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsLabel}>거주지</Text>
+          <Text style={styles.settingsTitle}>
+            추천에 우선 반영할 지역을 선택해주세요
+          </Text>
+          <View style={styles.wrapRow}>
+            {['서울', '경기', '기타 지역'].map(region => (
+              <Pressable key={region} onPress={() => setHomeRegion(region)}>
+                <Chip label={region} selected={region === homeRegion} />
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      <View style={styles.onboardingActions}>
+        {step > 0 ? (
+          <Pressable
+            style={[styles.secondaryButton, styles.onboardingActionButton]}
+            onPress={() => setStep(previousStep => Math.max(previousStep - 1, 0))}
+            accessibilityLabel="Previous onboarding step"
+          >
+            <Text style={styles.secondaryButtonText}>이전</Text>
+          </Pressable>
+        ) : null}
+        <Pressable
+          style={[
+            styles.primaryButton,
+            styles.onboardingActionButton,
+            (!canProceed || saving) && styles.buttonDisabled,
+          ]}
+          onPress={goNext}
+          disabled={!canProceed || saving}
+          accessibilityLabel="Continue onboarding"
+        >
+          <Text style={styles.primaryButtonText}>
+            {step === 2 ? (saving ? '저장 중...' : '시작하기') : '다음'}
+          </Text>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -1460,6 +1829,7 @@ function SettingsScreen({
   onToggleChild,
   onSelectRegion,
   onResetUser,
+  onSignOut,
 }: {
   user: User;
   onBack: () => void;
@@ -1473,6 +1843,7 @@ function SettingsScreen({
   onToggleChild: (childId: string) => void;
   onSelectRegion: (region: string) => void;
   onResetUser: () => void;
+  onSignOut: () => Promise<void>;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
@@ -1747,6 +2118,13 @@ function SettingsScreen({
           accessibilityLabel="Reset user information"
         >
           <Text style={styles.resetUserButtonText}>사용자 정보 초기화</Text>
+        </Pressable>
+        <Pressable
+          style={styles.resetUserButton}
+          onPress={onSignOut}
+          accessibilityLabel="Sign out from Google"
+        >
+          <Text style={styles.resetUserButtonText}>로그아웃</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -2867,6 +3245,16 @@ function formatDateInput(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function isValidDateInput(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = parseDateInput(value);
+
+  return !Number.isNaN(date.getTime()) && date <= new Date();
+}
+
 function defaultBirthDate() {
   const today = new Date();
 
@@ -2933,6 +3321,61 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  authScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  authEyebrow: {
+    color: colors.primaryStrong,
+    fontSize: 14,
+    fontWeight: '900',
+    marginBottom: spacing.sm,
+  },
+  authTitle: {
+    color: colors.text,
+    fontSize: 26,
+    fontWeight: '900',
+    lineHeight: 33,
+  },
+  authSubtitle: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 21,
+    marginBottom: spacing.xxl,
+    marginTop: spacing.md,
+  },
+  browseButton: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  authRequiredButton: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    height: 54,
+    justifyContent: 'center',
+    marginTop: spacing.xl,
+  },
+  onboardingScreen: {
+    padding: spacing.xl,
+    paddingBottom: spacing.xxxl,
+  },
+  onboardingStepText: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: spacing.xxl,
+  },
+  onboardingActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.xl,
   },
   screenWithTabs: {
     paddingHorizontal: spacing.xl,
@@ -3876,10 +4319,36 @@ const styles = StyleSheet.create({
     height: 54,
     justifyContent: 'center',
   },
+  buttonDisabled: {
+    opacity: 0.45,
+  },
   primaryButtonText: {
     color: colors.surface,
     fontSize: 15,
     fontWeight: '900',
+  },
+  secondaryButton: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flex: 1,
+    height: 54,
+    justifyContent: 'center',
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  onboardingActionButton: {
+    flex: 1,
+  },
+  textButton: {
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   emptyState: {
     justifyContent: 'center',
