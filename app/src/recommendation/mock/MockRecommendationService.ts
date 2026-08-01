@@ -215,11 +215,24 @@ function candidateToMockResult(
   const reasons = ['선택한 조건과 비교해 추천 후보로 골랐어요.'];
 
   if (
-    preferences.weather &&
-    preferences.weather !== 'clear_or_cloudy' &&
+    preferences.weatherPlan === 'prefer_indoor' &&
     candidate.indoor === true
   ) {
-    reasons.push('날씨 영향이 적은 실내 행사예요.');
+    reasons.push('날씨와 상관없이 움직이기 쉬운 실내 행사예요.');
+  }
+
+  if (
+    preferences.weatherPlan === 'outdoor_if_suitable' &&
+    candidate.indoor === false
+  ) {
+    reasons.push('날씨가 괜찮다면 야외 활동으로 즐기기 좋아요.');
+  }
+
+  if (
+    preferences.weatherPlan === 'prefer_outdoor' &&
+    candidate.indoor === false
+  ) {
+    reasons.push('야외 활동을 선호하는 조건과 잘 맞아요.');
   }
 
   if (candidate.priceType === 'free') {
@@ -244,12 +257,12 @@ function candidateScore(event: BabyrooEvent, preferences: Preferences) {
     score += 4;
   }
 
-  if (
-    (preferences.weather === 'rain_or_snow' ||
-      preferences.weather === 'hot_or_cold') &&
-    event.indoor === false
-  ) {
+  if (preferences.weatherPlan === 'prefer_indoor' && event.indoor === false) {
     score += 3;
+  }
+
+  if (preferences.weatherPlan === 'prefer_outdoor' && event.indoor === true) {
+    score += 2;
   }
 
   if (preferences.price === 'low' && event.priceType === 'paid') {

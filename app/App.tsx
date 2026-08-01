@@ -90,7 +90,24 @@ const defaultExploreFilters: ExploreFilters = {
   price: 'all',
   reservation: 'all',
 };
-function coreRecommendationQuestions() {
+
+function buildWeatherPlanQuestion(
+  visitDay: RecommendationAnswerValue | undefined,
+): RecommendationQuestion {
+  return {
+    id: 'weather',
+    prompt: `${formatVisitWindowForWeatherQuestion(
+      visitDay,
+    )} 날씨를 어떻게 반영할까요?`,
+    options: [
+      { label: '날씨 괜찮으면 야외도 좋아요', value: 'weather_outdoor_if_suitable' },
+      { label: '날씨 상관없이 실내로 갈래요', value: 'weather_prefer_indoor' },
+      { label: '날씨 상관없이 야외가 좋아요', value: 'weather_prefer_outdoor' },
+    ],
+  };
+}
+
+function coreRecommendationQuestions(answers: RecommendationAnswerMap) {
   return [
     {
       id: 'startRegion',
@@ -111,16 +128,7 @@ function coreRecommendationQuestions() {
         { label: '날짜는 유연해요', value: 'visit_flexible' },
       ],
     },
-    {
-      id: 'weather',
-      prompt: '가는 날 날씨는 어떤가요?',
-      options: [
-        { label: '맑거나 흐려요', value: 'weather_sunny_cloudy' },
-        { label: '비나 눈이 와요', value: 'weather_rain_snow' },
-        { label: '덥거나 추워요', value: 'weather_hot_cold' },
-        { label: '아직 모르겠어요', value: 'weather_unknown' },
-      ],
-    },
+    buildWeatherPlanQuestion(answers.visitDay),
     {
       id: 'mobility',
       prompt: '차로 이동할 수 있나요?',
@@ -463,8 +471,13 @@ function HomeScreen({
   const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
     useState(false);
   const recommendationQuestions = useMemo(
-    () => buildRecommendationQuestions(eventsNewestFirst, selectedChildren),
-    [selectedChildren],
+    () =>
+      buildRecommendationQuestions(
+        eventsNewestFirst,
+        selectedChildren,
+        recommendationAnswers,
+      ),
+    [recommendationAnswers, selectedChildren],
   );
   const recommendationService = useMemo(
     () =>
@@ -2025,9 +2038,10 @@ function filterEvents(
 function buildRecommendationQuestions(
   events: BabyrooEvent[],
   selectedChildren: Child[],
+  answers: RecommendationAnswerMap,
 ) {
   return [
-    ...coreRecommendationQuestions(),
+    ...coreRecommendationQuestions(answers),
     selectAdaptiveRecommendationQuestion(events, selectedChildren),
   ];
 }
@@ -2144,16 +2158,14 @@ function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
             : answers.visitDay === 'visit_flexible'
               ? 'flexible'
               : undefined,
-    weather:
-      answers.weather === 'weather_sunny_cloudy'
-        ? 'clear_or_cloudy'
-        : answers.weather === 'weather_rain_snow'
-          ? 'rain_or_snow'
-          : answers.weather === 'weather_hot_cold'
-            ? 'hot_or_cold'
-            : answers.weather === 'weather_unknown'
-              ? 'unknown'
-              : undefined,
+    weatherPlan:
+      answers.weather === 'weather_outdoor_if_suitable'
+        ? 'outdoor_if_suitable'
+        : answers.weather === 'weather_prefer_indoor'
+          ? 'prefer_indoor'
+          : answers.weather === 'weather_prefer_outdoor'
+            ? 'prefer_outdoor'
+            : undefined,
     mobility:
       answers.mobility === 'mobility_car'
         ? 'car'
@@ -2232,15 +2244,13 @@ function preferencesToAnswers(preferences: Preferences): RecommendationAnswerMap
               ? 'visit_flexible'
               : undefined,
     weather:
-      preferences.weather === 'clear_or_cloudy'
-        ? 'weather_sunny_cloudy'
-        : preferences.weather === 'rain_or_snow'
-          ? 'weather_rain_snow'
-          : preferences.weather === 'hot_or_cold'
-            ? 'weather_hot_cold'
-            : preferences.weather === 'unknown'
-              ? 'weather_unknown'
-              : undefined,
+      preferences.weatherPlan === 'outdoor_if_suitable'
+        ? 'weather_outdoor_if_suitable'
+        : preferences.weatherPlan === 'prefer_indoor'
+          ? 'weather_prefer_indoor'
+          : preferences.weatherPlan === 'prefer_outdoor'
+            ? 'weather_prefer_outdoor'
+            : undefined,
     mobility:
       preferences.mobility === 'car'
         ? 'mobility_car'
@@ -2611,6 +2621,55 @@ function formatRecommendationSessionTime(createdAt: string) {
   const minutes = String(createdDate.getMinutes()).padStart(2, '0');
 
   return `${month}/${day} ${hours}:${minutes}`;
+}
+
+function formatVisitWindowForWeatherQuestion(
+  visitDay: RecommendationAnswerValue | undefined,
+) {
+  const today = new Date();
+
+  if (visitDay === 'visit_soon') {
+    return `${formatMonthDay(addDays(today, 1))}-${formatMonthDay(
+      addDays(today, 2),
+    )}`;
+  }
+
+  if (visitDay === 'visit_this_weekend') {
+    const saturday = nextWeekday(today, 6);
+    const sunday = addDays(saturday, 1);
+
+    return `${formatMonthDay(saturday)}-${formatMonthDay(sunday)} 이번 주말`;
+  }
+
+  if (visitDay === 'visit_next_week') {
+    const nextMonday = addDays(nextWeekday(today, 1), 7);
+    const nextSunday = addDays(nextMonday, 6);
+
+    return `${formatMonthDay(nextMonday)}-${formatMonthDay(nextSunday)} 다음 주`;
+  }
+
+  if (visitDay === 'visit_flexible') {
+    return '갈 날짜의';
+  }
+
+  return '가는 날의';
+}
+
+function addDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+
+  return nextDate;
+}
+
+function nextWeekday(date: Date, weekday: number) {
+  const daysUntilWeekday = (weekday - date.getDay() + 7) % 7;
+
+  return addDays(date, daysUntilWeekday);
+}
+
+function formatMonthDay(date: Date) {
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 function datePickerValue(target: string, children: Child[]) {
