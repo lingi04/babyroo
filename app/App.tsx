@@ -184,6 +184,7 @@ function coreRecommendationQuestions(answers: RecommendationAnswerMap) {
 }
 
 const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
+const brandIcon = require('./assets/brand/babyroo-app-icon-1024.png');
 
 function App() {
   return (
@@ -246,6 +247,7 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
+          onToggleChild={toggleActiveChild}
           bottomInset={bottomInset}
         />
       );
@@ -604,12 +606,31 @@ function AuthScreen({
 
   return (
     <View style={styles.authScreen}>
-      <Text style={styles.authEyebrow}>Babyroo</Text>
+      <View style={styles.authBrandRow}>
+        <Image
+          source={brandIcon}
+          resizeMode="cover"
+          style={styles.authLogo}
+          accessibilityIgnoresInvertColors
+        />
+        <Text style={styles.authEyebrow}>Babyroo</Text>
+      </View>
       <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
       <Text style={styles.authSubtitle}>
         Google 계정으로 시작하고, 추천에 필요한 가족 정보를 이어서
         설정합니다.
       </Text>
+      <View style={styles.authValuePanel}>
+        <View style={styles.authValueItem}>
+          <Text style={styles.authValueNumber}>{eventsNewestFirst.length}</Text>
+          <Text style={styles.authValueLabel}>검토할 행사</Text>
+        </View>
+        <View style={styles.authValueDivider} />
+        <View style={styles.authValueItem}>
+          <Text style={styles.authValueNumber}>맞춤</Text>
+          <Text style={styles.authValueLabel}>월령/지역 기준</Text>
+        </View>
+      </View>
       <Pressable
         style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
         onPress={handleSignIn}
@@ -1035,31 +1056,19 @@ function HomeScreen({
         tabScreenBottomPadding(bottomInset),
       ]}
     >
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
-          <Text style={styles.pageTitle}>맞춤 추천</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
+            <Text style={styles.pageTitle}>맞춤 추천</Text>
+          </View>
+          <Pressable
+            style={styles.iconButton}
+            onPress={onOpenSettings}
+            accessibilityLabel="Open user settings"
+          >
+            <Text style={styles.iconButtonText}>⚙</Text>
+          </Pressable>
         </View>
-        <Pressable
-          style={styles.iconButton}
-          onPress={onOpenSettings}
-          accessibilityLabel="Open user settings"
-        >
-          <Text style={styles.iconButtonText}>≡</Text>
-        </Pressable>
-      </View>
-
-      <Pressable style={styles.profileCard} onPress={onOpenSettings}>
-        <View>
-          <Text style={styles.profileTitle}>
-            {formatChildrenAges(selectedChildren)} · {user.homeRegion}
-          </Text>
-          <Text style={styles.profileMeta}>
-            {formatChildrenNames(selectedChildren)} 기준으로 추천
-          </Text>
-        </View>
-        <Text style={styles.linkText}>바꾸기</Text>
-      </Pressable>
 
       <View style={styles.recommendationSetupCard}>
         <Text style={styles.settingsLabel}>추천 준비</Text>
@@ -1478,6 +1487,7 @@ function ExploreScreen({
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
+  onToggleChild,
   bottomInset,
 }: {
   user: User;
@@ -1486,12 +1496,16 @@ function ExploreScreen({
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
+  onToggleChild: (childId: string) => void;
   bottomInset: number;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const childrenByAge = sortChildrenByAge(user.children);
   const [searchQuery, setSearchQuery] = useState('');
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
+  const [exploreControlsCollapsed, setExploreControlsCollapsed] =
+    useState(true);
   const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
     () =>
@@ -1499,6 +1513,10 @@ function ExploreScreen({
     [filters, searchQuery, selectedChildren],
   );
   const activeFilterLabels = getActiveExploreFilterLabels(filters);
+  const exploreCriteriaSummary = formatExploreCriteriaSummary(
+    selectedChildren,
+    activeFilterLabels,
+  );
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const nextVisible = event.nativeEvent.contentOffset.y > 420;
@@ -1518,26 +1536,21 @@ function ExploreScreen({
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        <Text style={styles.pageTitle}>행사 탐색</Text>
-        <Text style={styles.pageSubtitle}>새로 추가된 순서로 보여드려요</Text>
-
-        <Pressable
-          style={styles.profileCard}
-          onPress={onOpenSettings}
-          accessibilityLabel="Open user settings"
-        >
-          <View>
-            <Text style={styles.profileTitle}>
-              {formatChildrenAges(selectedChildren)} · {user.homeRegion}
-            </Text>
-            <Text style={styles.profileMeta}>
-              {formatChildrenNames(selectedChildren)} 기준으로 탐색
-            </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.pageTitle}>행사 탐색</Text>
           </View>
-          <Text style={styles.linkText}>설정</Text>
-        </Pressable>
+          <Pressable
+            style={styles.iconButton}
+            onPress={onOpenSettings}
+            accessibilityLabel="Open user settings"
+          >
+            <Text style={styles.iconButtonText}>⚙</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.searchField}>
+          <Text style={styles.searchIcon}>⌕</Text>
           <TextInput
             style={styles.searchInput}
             value={searchQuery}
@@ -1549,25 +1562,97 @@ function ExploreScreen({
           />
         </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.chipRow}
+        <View
+          style={[
+            styles.exploreControlsPanel,
+            exploreControlsCollapsed && styles.exploreControlsPanelCollapsed,
+          ]}
         >
-          {activeFilterLabels.map(chip => (
-            <Chip key={chip} label={chip} selected />
-          ))}
           <Pressable
-            onPress={onOpenFilter}
-            accessibilityLabel="Open filters"
+            style={styles.exploreControlsHeader}
+            onPress={() =>
+              setExploreControlsCollapsed(
+                previousCollapsed => !previousCollapsed,
+              )
+            }
+            accessibilityLabel="Toggle exploration controls"
           >
-            <Chip
-              label={
-                activeFilterCount > 0 ? `필터 ${activeFilterCount}` : '필터'
-              }
-            />
+            <View>
+              <View style={styles.exploreControlsTitleRow}>
+                <Text style={styles.exploreControlsTitle}>탐색 기준</Text>
+                <Text style={styles.exploreControlsSummary} numberOfLines={1}>
+                  {exploreCriteriaSummary}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.exploreControlsActions}>
+              <Text style={styles.exploreControlsToggle}>
+                {exploreControlsCollapsed ? '펼치기' : '접기'}
+              </Text>
+            </View>
           </Pressable>
-        </ScrollView>
+
+          {exploreControlsCollapsed ? null : (
+            <>
+              <View style={styles.exploreControlDivider} />
+
+              <View style={styles.exploreControlSection}>
+                <Text style={styles.exploreControlLabel}>아이 월령 기준</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.childChipRow}
+                >
+                  {childrenByAge.map(child => {
+                    const selected = user.activeChildIds.includes(child.id);
+
+                    return (
+                      <Pressable
+                        key={child.id}
+                        onPress={() => onToggleChild(child.id)}
+                        accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                      >
+                        <ChildContextChip child={child} selected={selected} />
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View style={styles.exploreControlDivider} />
+
+              <View
+                style={[
+                  styles.exploreControlSection,
+                  styles.exploreFilterSection,
+                ]}
+              >
+                <Text style={styles.exploreControlLabel}>필터</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.chipRow}
+                >
+                  {activeFilterLabels.map(chip => (
+                    <Chip key={chip} label={chip} selected />
+                  ))}
+                  <Pressable
+                    onPress={onOpenFilter}
+                    accessibilityLabel="Open filters"
+                  >
+                    <Chip
+                      label={
+                        activeFilterCount > 0
+                          ? `필터 ${activeFilterCount}`
+                          : '필터'
+                      }
+                    />
+                  </Pressable>
+                </ScrollView>
+              </View>
+            </>
+          )}
+        </View>
 
         <Text style={styles.resultCount}>
           {filteredEvents.length}개 행사 · 최신 추가순
@@ -2433,6 +2518,41 @@ function Chip({
   );
 }
 
+function ChildContextChip({
+  child,
+  selected,
+}: {
+  child: Child;
+  selected: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.childContextChip,
+        selected && styles.childContextChipSelected,
+      ]}
+    >
+      <Text
+        style={[
+          styles.childContextName,
+          selected && styles.childContextNameSelected,
+        ]}
+        numberOfLines={1}
+      >
+        {child.nickname}
+      </Text>
+      <Text
+        style={[
+          styles.childContextAge,
+          selected && styles.childContextAgeSelected,
+        ]}
+      >
+        {formatChildAge(child)}
+      </Text>
+    </View>
+  );
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.fact}>
@@ -3058,6 +3178,31 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
   return labels;
 }
 
+function formatExploreCriteriaSummary(
+  selectedChildren: Child[],
+  activeFilterLabels: string[],
+) {
+  const childSummary =
+    selectedChildren.length === 0
+      ? '아이 정보 없음'
+      : selectedChildren.length === 1
+        ? `${selectedChildren[0].nickname} · ${formatChildAge(
+            selectedChildren[0],
+          )}`
+        : `${selectedChildren[0].nickname} 외 ${selectedChildren.length - 1}명`;
+  const filterSummary =
+    activeFilterLabels.length > 0
+      ? activeFilterLabels.slice(0, 2).join(', ')
+      : '기본 필터';
+  const remainingFilterCount = Math.max(activeFilterLabels.length - 2, 0);
+
+  if (remainingFilterCount > 0) {
+    return `${childSummary} · ${filterSummary} 외 ${remainingFilterCount}`;
+  }
+
+  return `${childSummary} · ${filterSummary}`;
+}
+
 function formatAge(event: BabyrooEvent) {
   const minAge = event.ageMinMonths;
   const maxAge = event.ageMaxMonths;
@@ -3323,29 +3468,74 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   authScreen: {
+    backgroundColor: colors.background,
     flex: 1,
     justifyContent: 'center',
     padding: spacing.xl,
   },
+  authBrandRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  authLogo: {
+    borderRadius: radius.lg,
+    height: 56,
+    width: 56,
+  },
   authEyebrow: {
     color: colors.primaryStrong,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '900',
-    marginBottom: spacing.sm,
   },
   authTitle: {
     color: colors.text,
-    fontSize: 26,
+    fontSize: 30,
     fontWeight: '900',
-    lineHeight: 33,
+    lineHeight: 37,
   },
   authSubtitle: {
     color: colors.muted,
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 21,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
     marginTop: spacing.md,
+  },
+  authValuePanel: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginBottom: spacing.xl,
+    padding: spacing.lg,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 22,
+  },
+  authValueItem: {
+    flex: 1,
+  },
+  authValueNumber: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  authValueLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  authValueDivider: {
+    backgroundColor: colors.borderSubtle,
+    height: 34,
+    marginHorizontal: spacing.lg,
+    width: 1,
   },
   browseButton: {
     alignItems: 'center',
@@ -3378,8 +3568,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   screenWithTabs: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   exploreRoot: {
@@ -3387,8 +3577,8 @@ const styles = StyleSheet.create({
   },
   floatingRecommendationCta: {
     alignItems: 'center',
-    backgroundColor: colors.text,
-    borderRadius: radius.lg,
+    backgroundColor: colors.primaryStrong,
+    borderRadius: radius.md,
     bottom: FLOATING_RECOMMENDATION_BOTTOM,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -3399,7 +3589,7 @@ const styles = StyleSheet.create({
     right: spacing.xl,
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.18,
     shadowRadius: 24,
   },
   floatingRecommendationTitle: {
@@ -3419,21 +3609,25 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   headerRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
+    gap: spacing.md,
     justifyContent: 'space-between',
   },
+  headerTitleGroup: {
+    flex: 1,
+  },
   eyebrow: {
-    color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
     marginBottom: spacing.xs,
   },
   pageTitle: {
     color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-    lineHeight: 34,
+    fontSize: 27,
+    fontWeight: '900',
+    lineHeight: 33,
   },
   pageSubtitle: {
     color: colors.muted,
@@ -3444,58 +3638,48 @@ const styles = StyleSheet.create({
   iconButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
     borderWidth: 1,
     height: 44,
     justifyContent: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
     width: 44,
   },
   iconButtonText: {
-    color: colors.text,
-    fontSize: 24,
+    color: colors.primaryStrong,
+    fontSize: 20,
     fontWeight: '700',
-  },
-  profileCard: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.xxl,
-    padding: spacing.lg,
-  },
-  profileTitle: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  profileMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
   },
   recommendationSetupCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
-    marginTop: spacing.xxl,
+    marginTop: spacing.xl,
     padding: spacing.lg,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
   },
   recommendationCriteriaGroup: {
     marginTop: spacing.lg,
   },
   recommendationQuestionCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.primary,
+    borderColor: '#B9DED8',
     borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.lg,
     padding: spacing.lg,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
   },
   recommendationQuestionHeader: {
     alignItems: 'flex-start',
@@ -3508,8 +3692,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   recommendationOption: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primarySoft,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     minHeight: 48,
@@ -3527,8 +3711,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   recommendationAnswerSummary: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.lg,
@@ -3602,7 +3786,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   recommendationDebugInline: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surfaceRaised,
     borderRadius: radius.md,
     marginTop: spacing.md,
     padding: spacing.md,
@@ -3614,7 +3798,7 @@ const styles = StyleSheet.create({
   },
   recommendationEmptyState: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderStyle: 'dashed',
     borderWidth: 1,
@@ -3642,7 +3826,7 @@ const styles = StyleSheet.create({
   },
   recommendationHistoryEmpty: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderStyle: 'dashed',
     borderWidth: 1,
@@ -3651,11 +3835,15 @@ const styles = StyleSheet.create({
   },
   recommendationHistoryItem: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
     padding: spacing.lg,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
   },
   recommendationHistoryBody: {
     gap: spacing.sm,
@@ -3688,13 +3876,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   settingsScreen: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
   },
   settingsCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.xxl,
@@ -3722,8 +3910,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   textInput: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     color: colors.text,
@@ -3735,8 +3923,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   datePickerButton: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -3760,7 +3948,7 @@ const styles = StyleSheet.create({
   },
   childCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -3814,8 +4002,8 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   editButton: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.pill,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -3830,7 +4018,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.pill,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -3860,8 +4048,8 @@ const styles = StyleSheet.create({
   },
   addChildButton: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderStyle: 'dashed',
     borderWidth: 1,
@@ -3887,14 +4075,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   chipRow: {
-    marginHorizontal: -spacing.xl,
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.xl,
+    marginHorizontal: -spacing.md,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   chip: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.pill,
     borderWidth: 1,
     marginRight: spacing.sm,
@@ -3903,7 +4091,7 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: colors.primarySoft,
-    borderColor: colors.primarySoft,
+    borderColor: '#B9DED8',
   },
   chipDense: {
     paddingHorizontal: spacing.sm,
@@ -3937,16 +4125,29 @@ const styles = StyleSheet.create({
   },
   searchField: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     height: 48,
     justifyContent: 'center',
-    marginTop: spacing.xxl,
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.md,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+  },
+  searchIcon: {
+    color: colors.primaryStrong,
+    fontSize: 20,
+    fontWeight: '900',
+    marginRight: spacing.sm,
   },
   searchInput: {
     color: colors.text,
+    flex: 1,
     fontSize: 14,
     fontWeight: '700',
     height: '100%',
@@ -3961,11 +4162,117 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     fontWeight: '800',
-    marginTop: spacing.xl,
+    marginTop: spacing.md,
+  },
+  exploreControlsPanel: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+  },
+  exploreControlsPanelCollapsed: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  exploreControlsHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+    minHeight: 32,
+  },
+  exploreControlsTitleRow: {
+    alignItems: 'center',
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  exploreControlsTitle: {
+    color: colors.text,
+    flexShrink: 0,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  exploreControlsSummary: {
+    color: colors.muted,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  exploreControlsToggle: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  exploreControlsActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: spacing.md,
+  },
+  exploreControlSection: {
+    minHeight: 58,
+  },
+  exploreFilterSection: {
+    minHeight: 50,
+  },
+  exploreControlDivider: {
+    backgroundColor: colors.borderSubtle,
+    height: 1,
+    marginVertical: spacing.md,
+  },
+  exploreControlLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  childChipRow: {
+    marginHorizontal: -spacing.md,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  childContextChip: {
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    marginRight: spacing.sm,
+    minWidth: 92,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  childContextChipSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: '#B9DED8',
+  },
+  childContextName: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    maxWidth: 116,
+  },
+  childContextNameSelected: {
+    color: colors.primaryStrong,
+  },
+  childContextAge: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  childContextAgeSelected: {
+    color: colors.primaryStrong,
   },
   noResultsCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -3985,17 +4292,17 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
-    marginTop: spacing.md,
-    minHeight: 152,
-    padding: spacing.lg,
+    marginTop: spacing.sm,
+    minHeight: 140,
+    padding: spacing.md,
     shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
   },
   eventCardCompact: {
     minHeight: 132,
@@ -4006,9 +4313,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     height: 28,
     justifyContent: 'center',
-    left: spacing.md,
+    left: spacing.sm,
     position: 'absolute',
-    top: spacing.md,
+    top: spacing.sm,
     width: 28,
     zIndex: 1,
   },
@@ -4019,12 +4326,12 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     alignItems: 'center',
-    borderRadius: radius.lg,
-    height: 88,
+    borderRadius: radius.md,
+    height: 84,
     justifyContent: 'center',
-    marginRight: spacing.lg,
+    marginRight: spacing.md,
     overflow: 'hidden',
-    width: 88,
+    width: 84,
   },
   thumbnailImage: {
     height: '100%',
@@ -4078,7 +4385,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: colors.text,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     lineHeight: 22,
   },
@@ -4107,8 +4414,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   recommendationReasonBox: {
-    backgroundColor: colors.background,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.md,
@@ -4161,7 +4468,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   detailHeroScrim: {
-    backgroundColor: 'rgba(31, 41, 51, 0.18)',
+    backgroundColor: 'rgba(24, 33, 47, 0.24)',
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -4171,6 +4478,8 @@ const styles = StyleSheet.create({
   backButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderWidth: 1,
     borderRadius: radius.pill,
     height: 44,
     justifyContent: 'center',
@@ -4199,6 +4508,10 @@ const styles = StyleSheet.create({
     borderTopRightRadius: radius.xl,
     marginTop: -spacing.xxl,
     padding: spacing.xl,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.05,
+    shadowRadius: 18,
   },
   recommendationDetailContent: {
     padding: spacing.xl,
@@ -4272,6 +4585,8 @@ const styles = StyleSheet.create({
   },
   fact: {
     backgroundColor: colors.surfaceSoft,
+    borderColor: colors.borderSubtle,
+    borderWidth: 1,
     borderRadius: radius.md,
     minHeight: 82,
     padding: spacing.md,
@@ -4304,7 +4619,7 @@ const styles = StyleSheet.create({
   },
   ctaBar: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderTopWidth: 1,
     bottom: 0,
     left: 0,
@@ -4315,7 +4630,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     height: 54,
     justifyContent: 'center',
   },
@@ -4330,8 +4645,8 @@ const styles = StyleSheet.create({
   secondaryButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.lg,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
     borderWidth: 1,
     flex: 1,
     height: 54,
@@ -4361,10 +4676,10 @@ const styles = StyleSheet.create({
     top: 0,
   },
   sheetDim: {
-    backgroundColor: '#000000',
+    backgroundColor: colors.text,
     bottom: 0,
     left: 0,
-    opacity: 0.18,
+    opacity: 0.22,
     position: 'absolute',
     right: 0,
     top: 0,
@@ -4441,7 +4756,7 @@ const styles = StyleSheet.create({
   },
   bottomTabs: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderTopWidth: 1,
     bottom: 0,
     flexDirection: 'row',
@@ -4450,6 +4765,10 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     position: 'absolute',
     right: 0,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.06,
+    shadowRadius: 20,
   },
   tabButton: {
     alignItems: 'center',

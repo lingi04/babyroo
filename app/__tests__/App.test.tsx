@@ -580,6 +580,12 @@ test('shows simplified filters for schedule, region, and reservation', async () 
   });
 
   await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
     renderer!.root.findByProps({ accessibilityLabel: 'Open filters' }).props
       .onPress();
   });
@@ -617,6 +623,12 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
 
   await ReactTestRenderer.act(() => {
     renderer = ReactTestRenderer.create(<App />);
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
+      .props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
