@@ -71,7 +71,10 @@ Initial shape:
 type Preferences = Partial<{
   startRegion: 'seoul' | 'gyeonggi' | 'other';
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
-  weather: 'clear_or_cloudy' | 'rain_or_snow' | 'hot_or_cold' | 'unknown';
+  weatherPlan:
+    | 'outdoor_if_suitable'
+    | 'prefer_indoor'
+    | 'prefer_outdoor';
   mobility: 'car' | 'transit' | 'nearby';
   vibe: 'quiet' | 'lively' | 'any';
   price: 'free' | 'low' | 'any';
@@ -464,6 +467,11 @@ recommend(request): Promise<RecommendationResponse>
 Sessions remain in memory for now.
 
 Future backend persistence should be able to replace local state.
+
+Recommendation history is a separate concept from saved/favorite events.
+Each successful recommendation with results is displayed as a stored session
+with its generated time, answer summary, and result preview. Selecting a stored
+session restores the recommendation details and result cards for that session.
 
 Backend-friendly shape:
 
