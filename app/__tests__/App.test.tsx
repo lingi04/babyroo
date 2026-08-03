@@ -200,7 +200,7 @@ test('answers recommendation questions before requesting results', async () => {
 
   await swipeTabs(renderer!, 96);
 
-  expect(renderer!.root.findByProps({ children: '추천 준비' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '오늘의 추천' })).toBeTruthy();
   expect(renderer!.root.findAllByProps({ children: '질문' })).toHaveLength(0);
   expect(renderer!.root.findAllByProps({ children: '출발 지역' })).toHaveLength(
     0,

@@ -1056,54 +1056,50 @@ function HomeScreen({
         tabScreenBottomPadding(bottomInset),
       ]}
     >
-        <View style={styles.headerRow}>
-          <View style={styles.headerTitleGroup}>
-            <Text style={styles.eyebrow}>오늘 아이와 어디 갈까요?</Text>
-            <Text style={styles.pageTitle}>맞춤 추천</Text>
-          </View>
-          <Pressable
+      <View style={styles.headerRow}>
+        <View style={styles.headerTitleGroup}>
+          <Text style={styles.pageTitle}>맞춤 추천</Text>
+          <Text style={styles.pageSubtitle}>아이와 어디 갈까요?</Text>
+        </View>
+        <Pressable
             style={styles.iconButton}
             onPress={onOpenSettings}
             accessibilityLabel="Open user settings"
           >
             <Text style={styles.iconButtonText}>⚙</Text>
           </Pressable>
-        </View>
+      </View>
 
       <View style={styles.recommendationSetupCard}>
-        <Text style={styles.settingsLabel}>추천 준비</Text>
-        <Text style={styles.settingsTitle}>조건에 맞는 후보만 추려볼까요?</Text>
+        <Text style={styles.settingsLabel}>오늘의 추천</Text>
+        <Text style={styles.settingsTitle}>맞춤 후보 찾기</Text>
         <Text style={styles.settingsMeta}>
-          선택한 조건을 기준으로 아이에게 맞는 후보를 먼저 보여드립니다.
+          아이 월령과 오늘의 조건을 기준으로 갈 만한 곳을 추려드려요.
         </Text>
 
-        <View style={styles.recommendationCriteriaGroup}>
-          <Text style={styles.fieldLabel}>기준</Text>
-          <View style={styles.wrapRow}>
-            <Pressable
-              onPress={onOpenSettings}
-              accessibilityLabel="Edit recommendation children"
-            >
-              <Chip label={formatChildrenAges(selectedChildren)} selected />
-            </Pressable>
-            <Pressable
-              onPress={onOpenSettings}
-              accessibilityLabel="Edit recommendation residence"
-            >
-              <Chip label={user.homeRegion} selected />
-            </Pressable>
+        <Pressable
+          style={styles.recommendationContextRow}
+          onPress={onOpenSettings}
+          accessibilityLabel="Edit recommendation children"
+        >
+          <View>
+            <Text style={styles.recommendationContextLabel}>추천 기준</Text>
+            <Text style={styles.recommendationContextValue}>
+              {formatRecommendationCriteriaSummary(selectedChildren)}
+            </Text>
           </View>
-        </View>
+          <Text style={styles.recommendationContextAction}>설정</Text>
+        </Pressable>
 
         <Pressable
-          style={styles.primaryButton}
+          style={[styles.primaryButton, styles.recommendationPrimaryButton]}
           onPress={startRecommendationInterview}
           accessibilityLabel="Request recommendation"
         >
           <Text style={styles.primaryButtonText}>
             {latestRecommendationSession
-              ? '다시 추천 받기 · 1회 사용'
-              : '추천 받기 · 1회 사용'}
+              ? '추천 조건 다시 선택'
+              : '추천 조건 선택'}
           </Text>
         </Pressable>
         {latestRecommendationSession ? (
@@ -1238,8 +1234,6 @@ function RecommendationQuestionCard({
         </Pressable>
       </View>
 
-      <RecommendationAnswerSummary answers={answers} questions={questions} />
-
       <View style={styles.recommendationOptionList}>
         {question.options.map(option => (
           <Pressable
@@ -1254,6 +1248,8 @@ function RecommendationQuestionCard({
           </Pressable>
         ))}
       </View>
+
+      <RecommendationAnswerSummary answers={answers} questions={questions} />
 
       {questionIndex > 0 ? (
         <Pressable
@@ -3203,6 +3199,22 @@ function formatExploreCriteriaSummary(
   return `${childSummary} · ${filterSummary}`;
 }
 
+function formatRecommendationCriteriaSummary(selectedChildren: Child[]) {
+  if (selectedChildren.length === 0) {
+    return '아이 정보 없음';
+  }
+
+  if (selectedChildren.length === 1) {
+    return `${selectedChildren[0].nickname} · ${formatChildAge(
+      selectedChildren[0],
+    )} 기준`;
+  }
+
+  return `${selectedChildren[0].nickname} 외 ${
+    selectedChildren.length - 1
+  }명 기준`;
+}
+
 function formatAge(event: BabyrooEvent) {
   const minAge = event.ageMinMonths;
   const maxAge = event.ageMaxMonths;
@@ -3282,16 +3294,6 @@ function sortChildrenByAge(children: Child[]) {
 
     return left.birthDate.localeCompare(right.birthDate);
   });
-}
-
-function formatChildrenAges(children: Child[]) {
-  if (children.length === 0) {
-    return '아이 정보 없음';
-  }
-
-  const uniqueAges = [...new Set(children.map(formatChildAge))];
-
-  return uniqueAges.join(', ');
 }
 
 function formatChildrenNames(children: Child[]) {
@@ -3639,19 +3641,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
     borderWidth: 1,
-    height: 44,
+    height: 34,
     justifyContent: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
     shadowRadius: 16,
-    width: 44,
+    width: 34,
   },
   iconButtonText: {
     color: colors.primaryStrong,
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
   },
   recommendationSetupCard: {
@@ -3666,7 +3668,36 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 20,
   },
-  recommendationCriteriaGroup: {
+  recommendationContextRow: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    minHeight: 58,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  recommendationContextLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  recommendationContextValue: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+    marginTop: 2,
+  },
+  recommendationContextAction: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recommendationPrimaryButton: {
     marginTop: spacing.lg,
   },
   recommendationQuestionCard: {
