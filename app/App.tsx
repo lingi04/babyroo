@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
@@ -29,10 +24,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
-import {
-  BabyrooEvent,
-  eventsNewestFirst,
-} from './src/data/events';
+import { BabyrooEvent, eventsNewestFirst } from './src/data/events';
 import {
   bottomInsetPadding,
   bottomTabsSafeArea,
@@ -87,11 +79,13 @@ type PlaceFilter = 'all' | 'indoor' | 'outdoor';
 type ReservationFilter = 'all' | 'required' | 'notRequired';
 type DateFilter = 'active' | 'scheduled' | 'ongoing';
 type RegionFilter = 'all' | 'seoul' | 'gyeonggi' | 'other';
+type ExploreContentType = 'limitedEvent' | 'permanentVenue' | 'seoulKidsCafe';
 
 type ExploreFilters = {
   ageFit: boolean;
   date: DateFilter;
   region: RegionFilter;
+  contentTypes: ExploreContentType[];
   place: PlaceFilter;
   price: PriceFilter;
   reservation: ReservationFilter;
@@ -101,10 +95,21 @@ const defaultExploreFilters: ExploreFilters = {
   ageFit: false,
   date: 'active',
   region: 'all',
+  contentTypes: ['limitedEvent'],
   place: 'all',
   price: 'all',
   reservation: 'all',
 };
+
+const exploreContentTypeOptions: Array<{
+  value: ExploreContentType;
+  label: string;
+  icon: string;
+}> = [
+  { value: 'limitedEvent', label: '이벤트', icon: 'E' },
+  { value: 'permanentVenue', label: '상설 전시', icon: '상' },
+  { value: 'seoulKidsCafe', label: '서울형 키즈카페', icon: '키' },
+];
 
 function buildWeatherPlanQuestion(
   visitDay: RecommendationAnswerValue | undefined,
@@ -115,7 +120,10 @@ function buildWeatherPlanQuestion(
       visitDay,
     )} 날씨를 어떻게 반영할까요?`,
     options: [
-      { label: '날씨 괜찮으면 야외도 좋아요', value: 'weather_outdoor_if_suitable' },
+      {
+        label: '날씨 괜찮으면 야외도 좋아요',
+        value: 'weather_outdoor_if_suitable',
+      },
       { label: '날씨 상관없이 실내로 갈래요', value: 'weather_prefer_indoor' },
       { label: '날씨 상관없이 야외가 좋아요', value: 'weather_prefer_outdoor' },
     ],
@@ -247,6 +255,15 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
+          onToggleContentType={contentType =>
+            setExploreFilters(previousFilters => ({
+              ...previousFilters,
+              contentTypes: toggleExploreContentType(
+                previousFilters.contentTypes,
+                contentType,
+              ),
+            }))
+          }
           onToggleChild={toggleActiveChild}
           bottomInset={bottomInset}
         />
@@ -331,7 +348,13 @@ function BabyrooApp() {
     );
 
     return () => subscription.remove();
-  }, [filterOpen, selectedEvent, selectedRecommendationSession, settingsOpen, tab]);
+  }, [
+    filterOpen,
+    selectedEvent,
+    selectedRecommendationSession,
+    settingsOpen,
+    tab,
+  ]);
 
   const openDetail = (event: BabyrooEvent) => {
     setSelectedEvent(event);
@@ -347,7 +370,8 @@ function BabyrooApp() {
     setSettingsOpen(false);
   };
 
-  const closeRecommendationDetail = () => setSelectedRecommendationSession(null);
+  const closeRecommendationDetail = () =>
+    setSelectedRecommendationSession(null);
 
   const handleGoogleSignIn = async () => {
     const result = await signInWithGoogle();
@@ -617,8 +641,7 @@ function AuthScreen({
       </View>
       <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
       <Text style={styles.authSubtitle}>
-        Google 계정으로 시작하고, 추천에 필요한 가족 정보를 이어서
-        설정합니다.
+        Google 계정으로 시작하고, 추천에 필요한 가족 정보를 이어서 설정합니다.
       </Text>
       <View style={styles.authValuePanel}>
         <View style={styles.authValueItem}>
@@ -714,8 +737,8 @@ function OnboardingScreen({
     step === 0
       ? displayName.trim().length > 0
       : step === 1
-        ? childNickname.trim().length > 0 && isValidDateInput(childBirthDate)
-        : true;
+      ? childNickname.trim().length > 0 && isValidDateInput(childBirthDate)
+      : true;
 
   const goNext = async () => {
     if (!canProceed) {
@@ -769,7 +792,9 @@ function OnboardingScreen({
       {step === 0 ? (
         <View style={styles.settingsCard}>
           <Text style={styles.settingsLabel}>사용자 닉네임</Text>
-          <Text style={styles.settingsTitle}>앱에서 사용할 이름을 알려주세요</Text>
+          <Text style={styles.settingsTitle}>
+            앱에서 사용할 이름을 알려주세요
+          </Text>
           <TextInput
             style={styles.textInput}
             value={displayName}
@@ -816,7 +841,10 @@ function OnboardingScreen({
                 onPress={() => setChildGender(gender)}
                 accessibilityLabel={`Select child gender ${gender}`}
               >
-                <Chip label={formatGender(gender)} selected={gender === childGender} />
+                <Chip
+                  label={formatGender(gender)}
+                  selected={gender === childGender}
+                />
               </Pressable>
             ))}
           </View>
@@ -843,7 +871,9 @@ function OnboardingScreen({
         {step > 0 ? (
           <Pressable
             style={[styles.secondaryButton, styles.onboardingActionButton]}
-            onPress={() => setStep(previousStep => Math.max(previousStep - 1, 0))}
+            onPress={() =>
+              setStep(previousStep => Math.max(previousStep - 1, 0))
+            }
             accessibilityLabel="Previous onboarding step"
           >
             <Text style={styles.secondaryButtonText}>이전</Text>
@@ -1004,7 +1034,10 @@ function HomeScreen({
       }),
     );
 
-    if (resolvedSession.status === 'success' && resolvedSession.results.length > 0) {
+    if (
+      resolvedSession.status === 'success' &&
+      resolvedSession.results.length > 0
+    ) {
       onOpenRecommendationDetail(resolvedSession);
     }
   };
@@ -1062,12 +1095,12 @@ function HomeScreen({
           <Text style={styles.pageSubtitle}>아이와 어디 갈까요?</Text>
         </View>
         <Pressable
-            style={styles.iconButton}
-            onPress={onOpenSettings}
-            accessibilityLabel="Open user settings"
-          >
-            <Text style={styles.iconButtonText}>⚙</Text>
-          </Pressable>
+          style={styles.iconButton}
+          onPress={onOpenSettings}
+          accessibilityLabel="Open user settings"
+        >
+          <Text style={styles.iconButtonText}>⚙</Text>
+        </Pressable>
       </View>
 
       <View style={styles.recommendationSetupCard}>
@@ -1229,7 +1262,10 @@ function RecommendationQuestionCard({
           </Text>
           <Text style={styles.settingsTitle}>{question.prompt}</Text>
         </View>
-        <Pressable onPress={onClose} accessibilityLabel="Close recommendation questions">
+        <Pressable
+          onPress={onClose}
+          accessibilityLabel="Close recommendation questions"
+        >
           <Text style={styles.linkText}>닫기</Text>
         </Pressable>
       </View>
@@ -1242,9 +1278,7 @@ function RecommendationQuestionCard({
             onPress={() => onAnswer(question.id, option.value)}
             accessibilityLabel={`Answer recommendation ${option.label}`}
           >
-            <Text style={styles.recommendationOptionText}>
-              {option.label}
-            </Text>
+            <Text style={styles.recommendationOptionText}>{option.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -1289,9 +1323,7 @@ function RecommendationAnswerSummary({
           <Pressable
             key={question.id}
             style={styles.recommendationAnswerItem}
-            onPress={
-              onEditAnswer ? () => onEditAnswer(question.id) : undefined
-            }
+            onPress={onEditAnswer ? () => onEditAnswer(question.id) : undefined}
             accessibilityLabel={`Edit answer ${recommendationQuestionLabel(
               question,
             )}`}
@@ -1325,8 +1357,8 @@ function RecommendationConfirmationCard({
       <Text style={styles.settingsLabel}>추천 확인</Text>
       <Text style={styles.settingsTitle}>이 조건으로 추천 받을까요?</Text>
       <Text style={styles.settingsMeta}>
-        지금은 추천권이 차감되지 않아요. 추천 결과가 있으면 나중에 1회가
-        사용될 수 있어요.
+        지금은 추천권이 차감되지 않아요. 추천 결과가 있으면 나중에 1회가 사용될
+        수 있어요.
       </Text>
       <RecommendationAnswerSummary
         answers={answers}
@@ -1483,6 +1515,7 @@ function ExploreScreen({
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
+  onToggleContentType,
   onToggleChild,
   bottomInset,
 }: {
@@ -1492,6 +1525,7 @@ function ExploreScreen({
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
+  onToggleContentType: (contentType: ExploreContentType) => void;
   onToggleChild: (childId: string) => void;
   bottomInset: number;
 }) {
@@ -1556,6 +1590,49 @@ function ExploreScreen({
             returnKeyType="search"
             autoCorrect={false}
           />
+        </View>
+
+        <View style={styles.contentTypeSelector}>
+          {exploreContentTypeOptions.map(option => {
+            const selected = filters.contentTypes.includes(option.value);
+
+            return (
+              <Pressable
+                key={option.value}
+                style={[
+                  styles.contentTypeOption,
+                  selected && styles.contentTypeOptionSelected,
+                ]}
+                onPress={() => onToggleContentType(option.value)}
+                accessibilityLabel={`Toggle explore content type ${option.label}`}
+              >
+                <View
+                  style={[
+                    styles.contentTypeIcon,
+                    selected && styles.contentTypeIconSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.contentTypeIconText,
+                      selected && styles.contentTypeIconTextSelected,
+                    ]}
+                  >
+                    {option.icon}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.contentTypeLabel,
+                    selected && styles.contentTypeLabelSelected,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {option.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View
@@ -2276,9 +2353,7 @@ function FilterSheet({
               >
                 <Chip
                   label={label}
-                  selected={
-                    filters.date === 'active' || filters.date === value
-                  }
+                  selected={filters.date === 'active' || filters.date === value}
                 />
               </Pressable>
             ))}
@@ -2440,9 +2515,7 @@ function EventCard({
             ))}
             {recommendationResult.caution ? (
               <>
-                <Text style={styles.recommendationCautionTitle}>
-                  확인할 점
-                </Text>
+                <Text style={styles.recommendationCautionTitle}>확인할 점</Text>
                 <Text style={styles.recommendationReasonText}>
                   {recommendationResult.caution}
                 </Text>
@@ -2632,6 +2705,10 @@ function filterEvents(
       return false;
     }
 
+    if (!eventMatchesExploreContentTypes(event, filters.contentTypes)) {
+      return false;
+    }
+
     if (filters.price !== 'all' && event.priceType !== filters.price) {
       return false;
     }
@@ -2779,9 +2856,7 @@ function formatRecommendationSessionEventPreview(
   const recommendedEvents = session.results
     .map(result => events.find(event => event.id === result.eventId))
     .filter((event): event is BabyrooEvent => Boolean(event));
-  const previewTitles = recommendedEvents
-    .slice(0, 2)
-    .map(event => event.title);
+  const previewTitles = recommendedEvents.slice(0, 2).map(event => event.title);
   const remainingCount = Math.max(
     recommendedEvents.length - previewTitles.length,
     0,
@@ -2804,167 +2879,169 @@ function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
       answers.startRegion === 'region_seoul'
         ? 'seoul'
         : answers.startRegion === 'region_gyeonggi'
-          ? 'gyeonggi'
-          : answers.startRegion === 'region_other'
-            ? 'other'
-            : undefined,
+        ? 'gyeonggi'
+        : answers.startRegion === 'region_other'
+        ? 'other'
+        : undefined,
     visitWindow:
       answers.visitDay === 'visit_soon'
         ? 'soon'
         : answers.visitDay === 'visit_this_weekend'
-          ? 'this_weekend'
-          : answers.visitDay === 'visit_next_week'
-            ? 'next_week'
-            : answers.visitDay === 'visit_flexible'
-              ? 'flexible'
-              : undefined,
+        ? 'this_weekend'
+        : answers.visitDay === 'visit_next_week'
+        ? 'next_week'
+        : answers.visitDay === 'visit_flexible'
+        ? 'flexible'
+        : undefined,
     weatherPlan:
       answers.weather === 'weather_outdoor_if_suitable'
         ? 'outdoor_if_suitable'
         : answers.weather === 'weather_prefer_indoor'
-          ? 'prefer_indoor'
-          : answers.weather === 'weather_prefer_outdoor'
-            ? 'prefer_outdoor'
-            : undefined,
+        ? 'prefer_indoor'
+        : answers.weather === 'weather_prefer_outdoor'
+        ? 'prefer_outdoor'
+        : undefined,
     mobility:
       answers.mobility === 'mobility_car'
         ? 'car'
         : answers.mobility === 'mobility_transit'
-          ? 'transit'
-          : answers.mobility === 'mobility_nearby'
-            ? 'nearby'
-            : undefined,
+        ? 'transit'
+        : answers.mobility === 'mobility_nearby'
+        ? 'nearby'
+        : undefined,
     vibe:
       answers.vibe === 'vibe_quiet'
         ? 'quiet'
         : answers.vibe === 'vibe_lively'
-          ? 'lively'
-          : answers.vibe === 'vibe_any'
-            ? 'any'
-            : undefined,
+        ? 'lively'
+        : answers.vibe === 'vibe_any'
+        ? 'any'
+        : undefined,
     price:
       answers.priceComfort === 'price_free'
         ? 'free'
         : answers.priceComfort === 'price_low'
-          ? 'low'
-          : answers.priceComfort === 'price_any'
-            ? 'any'
-            : undefined,
+        ? 'low'
+        : answers.priceComfort === 'price_any'
+        ? 'any'
+        : undefined,
     reservation:
       answers.reservationComfort === 'reservation_none'
         ? 'no_reservation'
         : answers.reservationComfort === 'reservation_ok'
-          ? 'reservation_ok'
-          : answers.reservationComfort === 'reservation_any'
-            ? 'any'
-            : undefined,
+        ? 'reservation_ok'
+        : answers.reservationComfort === 'reservation_any'
+        ? 'any'
+        : undefined,
     duration:
       answers.duration === 'duration_short'
         ? 'short'
         : answers.duration === 'duration_any'
-          ? 'any'
-          : undefined,
+        ? 'any'
+        : undefined,
     place:
       answers.place === 'place_indoor'
         ? 'indoor'
         : answers.place === 'place_outdoor'
-          ? 'outdoor'
-          : answers.place === 'place_any'
-            ? 'any'
-            : undefined,
+        ? 'outdoor'
+        : answers.place === 'place_any'
+        ? 'any'
+        : undefined,
     activity:
       answers.activityStyle === 'activity_experience'
         ? 'experience'
         : answers.activityStyle === 'activity_exhibition'
-          ? 'exhibition'
-          : answers.activityStyle === 'activity_any'
-            ? 'any'
-            : undefined,
+        ? 'exhibition'
+        : answers.activityStyle === 'activity_any'
+        ? 'any'
+        : undefined,
   };
 }
 
-function preferencesToAnswers(preferences: Preferences): RecommendationAnswerMap {
+function preferencesToAnswers(
+  preferences: Preferences,
+): RecommendationAnswerMap {
   return {
     startRegion:
       preferences.startRegion === 'seoul'
         ? 'region_seoul'
         : preferences.startRegion === 'gyeonggi'
-          ? 'region_gyeonggi'
-          : preferences.startRegion === 'other'
-            ? 'region_other'
-            : undefined,
+        ? 'region_gyeonggi'
+        : preferences.startRegion === 'other'
+        ? 'region_other'
+        : undefined,
     visitDay:
       preferences.visitWindow === 'soon'
         ? 'visit_soon'
         : preferences.visitWindow === 'this_weekend'
-          ? 'visit_this_weekend'
-          : preferences.visitWindow === 'next_week'
-            ? 'visit_next_week'
-            : preferences.visitWindow === 'flexible'
-              ? 'visit_flexible'
-              : undefined,
+        ? 'visit_this_weekend'
+        : preferences.visitWindow === 'next_week'
+        ? 'visit_next_week'
+        : preferences.visitWindow === 'flexible'
+        ? 'visit_flexible'
+        : undefined,
     weather:
       preferences.weatherPlan === 'outdoor_if_suitable'
         ? 'weather_outdoor_if_suitable'
         : preferences.weatherPlan === 'prefer_indoor'
-          ? 'weather_prefer_indoor'
-          : preferences.weatherPlan === 'prefer_outdoor'
-            ? 'weather_prefer_outdoor'
-            : undefined,
+        ? 'weather_prefer_indoor'
+        : preferences.weatherPlan === 'prefer_outdoor'
+        ? 'weather_prefer_outdoor'
+        : undefined,
     mobility:
       preferences.mobility === 'car'
         ? 'mobility_car'
         : preferences.mobility === 'transit'
-          ? 'mobility_transit'
-          : preferences.mobility === 'nearby'
-            ? 'mobility_nearby'
-            : undefined,
+        ? 'mobility_transit'
+        : preferences.mobility === 'nearby'
+        ? 'mobility_nearby'
+        : undefined,
     vibe:
       preferences.vibe === 'quiet'
         ? 'vibe_quiet'
         : preferences.vibe === 'lively'
-          ? 'vibe_lively'
-          : preferences.vibe === 'any'
-            ? 'vibe_any'
-            : undefined,
+        ? 'vibe_lively'
+        : preferences.vibe === 'any'
+        ? 'vibe_any'
+        : undefined,
     priceComfort:
       preferences.price === 'free'
         ? 'price_free'
         : preferences.price === 'low'
-          ? 'price_low'
-          : preferences.price === 'any'
-            ? 'price_any'
-            : undefined,
+        ? 'price_low'
+        : preferences.price === 'any'
+        ? 'price_any'
+        : undefined,
     reservationComfort:
       preferences.reservation === 'no_reservation'
         ? 'reservation_none'
         : preferences.reservation === 'reservation_ok'
-          ? 'reservation_ok'
-          : preferences.reservation === 'any'
-            ? 'reservation_any'
-            : undefined,
+        ? 'reservation_ok'
+        : preferences.reservation === 'any'
+        ? 'reservation_any'
+        : undefined,
     duration:
       preferences.duration === 'short'
         ? 'duration_short'
         : preferences.duration === 'any'
-          ? 'duration_any'
-          : undefined,
+        ? 'duration_any'
+        : undefined,
     place:
       preferences.place === 'indoor'
         ? 'place_indoor'
         : preferences.place === 'outdoor'
-          ? 'place_outdoor'
-          : preferences.place === 'any'
-            ? 'place_any'
-            : undefined,
+        ? 'place_outdoor'
+        : preferences.place === 'any'
+        ? 'place_any'
+        : undefined,
     activityStyle:
       preferences.activity === 'experience'
         ? 'activity_experience'
         : preferences.activity === 'exhibition'
-          ? 'activity_exhibition'
-          : preferences.activity === 'any'
-            ? 'activity_any'
-            : undefined,
+        ? 'activity_exhibition'
+        : preferences.activity === 'any'
+        ? 'activity_any'
+        : undefined,
   };
 }
 
@@ -3114,6 +3191,75 @@ function eventMatchesRegionFilter(
   return event.region !== '서울' && event.region !== '경기';
 }
 
+function eventMatchesExploreContentTypes(
+  event: BabyrooEvent,
+  contentTypes: ExploreContentType[],
+) {
+  return contentTypes.includes(getExploreContentType(event));
+}
+
+function toggleExploreContentType(
+  selectedContentTypes: ExploreContentType[],
+  contentType: ExploreContentType,
+) {
+  if (selectedContentTypes.includes(contentType)) {
+    if (selectedContentTypes.length === 1) {
+      return selectedContentTypes;
+    }
+
+    return selectedContentTypes.filter(
+      selectedContentType => selectedContentType !== contentType,
+    );
+  }
+
+  return [...selectedContentTypes, contentType];
+}
+
+function getExploreContentType(event: BabyrooEvent): ExploreContentType {
+  if (eventIsSeoulKidsCafe(event)) {
+    return 'seoulKidsCafe';
+  }
+
+  if (eventIsPermanentVenue(event)) {
+    return 'permanentVenue';
+  }
+
+  return 'limitedEvent';
+}
+
+function eventIsSeoulKidsCafe(event: BabyrooEvent) {
+  const searchableText = [
+    event.title,
+    event.venueName,
+    event.summary,
+    ...event.tags,
+  ].join(' ');
+
+  return (
+    event.source === 'seoul_kids_cafe' ||
+    searchableText.includes('서울형 키즈카페') ||
+    searchableText.includes('서울형키즈카페')
+  );
+}
+
+function eventIsPermanentVenue(event: BabyrooEvent) {
+  const searchableText = [
+    event.title,
+    event.venueName,
+    event.summary,
+    event.sourceUrl,
+  ].join(' ');
+
+  return (
+    event.title.endsWith('관람') ||
+    event.title.endsWith('입장') ||
+    event.category === 'museum' ||
+    searchableText.includes('아쿠아리움 관람') ||
+    searchableText.includes('어린이박물관 관람') ||
+    searchableText.includes('체험관 관람')
+  );
+}
+
 function eventMatchesReservationFilter(
   event: BabyrooEvent,
   reservationFilter: ReservationFilter,
@@ -3182,10 +3328,10 @@ function formatExploreCriteriaSummary(
     selectedChildren.length === 0
       ? '아이 정보 없음'
       : selectedChildren.length === 1
-        ? `${selectedChildren[0].nickname} · ${formatChildAge(
-            selectedChildren[0],
-          )}`
-        : `${selectedChildren[0].nickname} 외 ${selectedChildren.length - 1}명`;
+      ? `${selectedChildren[0].nickname} · ${formatChildAge(
+          selectedChildren[0],
+        )}`
+      : `${selectedChildren[0].nickname} 외 ${selectedChildren.length - 1}명`;
   const filterSummary =
     activeFilterLabels.length > 0
       ? activeFilterLabels.slice(0, 2).join(', ')
@@ -3336,7 +3482,9 @@ function formatVisitWindowForWeatherQuestion(
     const nextMonday = addDays(nextWeekday(today, 1), 7);
     const nextSunday = addDays(nextMonday, 6);
 
-    return `${formatMonthDay(nextMonday)}-${formatMonthDay(nextSunday)} 다음 주`;
+    return `${formatMonthDay(nextMonday)}-${formatMonthDay(
+      nextSunday,
+    )} 다음 주`;
   }
 
   if (visitDay === 'visit_flexible') {
@@ -4188,6 +4336,69 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 14,
     fontWeight: '600',
+  },
+  contentTypeSelector: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+  },
+  contentTypeOption: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radius.pill,
+    flex: 1,
+    flexDirection: 'row',
+    gap: spacing.xs,
+    height: 42,
+    justifyContent: 'center',
+    minWidth: 0,
+    paddingHorizontal: spacing.sm,
+  },
+  contentTypeOptionSelected: {
+    backgroundColor: colors.primarySoft,
+  },
+  contentTypeIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    flexShrink: 0,
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
+  },
+  contentTypeIconSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primaryStrong,
+  },
+  contentTypeIconText: {
+    color: colors.primaryStrong,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  contentTypeIconTextSelected: {
+    color: colors.surface,
+  },
+  contentTypeLabel: {
+    color: colors.text,
+    flexShrink: 1,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  contentTypeLabelSelected: {
+    color: colors.primaryStrong,
   },
   resultCount: {
     color: colors.muted,

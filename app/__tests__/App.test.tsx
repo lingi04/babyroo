@@ -7,12 +7,9 @@ import ReactTestRenderer from 'react-test-renderer';
 import { Alert, BackHandler, Linking, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
-import { eventsNewestFirst } from '../src/data/events';
+import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
 import { currentUser, User } from '../src/data/user';
-import {
-  clearAuthSession,
-  saveAuthSession,
-} from '../src/storage/authStorage';
+import { clearAuthSession, saveAuthSession } from '../src/storage/authStorage';
 import { loadUser, saveUser } from '../src/storage/userStorage';
 
 const testAuthSession = {
@@ -555,12 +552,12 @@ test('shows residence choices in user settings', async () => {
   });
 
   expect(renderer!.root.findByProps({ children: '거주지' })).toBeTruthy();
-  expect(renderer!.root.findAllByProps({ children: '서울' }).length).toBeGreaterThan(
-    0,
-  );
-  expect(renderer!.root.findAllByProps({ children: '경기' }).length).toBeGreaterThan(
-    0,
-  );
+  expect(
+    renderer!.root.findAllByProps({ children: '서울' }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: '경기' }).length,
+  ).toBeGreaterThan(0);
   expect(
     renderer!.root.findAllByProps({ children: '기타 지역' }).length,
   ).toBeGreaterThan(0);
@@ -586,8 +583,9 @@ test('shows simplified filters for schedule, region, and reservation', async () 
   });
 
   await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Open filters' }).props
-      .onPress();
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Open filters' })
+      .props.onPress();
   });
 
   expect(
@@ -605,16 +603,12 @@ test('shows simplified filters for schedule, region, and reservation', async () 
   expect(
     renderer!.root.findAllByProps({ children: '기타 지역' }).length,
   ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findByProps({ children: '예약 필요' }),
-  ).toBeTruthy();
-  expect(
-    renderer!.root.findByProps({ children: '예약 불필요' }),
-  ).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '예약 필요' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '예약 불필요' })).toBeTruthy();
   expect(renderer!.root.findAllByProps({ children: '종료됨' })).toHaveLength(0);
-  expect(
-    renderer!.root.findAllByProps({ children: '신청 가능' }),
-  ).toHaveLength(0);
+  expect(renderer!.root.findAllByProps({ children: '신청 가능' })).toHaveLength(
+    0,
+  );
   expect(renderer!.root.findAllByProps({ children: '종로구' })).toHaveLength(0);
 });
 
@@ -632,23 +626,119 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
   });
 
   await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Open filters' }).props
-      .onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Filter schedule 예정' })
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Open filters' })
       .props.onPress();
   });
 
   await ReactTestRenderer.act(() => {
-    renderer!.root.findByProps({ accessibilityLabel: 'Apply filters' }).props
-      .onPress();
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Filter schedule 예정' })
+      .props.onPress();
+  });
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Apply filters' })
+      .props.onPress();
   });
 
   expect(renderer!.root.findByProps({ children: '필터 1' })).toBeTruthy();
   expect(
     renderer!.root.findAllByProps({ children: '예정' }).length,
+  ).toBeGreaterThan(0);
+});
+
+test('uses explore content types to combine events, permanent venues, and Seoul kids cafes', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+  const isSeoulKidsCafeEvent = (event: BabyrooEvent) => {
+    const searchableText = [
+      event.title,
+      event.venueName,
+      event.summary,
+      ...event.tags,
+    ].join(' ');
+
+    return (
+      event.source === 'seoul_kids_cafe' ||
+      searchableText.includes('서울형 키즈카페') ||
+      searchableText.includes('서울형키즈카페')
+    );
+  };
+  const isPermanentVenueEvent = (event: BabyrooEvent) => {
+    const searchableText = [
+      event.title,
+      event.venueName,
+      event.summary,
+      event.sourceUrl,
+    ].join(' ');
+
+    return (
+      event.title.endsWith('관람') ||
+      event.title.endsWith('입장') ||
+      event.category === 'museum' ||
+      searchableText.includes('아쿠아리움 관람') ||
+      searchableText.includes('어린이박물관 관람') ||
+      searchableText.includes('체험관 관람')
+    );
+  };
+  const limitedEvent = eventsNewestFirst.find(event => {
+    return !isSeoulKidsCafeEvent(event) && !isPermanentVenueEvent(event);
+  });
+  const permanentVenueEvent = eventsNewestFirst.find(event => {
+    return !isSeoulKidsCafeEvent(event) && isPermanentVenueEvent(event);
+  });
+  const seoulKidsCafeEvent = eventsNewestFirst.find(isSeoulKidsCafeEvent);
+
+  expect(limitedEvent).toBeTruthy();
+  expect(permanentVenueEvent).toBeTruthy();
+  expect(seoulKidsCafeEvent).toBeTruthy();
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  expect(
+    renderer!.root.findAllByProps({ children: limitedEvent!.title }).length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title }),
+  ).toHaveLength(0);
+  expect(
+    renderer!.root.findAllByProps({ children: seoulKidsCafeEvent!.title }),
+  ).toHaveLength(0);
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({
+        accessibilityLabel: 'Toggle explore content type 상설 전시',
+      })
+      .props.onPress();
+  });
+
+  expect(
+    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title })
+      .length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: limitedEvent!.title }).length,
+  ).toBeGreaterThan(0);
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({
+        accessibilityLabel: 'Toggle explore content type 서울형 키즈카페',
+      })
+      .props.onPress();
+  });
+
+  expect(
+    renderer!.root.findAllByProps({ children: seoulKidsCafeEvent!.title })
+      .length,
+  ).toBeGreaterThan(0);
+  expect(
+    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title })
+      .length,
   ).toBeGreaterThan(0);
 });
 
