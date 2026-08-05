@@ -10,6 +10,7 @@ export type {
   RecommendationErrorCode,
   RecommendationQuestion,
   RecommendationQuestionId,
+  RecommendationQuestionOption,
   RecommendationResponse,
   RecommendationResult,
   RecommendationSession,

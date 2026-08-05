@@ -217,13 +217,21 @@ test('answers recommendation questions before requesting results', async () => {
 
   expect(
     renderer!.root.findByProps({
-      children: '오늘 어디에서 출발하세요?',
+      children: '출발지를 선택해주세요',
     }),
   ).toBeTruthy();
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Answer recommendation 서울' })
+      .findByProps({ accessibilityLabel: 'Answer recommendation 출발지 입력' })
+      .props.onPress();
+  });
+
+  await selectPostcodeAddress(renderer!, '서울 광진구 구의동');
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Use departure address' })
       .props.onPress();
   });
 
@@ -232,7 +240,7 @@ test('answers recommendation questions before requesting results', async () => {
     renderer!.root.findAllByProps({ children: '출발 지역' }).length,
   ).toBeGreaterThan(0);
   expect(
-    renderer!.root.findAllByProps({ children: '서울' }).length,
+    renderer!.root.findAllByProps({ children: '광진구 구의동 기준' }).length,
   ).toBeGreaterThan(0);
 
   for (const answer of [
@@ -323,7 +331,15 @@ test('moves backward in the recommendation question flow', async () => {
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Answer recommendation 서울' })
+      .findByProps({ accessibilityLabel: 'Answer recommendation 출발지 입력' })
+      .props.onPress();
+  });
+
+  await selectPostcodeAddress(renderer!, '서울 광진구 구의동');
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Use departure address' })
       .props.onPress();
   });
 
@@ -339,7 +355,7 @@ test('moves backward in the recommendation question flow', async () => {
 
   expect(
     renderer!.root.findByProps({
-      children: '오늘 어디에서 출발하세요?',
+      children: '출발지를 선택해주세요',
     }),
   ).toBeTruthy();
 });
@@ -741,6 +757,41 @@ test('uses explore content types to combine events, permanent venues, and Seoul 
       .length,
   ).toBeGreaterThan(0);
 });
+
+async function selectPostcodeAddress(
+  renderer: ReactTestRenderer.ReactTestRenderer,
+  address: string,
+) {
+  await ReactTestRenderer.act(() => {
+    const postcodeSearchButtons = renderer.root
+      .findAllByProps({
+        accessibilityLabel: 'Open postcode search',
+      })
+      .filter(node => typeof node.props.onPress === 'function');
+
+    postcodeSearchButtons[postcodeSearchButtons.length - 1].props.onPress();
+  });
+
+  const postcodeWebViews = renderer.root.findAll(
+    node => typeof node.props.onMessage === 'function',
+  );
+  const postcodeWebView = postcodeWebViews[postcodeWebViews.length - 1];
+
+  await ReactTestRenderer.act(() => {
+    postcodeWebView.props.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({
+          address,
+          roadAddress: address,
+          sido: '서울',
+          sigungu: '광진구',
+          bname: '구의동',
+          zonecode: '05000',
+        }),
+      },
+    });
+  });
+}
 
 async function swipeTabs(
   renderer: ReactTestRenderer.ReactTestRenderer,

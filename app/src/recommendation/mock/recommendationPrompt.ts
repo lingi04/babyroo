@@ -9,18 +9,21 @@ export function buildRecommendationPrompt({
   children,
   preferences,
   requestedAt,
+  userHomeAddress,
   userHomeRegion,
 }: {
   candidates: Candidate[];
   children: RecommendationChildContext[];
   preferences: Preferences;
   requestedAt: string;
+  userHomeAddress?: string;
   userHomeRegion: string;
 }) {
   const childLines =
     children.length > 0
       ? children.map(
-          child => `- ${child.nickname}: ${child.ageMonths}개월, ${child.gender}`,
+          child =>
+            `- ${child.nickname}: ${child.ageMonths}개월, ${child.gender}`,
         )
       : ['- 아이 정보 없음'];
   const preferenceLines = Object.entries(preferences).map(
@@ -63,6 +66,10 @@ export function buildRecommendationPrompt({
     '',
     `Requested at: ${requestedAt}`,
     `User home region: ${userHomeRegion}`,
+    `User home address: ${userHomeAddress ?? '주소 미설정'}`,
+    `Departure address: ${
+      preferences.departureAddress ?? userHomeAddress ?? '주소 미설정'
+    }`,
     '',
     'Selected children:',
     ...childLines,

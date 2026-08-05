@@ -51,6 +51,7 @@ import {
   RecommendationErrorCode,
   RecommendationQuestion,
   RecommendationQuestionId,
+  RecommendationQuestionOption,
   RecommendationResult,
   RecommendationSession,
 } from './src/recommendation';
@@ -194,15 +195,35 @@ function buildWeatherPlanQuestion(
   };
 }
 
-function coreRecommendationQuestions(answers: RecommendationAnswerMap) {
+function coreRecommendationQuestions(
+  answers: RecommendationAnswerMap,
+  userHomeAddress?: UserHomeAddress,
+  departureAddress?: UserHomeAddress,
+) {
+  const homeAddressRegionValue =
+    userHomeAddress && regionAnswerValueFromAddress(userHomeAddress);
+  const homeAddressOption: RecommendationQuestionOption[] =
+    userHomeAddress && homeAddressRegionValue
+      ? [
+          {
+            label: `${formatShortHomeAddress(userHomeAddress)} 기준`,
+            value: homeAddressRegionValue,
+          },
+        ]
+      : [];
+
   return [
     {
       id: 'startRegion',
-      prompt: '오늘 어디에서 출발하세요?',
+      prompt: '출발지를 선택해주세요',
       options: [
-        { label: '서울', value: 'region_seoul' },
-        { label: '경기', value: 'region_gyeonggi' },
-        { label: '기타 지역', value: 'region_other' },
+        ...homeAddressOption,
+        {
+          label: departureAddress
+            ? `${formatShortHomeAddress(departureAddress)} 기준`
+            : '출발지 입력',
+          value: 'departure_input',
+        },
       ],
     },
     {
@@ -669,6 +690,7 @@ function BabyrooApp() {
                 eventsNewestFirst,
                 sortChildrenByAge(getSelectedChildren(user)),
                 preferencesToAnswers(selectedRecommendationSession.preferences),
+                user.homeAddress,
               )}
               session={selectedRecommendationSession}
               topInset={topInset}
@@ -976,9 +998,16 @@ function OnboardingScreen({
         visible={postcodeOpen}
         onClose={() => setPostcodeOpen(false)}
         onSelect={nextAddress => {
+          const keepDetailAddress = addressesShareSameBase(
+            homeAddress,
+            nextAddress,
+          );
+
           setHomeAddress({
             ...nextAddress,
-            detailAddress: homeAddress?.detailAddress,
+            detailAddress: keepDetailAddress
+              ? homeAddress?.detailAddress
+              : undefined,
           });
           setHomeRegion(regionFromAddressSido(nextAddress.sido));
           setPostcodeOpen(false);
@@ -1042,14 +1071,26 @@ function HomeScreen({
     useState(0);
   const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
     useState(false);
+  const [departureAddress, setDepartureAddress] = useState<
+    UserHomeAddress | undefined
+  >();
+  const [departureAddressModalOpen, setDepartureAddressModalOpen] =
+    useState(false);
   const recommendationQuestions = useMemo(
     () =>
       buildRecommendationQuestions(
         eventsNewestFirst,
         selectedChildren,
         recommendationAnswers,
+        user.homeAddress,
+        departureAddress,
       ),
-    [recommendationAnswers, selectedChildren],
+    [
+      departureAddress,
+      recommendationAnswers,
+      selectedChildren,
+      user.homeAddress,
+    ],
   );
   const recommendationService = useMemo(
     () =>
@@ -1079,6 +1120,7 @@ function HomeScreen({
 
   const startRecommendationInterview = () => {
     setRecommendationAnswers({});
+    setDepartureAddress(undefined);
     setRecommendationQuestionIndex(0);
     setReturnToConfirmationAfterAnswer(false);
     setRecommendationFlowStep('interview');
@@ -1086,7 +1128,7 @@ function HomeScreen({
 
   const requestRecommendation = async (answers: RecommendationAnswerMap) => {
     const sessionId = `recommendation-${Date.now()}`;
-    const preferences = answersToPreferences(answers);
+    const preferences = answersToPreferences(answers, departureAddress);
     const loadingSession: RecommendationSession = {
       id: sessionId,
       createdAt: new Date().toISOString(),
@@ -1164,6 +1206,22 @@ function HomeScreen({
     questionId: RecommendationQuestionId,
     value: RecommendationAnswerMap[RecommendationQuestionId],
   ) => {
+    if (questionId === 'startRegion' && value === 'departure_input') {
+      setDepartureAddressModalOpen(true);
+      return;
+    }
+
+    if (questionId === 'startRegion' && user.homeAddress) {
+      setDepartureAddress(user.homeAddress);
+    }
+
+    commitRecommendationAnswer(questionId, value);
+  };
+
+  const commitRecommendationAnswer = (
+    questionId: RecommendationQuestionId,
+    value: RecommendationAnswerMap[RecommendationQuestionId],
+  ) => {
     const nextAnswers = {
       ...recommendationAnswers,
       [questionId]: value,
@@ -1186,6 +1244,12 @@ function HomeScreen({
     setRecommendationQuestionIndex(nextIndex);
   };
 
+  const submitDepartureAddress = (nextDepartureAddress: UserHomeAddress) => {
+    setDepartureAddress(nextDepartureAddress);
+    setDepartureAddressModalOpen(false);
+    commitRecommendationAnswer('startRegion', 'departure_input');
+  };
+
   const editRecommendationAnswer = (questionId: RecommendationQuestionId) => {
     const nextQuestionIndex = recommendationQuestions.findIndex(
       question => question.id === questionId,
@@ -1201,151 +1265,163 @@ function HomeScreen({
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.screenWithTabs,
-        tabScreenBottomPadding(bottomInset),
-      ]}
-    >
-      <View style={styles.headerRow}>
-        <View style={styles.headerTitleGroup}>
-          <Text style={styles.pageTitle}>맞춤 추천</Text>
-          <Text style={styles.pageSubtitle}>아이와 어디 갈까요?</Text>
-        </View>
-        <Pressable
-          style={styles.iconButton}
-          onPress={onOpenSettings}
-          accessibilityLabel="Open user settings"
-        >
-          <Text style={styles.iconButtonText}>⚙</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.recommendationSetupCard}>
-        <Text style={styles.settingsLabel}>오늘의 추천</Text>
-        <Text style={styles.settingsTitle}>맞춤 후보 찾기</Text>
-        <Text style={styles.settingsMeta}>
-          아이 월령과 오늘의 조건을 기준으로 갈 만한 곳을 추려드려요.
-        </Text>
-
-        <Pressable
-          style={styles.recommendationContextRow}
-          onPress={onOpenSettings}
-          accessibilityLabel="Edit recommendation children"
-        >
-          <View>
-            <Text style={styles.recommendationContextLabel}>추천 기준</Text>
-            <Text style={styles.recommendationContextValue}>
-              {formatRecommendationCriteriaSummary(selectedChildren)}
-            </Text>
+    <>
+      <ScrollView
+        contentContainerStyle={[
+          styles.screenWithTabs,
+          tabScreenBottomPadding(bottomInset),
+        ]}
+      >
+        <View style={styles.headerRow}>
+          <View style={styles.headerTitleGroup}>
+            <Text style={styles.pageTitle}>맞춤 추천</Text>
+            <Text style={styles.pageSubtitle}>아이와 어디 갈까요?</Text>
           </View>
-          <Text style={styles.recommendationContextAction}>설정</Text>
-        </Pressable>
+          <Pressable
+            style={styles.iconButton}
+            onPress={onOpenSettings}
+            accessibilityLabel="Open user settings"
+          >
+            <Text style={styles.iconButtonText}>⚙</Text>
+          </Pressable>
+        </View>
 
-        <Pressable
-          style={[styles.primaryButton, styles.recommendationPrimaryButton]}
-          onPress={startRecommendationInterview}
-          accessibilityLabel="Request recommendation"
-        >
-          <Text style={styles.primaryButtonText}>
-            {latestRecommendationSession
-              ? '추천 조건 다시 선택'
-              : '추천 조건 선택'}
-          </Text>
-        </Pressable>
-        {latestRecommendationSession ? (
+        <View style={styles.recommendationSetupCard}>
+          <Text style={styles.settingsLabel}>오늘의 추천</Text>
+          <Text style={styles.settingsTitle}>맞춤 후보 찾기</Text>
           <Text style={styles.settingsMeta}>
-            최근 추천{' '}
-            {formatRecommendationSessionTime(
-              latestRecommendationSession.createdAt,
-            )}{' '}
-            · 총 {recommendationSessions.length}회 사용
+            아이 월령과 오늘의 조건을 기준으로 갈 만한 곳을 추려드려요.
           </Text>
-        ) : null}
-      </View>
 
-      {recommendationFlowStep === 'interview' &&
-      currentRecommendationQuestion ? (
-        <RecommendationQuestionCard
-          answers={recommendationAnswers}
-          question={currentRecommendationQuestion}
-          questionIndex={recommendationQuestionIndex}
-          questionCount={recommendationQuestions.length}
-          questions={recommendationQuestions}
-          onAnswer={answerRecommendationQuestion}
-          onBack={() =>
-            setRecommendationQuestionIndex(previousIndex =>
-              Math.max(previousIndex - 1, 0),
-            )
-          }
-          onClose={() => setRecommendationFlowStep('idle')}
-        />
-      ) : null}
+          <Pressable
+            style={styles.recommendationContextRow}
+            onPress={onOpenSettings}
+            accessibilityLabel="Edit recommendation children"
+          >
+            <View>
+              <Text style={styles.recommendationContextLabel}>추천 기준</Text>
+              <Text style={styles.recommendationContextValue}>
+                {formatRecommendationCriteriaSummary(selectedChildren)}
+              </Text>
+            </View>
+            <Text style={styles.recommendationContextAction}>설정</Text>
+          </Pressable>
 
-      {recommendationFlowStep === 'confirming' ? (
-        <RecommendationConfirmationCard
-          answers={recommendationAnswers}
-          questions={recommendationQuestions}
-          onConfirm={() => requestRecommendation(recommendationAnswers)}
-          onEditAnswer={editRecommendationAnswer}
-        />
-      ) : null}
-
-      <View style={styles.recommendationHistorySection}>
-        <View style={styles.sectionHeaderCompact}>
-          <Text style={styles.sectionTitle}>추천 기록</Text>
-          <Text style={styles.sectionMeta}>
-            추천받은 결과를 조건별로 다시 볼 수 있어요
-          </Text>
+          <Pressable
+            style={[styles.primaryButton, styles.recommendationPrimaryButton]}
+            onPress={startRecommendationInterview}
+            accessibilityLabel="Request recommendation"
+          >
+            <Text style={styles.primaryButtonText}>
+              {latestRecommendationSession
+                ? '추천 조건 다시 선택'
+                : '추천 조건 선택'}
+            </Text>
+          </Pressable>
+          {latestRecommendationSession ? (
+            <Text style={styles.settingsMeta}>
+              최근 추천{' '}
+              {formatRecommendationSessionTime(
+                latestRecommendationSession.createdAt,
+              )}{' '}
+              · 총 {recommendationSessions.length}회 사용
+            </Text>
+          ) : null}
         </View>
-        {storedRecommendationSessions.length > 0 ? (
-          storedRecommendationSessions.map(session => (
-            <RecommendationSessionCard
-              key={session.id}
-              events={eventsNewestFirst}
-              questions={recommendationQuestions}
-              session={session}
-              onPress={() => {
-                setSelectedRecommendationSessionId(session.id);
-                onOpenRecommendationDetail(session);
-              }}
-            />
-          ))
-        ) : (
-          <View style={styles.recommendationHistoryEmpty}>
-            <Text style={styles.emptyStateTitle}>아직 추천 기록이 없어요</Text>
-            <Text style={styles.emptyStateText}>
-              추천을 받으면 조건과 결과가 여기에 쌓입니다.
+
+        {recommendationFlowStep === 'interview' &&
+        currentRecommendationQuestion ? (
+          <RecommendationQuestionCard
+            answers={recommendationAnswers}
+            question={currentRecommendationQuestion}
+            questionIndex={recommendationQuestionIndex}
+            questionCount={recommendationQuestions.length}
+            questions={recommendationQuestions}
+            onAnswer={answerRecommendationQuestion}
+            onBack={() =>
+              setRecommendationQuestionIndex(previousIndex =>
+                Math.max(previousIndex - 1, 0),
+              )
+            }
+            onClose={() => setRecommendationFlowStep('idle')}
+          />
+        ) : null}
+
+        {recommendationFlowStep === 'confirming' ? (
+          <RecommendationConfirmationCard
+            answers={recommendationAnswers}
+            questions={recommendationQuestions}
+            onConfirm={() => requestRecommendation(recommendationAnswers)}
+            onEditAnswer={editRecommendationAnswer}
+          />
+        ) : null}
+
+        <View style={styles.recommendationHistorySection}>
+          <View style={styles.sectionHeaderCompact}>
+            <Text style={styles.sectionTitle}>추천 기록</Text>
+            <Text style={styles.sectionMeta}>
+              추천받은 결과를 조건별로 다시 볼 수 있어요
             </Text>
           </View>
-        )}
-      </View>
+          {storedRecommendationSessions.length > 0 ? (
+            storedRecommendationSessions.map(session => (
+              <RecommendationSessionCard
+                key={session.id}
+                events={eventsNewestFirst}
+                questions={recommendationQuestions}
+                session={session}
+                onPress={() => {
+                  setSelectedRecommendationSessionId(session.id);
+                  onOpenRecommendationDetail(session);
+                }}
+              />
+            ))
+          ) : (
+            <View style={styles.recommendationHistoryEmpty}>
+              <Text style={styles.emptyStateTitle}>
+                아직 추천 기록이 없어요
+              </Text>
+              <Text style={styles.emptyStateText}>
+                추천을 받으면 조건과 결과가 여기에 쌓입니다.
+              </Text>
+            </View>
+          )}
+        </View>
 
-      {selectedRecommendationSession?.status === 'loading' ? (
-        <View style={styles.recommendationEmptyState}>
-          <Text style={styles.emptyStateTitle}>
-            아이에게 맞는 후보를 고르고 있어요
-          </Text>
-          <Text style={styles.emptyStateText}>
-            조건과 행사 정보를 비교하는 중입니다.
-          </Text>
-        </View>
-      ) : selectedRecommendationSession?.status === 'failed' ? (
-        <RecommendationFailureState
-          errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
-          retryable={selectedRecommendationSession.error?.retryable ?? true}
-          onRetry={() => requestRecommendation(recommendationAnswers)}
-        />
-      ) : selectedRecommendationSession?.status === 'success' &&
-        selectedRecommendationSession.results.length === 0 ? (
-        <View style={styles.recommendationEmptyState}>
-          <Text style={styles.emptyStateTitle}>조건에 맞는 추천이 없어요</Text>
-          <Text style={styles.emptyStateText}>
-            일정이나 장소 조건을 넓혀서 다시 추천받아 보세요.
-          </Text>
-        </View>
-      ) : null}
-    </ScrollView>
+        {selectedRecommendationSession?.status === 'loading' ? (
+          <View style={styles.recommendationEmptyState}>
+            <Text style={styles.emptyStateTitle}>
+              아이에게 맞는 후보를 고르고 있어요
+            </Text>
+            <Text style={styles.emptyStateText}>
+              조건과 행사 정보를 비교하는 중입니다.
+            </Text>
+          </View>
+        ) : selectedRecommendationSession?.status === 'failed' ? (
+          <RecommendationFailureState
+            errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
+            retryable={selectedRecommendationSession.error?.retryable ?? true}
+            onRetry={() => requestRecommendation(recommendationAnswers)}
+          />
+        ) : selectedRecommendationSession?.status === 'success' &&
+          selectedRecommendationSession.results.length === 0 ? (
+          <View style={styles.recommendationEmptyState}>
+            <Text style={styles.emptyStateTitle}>
+              조건에 맞는 추천이 없어요
+            </Text>
+            <Text style={styles.emptyStateText}>
+              일정이나 장소 조건을 넓혀서 다시 추천받아 보세요.
+            </Text>
+          </View>
+        ) : null}
+      </ScrollView>
+      <DepartureAddressModal
+        initialAddress={departureAddress}
+        visible={departureAddressModalOpen}
+        onClose={() => setDepartureAddressModalOpen(false)}
+        onSubmit={submitDepartureAddress}
+      />
+    </>
   );
 }
 
@@ -1413,6 +1489,126 @@ function RecommendationQuestionCard({
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+function DepartureAddressModal({
+  initialAddress,
+  visible,
+  onClose,
+  onSubmit,
+}: {
+  initialAddress?: UserHomeAddress;
+  visible: boolean;
+  onClose: () => void;
+  onSubmit: (homeAddress: UserHomeAddress) => void;
+}) {
+  const [draftAddress, setDraftAddress] = useState<UserHomeAddress | undefined>(
+    initialAddress,
+  );
+  const [postcodeOpen, setPostcodeOpen] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      setDraftAddress(initialAddress);
+    }
+  }, [initialAddress, visible]);
+
+  const canSubmitDepartureAddress = Boolean(draftAddress?.address.trim());
+  const canEditDepartureAddressDetail = Boolean(draftAddress?.address.trim());
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.postcodeModalRoot}>
+        <View style={styles.postcodeModalHeader}>
+          <View>
+            <Text style={styles.settingsLabel}>출발지</Text>
+            <Text style={styles.postcodeModalTitle}>주소 입력</Text>
+          </View>
+          <Pressable
+            style={styles.iconButton}
+            onPress={onClose}
+            accessibilityLabel="Close departure address input"
+          >
+            <Text style={styles.iconButtonText}>×</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.departureAddressBody}>
+          <AddressSummaryCard
+            homeAddress={draftAddress}
+            onOpenPostcode={() => setPostcodeOpen(true)}
+          />
+          <TextInput
+            style={[
+              styles.textInput,
+              !canEditDepartureAddressDetail && styles.textInputDisabled,
+            ]}
+            value={draftAddress?.detailAddress ?? ''}
+            onChangeText={detailAddress =>
+              setDraftAddress(previousAddress => ({
+                ...previousAddress,
+                address: previousAddress?.address ?? '',
+                detailAddress,
+              }))
+            }
+            editable={canEditDepartureAddressDetail}
+            placeholder={
+              canEditDepartureAddressDetail
+                ? '상세 주소 예: 101동 1203호'
+                : '주소 검색 후 상세 주소를 입력할 수 있어요'
+            }
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            textContentType="fullStreetAddress"
+          />
+          <Text style={styles.settingsMeta}>
+            입력한 출발지는 이번 추천 조건에만 사용돼요.
+          </Text>
+          <Pressable
+            style={[
+              styles.primaryButton,
+              styles.departureAddressSubmitButton,
+              !canSubmitDepartureAddress && styles.buttonDisabled,
+            ]}
+            onPress={() => {
+              if (draftAddress && canSubmitDepartureAddress) {
+                onSubmit(draftAddress);
+              }
+            }}
+            accessibilityLabel="Use departure address"
+          >
+            <Text style={styles.primaryButtonText}>이 주소로 출발</Text>
+          </Pressable>
+        </View>
+
+        <PostcodeModal
+          visible={postcodeOpen}
+          onClose={() => setPostcodeOpen(false)}
+          onSelect={nextAddress => {
+            const keepDetailAddress = addressesShareSameBase(
+              draftAddress,
+              nextAddress,
+            );
+
+            setDraftAddress({
+              ...nextAddress,
+              detailAddress: keepDetailAddress
+                ? draftAddress?.detailAddress
+                : undefined,
+            });
+            setPostcodeOpen(false);
+          }}
+        />
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -2428,9 +2624,16 @@ function SettingsScreen({
         visible={postcodeOpen}
         onClose={() => setPostcodeOpen(false)}
         onSelect={nextAddress => {
+          const keepDetailAddress = addressesShareSameBase(
+            user.homeAddress,
+            nextAddress,
+          );
+
           onUpdateHomeAddress({
             ...nextAddress,
-            detailAddress: user.homeAddress?.detailAddress,
+            detailAddress: keepDetailAddress
+              ? user.homeAddress?.detailAddress
+              : undefined,
           });
           setPostcodeOpen(false);
         }}
@@ -3026,9 +3229,11 @@ function buildRecommendationQuestions(
   events: BabyrooEvent[],
   selectedChildren: Child[],
   answers: RecommendationAnswerMap,
+  userHomeAddress?: UserHomeAddress,
+  departureAddress?: UserHomeAddress,
 ) {
   return [
-    ...coreRecommendationQuestions(answers),
+    ...coreRecommendationQuestions(answers, userHomeAddress, departureAddress),
     selectAdaptiveRecommendationQuestion(events, selectedChildren),
   ];
 }
@@ -3166,7 +3371,10 @@ function formatRecommendationSessionEventPreview(
   return previewTitles.join(', ');
 }
 
-function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
+function answersToPreferences(
+  answers: RecommendationAnswerMap,
+  departureAddress?: UserHomeAddress,
+): Preferences {
   return {
     startRegion:
       answers.startRegion === 'region_seoul'
@@ -3176,6 +3384,9 @@ function answersToPreferences(answers: RecommendationAnswerMap): Preferences {
         : answers.startRegion === 'region_other'
         ? 'other'
         : undefined,
+    departureAddress: departureAddress
+      ? formatHomeAddress(departureAddress)
+      : undefined,
     visitWindow:
       answers.visitDay === 'visit_soon'
         ? 'soon'
@@ -3836,6 +4047,22 @@ function regionFromAddressSido(sido?: string) {
   return '기타 지역';
 }
 
+function regionAnswerValueFromAddress(
+  homeAddress: UserHomeAddress,
+): RecommendationAnswerValue {
+  const region = regionFromAddressSido(homeAddress.sido);
+
+  if (region === '서울') {
+    return 'region_seoul';
+  }
+
+  if (region === '경기') {
+    return 'region_gyeonggi';
+  }
+
+  return 'region_other';
+}
+
 function formatHomeAddress(homeAddress: UserHomeAddress) {
   return [
     homeAddress.roadAddress || homeAddress.address,
@@ -3843,6 +4070,41 @@ function formatHomeAddress(homeAddress: UserHomeAddress) {
   ]
     .filter(Boolean)
     .join(' ');
+}
+
+function addressesShareSameBase(
+  currentAddress: UserHomeAddress | undefined,
+  nextAddress: UserHomeAddress,
+) {
+  if (!currentAddress) {
+    return false;
+  }
+
+  return addressBaseKey(currentAddress) === addressBaseKey(nextAddress);
+}
+
+function addressBaseKey(homeAddress: UserHomeAddress) {
+  return [
+    homeAddress.roadAddress || homeAddress.address,
+    homeAddress.jibunAddress,
+    homeAddress.zonecode,
+  ]
+    .filter(Boolean)
+    .join('|');
+}
+
+function formatShortHomeAddress(homeAddress: UserHomeAddress) {
+  const localityLabel = [homeAddress.sigungu, homeAddress.bname]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    localityLabel ||
+    homeAddress.roadAddress ||
+    homeAddress.address ||
+    homeAddress.sido ||
+    '설정 주소'
+  );
 }
 
 function parsePostcodeSelectionUrl(url: string): UserHomeAddress | undefined {
@@ -4480,6 +4742,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+  },
+  textInputDisabled: {
+    opacity: 0.55,
   },
   datePickerButton: {
     backgroundColor: colors.surfaceRaised,
@@ -5372,6 +5637,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: '900',
+  },
+  departureAddressBody: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+  departureAddressSubmitButton: {
+    marginTop: spacing.xxl,
   },
   postcodeWebView: {
     flex: 1,

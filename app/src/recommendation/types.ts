@@ -15,11 +15,9 @@ export type RecommendationErrorCode =
 
 export type Preferences = Partial<{
   startRegion: 'seoul' | 'gyeonggi' | 'other';
+  departureAddress: string;
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
-  weatherPlan:
-    | 'outdoor_if_suitable'
-    | 'prefer_indoor'
-    | 'prefer_outdoor';
+  weatherPlan: 'outdoor_if_suitable' | 'prefer_indoor' | 'prefer_outdoor';
   mobility: 'car' | 'transit' | 'nearby';
   vibe: 'quiet' | 'lively' | 'any';
   price: 'free' | 'low' | 'any';
@@ -33,6 +31,7 @@ export type RecommendationAnswerValue =
   | 'region_seoul'
   | 'region_gyeonggi'
   | 'region_other'
+  | 'departure_input'
   | 'visit_soon'
   | 'visit_this_weekend'
   | 'visit_next_week'

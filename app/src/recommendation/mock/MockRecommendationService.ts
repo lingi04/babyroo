@@ -70,6 +70,7 @@ export class MockRecommendationService implements RecommendationService {
       children,
       preferences: request.preferences,
       requestedAt: request.client.requestedAt,
+      userHomeAddress: formatUserHomeAddress(context.user.homeAddress),
       userHomeRegion: context.user.homeRegion,
     });
 
@@ -150,6 +151,10 @@ function prepareCandidates({
 
   return events
     .filter(event => {
+      if (eventIsSeoulKidsCafe(event)) {
+        return false;
+      }
+
       if (filterPolicy.excludeEnded && event.endsAt < formatDate(new Date())) {
         return false;
       }
@@ -176,17 +181,11 @@ function prepareCandidates({
         return false;
       }
 
-      if (
-        preferences.place === 'indoor' &&
-        event.indoor === false
-      ) {
+      if (preferences.place === 'indoor' && event.indoor === false) {
         return false;
       }
 
-      if (
-        preferences.place === 'outdoor' &&
-        event.indoor === true
-      ) {
+      if (preferences.place === 'outdoor' && event.indoor === true) {
         return false;
       }
 
@@ -203,7 +202,10 @@ function prepareCandidates({
 
       return true;
     })
-    .sort((left, right) => candidateScore(left, preferences) - candidateScore(right, preferences))
+    .sort(
+      (left, right) =>
+        candidateScore(left, preferences) - candidateScore(right, preferences),
+    )
     .slice(0, recommendationPolicy.maxPromptCandidates)
     .map(eventToCandidate);
 }
@@ -253,7 +255,10 @@ function candidateToMockResult(
 function candidateScore(event: BabyrooEvent, preferences: Preferences) {
   let score = 0;
 
-  if (preferences.startRegion && !eventMatchesRegion(event, preferences.startRegion)) {
+  if (
+    preferences.startRegion &&
+    !eventMatchesRegion(event, preferences.startRegion)
+  ) {
     score += 4;
   }
 
@@ -319,7 +324,10 @@ function eventFitsAllChildren(
   });
 }
 
-function eventMatchesRegion(event: BabyrooEvent, region: Preferences['startRegion']) {
+function eventMatchesRegion(
+  event: BabyrooEvent,
+  region: Preferences['startRegion'],
+) {
   if (region === 'seoul') {
     return event.region === '서울';
   }
@@ -371,6 +379,25 @@ function childToContext(child: Child): RecommendationChildContext {
     ageMonths: calculateAgeMonths(child.birthDate),
     gender: child.gender,
   };
+}
+
+function eventIsSeoulKidsCafe(event: BabyrooEvent) {
+  return event.source === 'seoul_kids_cafe';
+}
+
+function formatUserHomeAddress(
+  homeAddress: RecommendationLocalContext['user']['homeAddress'],
+) {
+  if (!homeAddress) {
+    return undefined;
+  }
+
+  return [
+    homeAddress.roadAddress || homeAddress.address,
+    homeAddress.detailAddress,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function eventToCandidate(event: BabyrooEvent): Candidate {
