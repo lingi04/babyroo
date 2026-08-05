@@ -1,5 +1,5 @@
 {
-  "age_warning_count": 10,
+  "age_warning_count": 16,
   "age_warnings": [
     {
       "age_text": "전 연령",
@@ -74,13 +74,61 @@
       "title": "[2026년 문화나눔] 두근두근 소풍"
     },
     {
+      "age_text": "전체관람가",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_culture",
+      "source_event_id": "157834",
+      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=157834&menuNo=200110",
+      "title": "아기상어 비밀 초대장: 비커밍 샤크"
+    },
+    {
       "age_text": "누구나",
       "reason": "unsupported_age_text_format",
       "source": "seoul_culture",
       "source_event_id": "156165",
       "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=156165&menuNo=200110",
       "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]"
+    },
+    {
+      "age_text": "2016년생~2023년생 어린이",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-06e8759f9fb9",
+      "source_url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=307&board_gb=event&menu_cd=C0018",
+      "title": "2026 서울물재생체험관 어린이 물놀이터 운영회차 변경 안내"
+    },
+    {
+      "age_text": "2016년생 ~ 2023년생 어린이",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-c6e12eaeb979",
+      "source_url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=296&board_gb=event&menu_cd=C0018",
+      "title": "2026 서울물재생체험관 야외 물놀이터 개장"
+    },
+    {
+      "age_text": "유아 동반 가족(2020~22년생)",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-92ee296b9f0d",
+      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=289&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "title": "물재생 병원으로 오세요"
+    },
+    {
+      "age_text": "초등 개인(2~6학년)",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-e51e77ab829f",
+      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=281&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "title": "다시 태어난 물의 여행"
+    },
+    {
+      "age_text": "2018-21년생 어린이",
+      "reason": "unsupported_age_text_format",
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-9a6e57fd32b8",
+      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=280&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "title": "미생물 파티 타임"
     }
   ],
-  "input_count": 72
+  "input_count": 258
 }

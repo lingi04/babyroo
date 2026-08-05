@@ -104,6 +104,24 @@ class NormalizeTest(unittest.TestCase):
         self.assertEqual(museum.category, "museum")
         self.assertEqual(exhibition.category, "exhibition")
 
+    def test_normalize_unknown_price_type_for_ambiguous_price_text(self):
+        event = normalize_raw_event(
+            {
+                "source": "test",
+                "title": "박물관 관람",
+                "url": "https://example.com/museum",
+                "payload": {
+                    "category": "박물관",
+                    "description": "실내 박물관 관람",
+                    "price_text": "박물관 관람료 적용",
+                    "starts_at": "2026-06-10",
+                    "region": "서울",
+                },
+            }
+        )
+
+        self.assertEqual(event.price_type, "unknown")
+
     def test_normalize_elementary_grade_age_range(self):
         event = normalize_raw_event(
             {

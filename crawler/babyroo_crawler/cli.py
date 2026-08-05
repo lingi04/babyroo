@@ -9,6 +9,8 @@ from sources.namu import collect as collect_namu
 from sources.nfm_kids import collect as collect_nfm_kids
 from sources.seoul_childcare import collect as collect_seoul_childcare
 from sources.seoul_culture import collect as collect_seoul_culture
+from sources.seoul_family_venues import collect as collect_seoul_family_venues
+from sources.seoul_kids_cafe import collect as collect_seoul_kids_cafe
 
 
 def main() -> None:
@@ -34,6 +36,15 @@ def main() -> None:
         "collect-nfm-kids",
         help="Collect National Folk Museum Children's Museum admission and programs",
     )
+    subparsers.add_parser(
+        "collect-family-venues",
+        help="Collect family venue admission and event cards from added Seoul venues",
+    )
+    kids_cafe_parser = subparsers.add_parser(
+        "collect-seoul-kids-cafe",
+        help="Collect Seoul-style kids cafe locations",
+    )
+    kids_cafe_parser.add_argument("--pages", type=int, default=None)
     subparsers.add_parser("normalize", help="Normalize raw files into data/normalized/events.json")
     subparsers.add_parser("publish", help="Publish normalized events into public/events.json")
     subparsers.add_parser("run-sample", help="Run collect-sample, normalize, and publish")
@@ -59,6 +70,15 @@ def main() -> None:
         "run-nfm-kids",
         help="Collect National Folk Museum Children's Museum, normalize, and publish",
     )
+    subparsers.add_parser(
+        "run-family-venues",
+        help="Collect added Seoul family venues, normalize, and publish",
+    )
+    run_kids_cafe_parser = subparsers.add_parser(
+        "run-seoul-kids-cafe",
+        help="Collect Seoul-style kids cafe locations, normalize, and publish",
+    )
+    run_kids_cafe_parser.add_argument("--pages", type=int, default=None)
     run_all_parser = subparsers.add_parser(
         "run-all",
         help="Collect all real sources, normalize, and publish",
@@ -85,6 +105,12 @@ def main() -> None:
     elif args.command == "collect-nfm-kids":
         events = collect_nfm_kids()
         print(f"collected {len(events)} NFM Kids events")
+    elif args.command == "collect-family-venues":
+        events = collect_seoul_family_venues()
+        print(f"collected {len(events)} Seoul family venue events")
+    elif args.command == "collect-seoul-kids-cafe":
+        events = collect_seoul_kids_cafe(max_pages=args.pages)
+        print(f"collected {len(events)} Seoul kids cafe events")
     elif args.command == "normalize":
         events = normalize_all()
         print(f"normalized {len(events)} events")
@@ -132,12 +158,28 @@ def main() -> None:
         print(f"collected {len(collected)} NFM Kids events")
         print(f"normalized {len(events)} events")
         print(f"published {payload['count']} events")
+    elif args.command == "run-family-venues":
+        collected = collect_seoul_family_venues()
+        events = normalize_all()
+        payload = publish()
+        print(f"collected {len(collected)} Seoul family venue events")
+        print(f"normalized {len(events)} events")
+        print(f"published {payload['count']} events")
+    elif args.command == "run-seoul-kids-cafe":
+        collected = collect_seoul_kids_cafe(max_pages=args.pages)
+        events = normalize_all()
+        payload = publish()
+        print(f"collected {len(collected)} Seoul kids cafe events")
+        print(f"normalized {len(events)} events")
+        print(f"published {payload['count']} events")
     elif args.command == "run-all":
         seoul_events = collect_seoul_culture(max_pages=args.pages)
         childcare_events = collect_seoul_childcare(months=args.months)
         dikidiki_events = collect_dikidiki()
         namu_events = collect_namu()
         nfm_kids_events = collect_nfm_kids()
+        family_venue_events = collect_seoul_family_venues()
+        kids_cafe_events = collect_seoul_kids_cafe()
         events = normalize_all()
         payload = publish()
         print(f"collected {len(seoul_events)} Seoul Culture Portal events")
@@ -145,6 +187,8 @@ def main() -> None:
         print(f"collected {len(dikidiki_events)} DikiDiki events")
         print(f"collected {len(namu_events)} Namu events")
         print(f"collected {len(nfm_kids_events)} NFM Kids events")
+        print(f"collected {len(family_venue_events)} Seoul family venue events")
+        print(f"collected {len(kids_cafe_events)} Seoul kids cafe events")
         print(f"normalized {len(events)} events")
         print(f"published {payload['count']} events")
 

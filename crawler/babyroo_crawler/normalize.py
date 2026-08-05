@@ -257,13 +257,13 @@ def normalize_category(value: Any, text: str) -> str | None:
     return None
 
 
-def normalize_price_type(price_text: Any, text: str) -> str | None:
+def normalize_price_type(price_text: Any, text: str) -> str:
     combined = f"{price_text or ''} {text}"
     if any(token in combined for token in ["무료", "무 료"]):
         return "free"
     if any(token in combined for token in ["원", "유료", "입장료"]):
         return "paid"
-    return None
+    return "unknown"
 
 
 def normalize_reservation_status(value: Any, text: str) -> str | None:

@@ -1,48 +1,8 @@
 {
-  "captured_at": "2026-07-24",
+  "captured_at": "2026-07-27",
   "events": [
     {
-      "captured_at": "2026-07-24",
-      "payload": {
-        "address": "서울특별시 마포구 독막로 165",
-        "age_text": "24개월~ 만 6세 영유아와 양육자",
-        "category": "교육/체험",
-        "description": "※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
-        "ends_at": "2026-07-25",
-        "external_url": "https://mplib.mapo.go.kr/sglib/PGM3028/eventDetail.do?eventSn=12688",
-        "price_text": "무료",
-        "region": "서울",
-        "starts_at": "2026-07-01",
-        "title": "[마포구립서강도서관] 7월/영유아 [말놀이 잘잘잘]",
-        "venue_name": "4층 어린이자료실 꼬마방"
-      },
-      "source": "seoul_culture",
-      "source_event_id": "158168",
-      "title": "[마포구립서강도서관] 7월/영유아 [말놀이 잘잘잘]",
-      "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158168&menuNo=200110"
-    },
-    {
-      "captured_at": "2026-07-24",
-      "payload": {
-        "address": "서울 종로구 명륜1가 2-42 올림픽기념국민생활관 신관",
-        "age_text": "12개월 ~ 36개월",
-        "category": "무용",
-        "description": "자료출처 : 종로문화재단 홈페이지 ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
-        "ends_at": "2026-07-26",
-        "external_url": "https://www.jfac.or.kr/site/main/program/perf_all_list_view?pgIdx=2737",
-        "price_text": "50,000원",
-        "region": "서울",
-        "starts_at": "2026-07-24",
-        "title": "2026 아시테지 국제여름축제 [타나: 작은 동굴]",
-        "venue_name": "종로 아이들극장"
-      },
-      "source": "seoul_culture",
-      "source_event_id": "158567",
-      "title": "2026 아시테지 국제여름축제 [타나: 작은 동굴]",
-      "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158567&menuNo=200110"
-    },
-    {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울특별시 은평구 통일로62길 7",
         "age_text": "유아 단체(3~5세 및 동반 가족 1인), 초등 1~3학년 어린이",
@@ -62,12 +22,32 @@
       "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158500&menuNo=200110"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
+      "payload": {
+        "address": "서울특별시 중구 을지로 281",
+        "age_text": "전체관람가",
+        "category": "전시/미술",
+        "description": "자료출처 : DDP 홈페이지 ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에 서 참고 부탁드립니다.",
+        "ends_at": "2026-07-31",
+        "external_url": "https://ddp.or.kr/index.html?menuno=239&siteno=2&bbsno=602&boardno=15&bbstopno=602&act=view&subno=",
+        "price_text": "얼리버드40% 13,800원",
+        "region": "서울",
+        "starts_at": "2026-06-18",
+        "title": "아기상어 비밀 초대장: 비커밍 샤크",
+        "venue_name": "뮤지엄 전시2관"
+      },
+      "source": "seoul_culture",
+      "source_event_id": "157834",
+      "title": "아기상어 비밀 초대장: 비커밍 샤크",
+      "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=157834&menuNo=200110"
+    },
+    {
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울특별시 강북구 삼각산로 85",
         "age_text": "영유아 공연예술 관심 대상자",
         "category": "교육/체험",
-        "description": "강북문화재단 기획공연 오르페오의 포근 연계 워크숍 참여자 모집 이번 Babyopera 워크숍은 노르웨이 Babyopera의 예술감독 Christina Lindgren이 진행하는 영유아(0~3세) 공연예술 창작 워크숍입니다. 영유아를 독립적인 관객이자 감각적인 존재로 바라보는 새로운 예술적 관점과 창작 방법론을 공유하며, 공연예술가와 실무자들이 함께 영유아 공연의 가능성을 탐구하는 시간을 마련했습니다. 북유럽의 리서치 기반 창작 방식과 감각 중심 퍼포먼스를 직접 경험하고, 한국 공연예술 현장에서 영유아 공연 창작의 새로운 담론과 국제 교류의 기반을 넓혀가는 뜻깊은 워크숍입니다. ◆ 워크숍 안내 일시 : 2026. 8. 4.(화) 9:00 ~ 18:00 장소 : 강북문화예술회관 강북진달래홀 신청대상 : 영유아 공연 창작에 관심 있는 예술가 및 실무자 대상(만 18세 이상) 신청기간 : 2026년 6월 25일(목) ~ 2026. 7. 24.(금) 18:00 까지 신청방법 : 구글 폼 작성 ( https://forms.gle/bP7D81PeQsXwkEyj8 ) 문의 : 공연전시팀 02-994-8503 ※ 공연장 주차공간이 매우 협소하오니 대중교통 이용을 권장드립니다. (별도 주차 지원X) ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
+        "description": "강북문화재단 기획공연 오르페오의 포근 연계 워크숍 참여자 모집 이번 Babyopera 워크숍은 노르웨이 Babyopera의 예술감독 Christina Lindgren이 진행하는 영유아(0~3세) 공연예술 창작 워크숍입니다. 영유아를 독립적인 관객이자 감각적인 존재로 바라보는 새로운 예술적 관점과 창작 방법론을 공유하며, 공연예술가와 실무자들이 함께 영유아 공연의 가능성을 탐구하는 시간을 마련했습니다. 북유럽의 리서치 기반 창작 방식과 감각 중심 퍼포먼스를 직접 경험하고, 한국 공연예술 현장에서 영유아 공연 창작의 새로운 담론과 국제 교류의 기반을 넓혀가는 뜻깊은 워크숍입니다. ◆ 워크숍 안내 일시 : 2026. 8. 4.(화) 9:00 ~ 18:00 장소 : 강북문화예술회관 강북진달래홀 신청대상 : 영유아 공연 창작에 관심 있는 예술가 및 실무자 대상(만 18세 이상) 신청기간 : 2026년 6월 25일(목) ~ 2026. 7. 31.(금) 18:00 까지 신청방법 : 구글 폼 작성 ( https://forms.gle/bP7D81PeQsXwkEyj8 ) 문의 : 공연전시팀 02-994-8503 ※ 공연장 주차공간이 매우 협소하오니 대중교통 이용을 권장드립니다. (별도 주차 지원X) ※ 해당 행사 상세 정보는 상단의 '홈페이지 바로가기' 에서 참고 부탁드립니다.",
         "ends_at": "2026-08-04",
         "external_url": "https://forms.gle/rFctoTNeEmm6AEZa9",
         "price_text": "무료",
@@ -82,7 +62,7 @@
       "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158637&menuNo=200110"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울  광진구 능동로 216",
         "age_text": "24개월이상 관람가능",
@@ -102,7 +82,7 @@
       "url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158709&menuNo=200110"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울  광진구 능동로 216",
         "age_text": "누구나",

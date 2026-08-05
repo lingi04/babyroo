@@ -50,6 +50,20 @@ cd /Users/hanjangho/Documents/repos/babyroo
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-nfm-kids
 ```
 
+추가 서울 가족 방문지 관람 및 서울물재생체험관 프로그램 카드 수집:
+
+```bash
+cd /Users/hanjangho/Documents/repos/babyroo
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-family-venues
+```
+
+서울형 키즈카페 지점 수집:
+
+```bash
+cd /Users/hanjangho/Documents/repos/babyroo
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli run-seoul-kids-cafe
+```
+
 실제 수집원을 한 번에 실행:
 
 ```bash
@@ -66,6 +80,8 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-childcare --months 3
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-dikidiki
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-namu
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-nfm-kids
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-family-venues
+PYTHONPATH=crawler python3 -m babyroo_crawler.cli collect-seoul-kids-cafe
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli normalize
 PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 ```
@@ -98,3 +114,7 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 서대문자연사박물관은 `crawler/sources/namu.py`에서 상설 관람을 `venue_admission`, 현재 전시를 `exhibition`, 교육일정 달력의 수업을 `program`으로 구분해 저장합니다.
 
 국립민속박물관 어린이박물관은 `crawler/sources/nfm_kids.py`에서 어린이박물관 관람을 `venue_admission`, 교육일정 표의 교육을 `program`으로 구분해 저장합니다.
+
+추가 서울 가족 방문지는 `crawler/sources/seoul_family_venues.py`에서 롯데월드 아쿠아리움, 씨라이프 코엑스 아쿠아리움, 서울물재생체험관, 서울상상나라, 아리수나라 관람을 `venue_admission`으로 저장합니다. 서울물재생체험관 홈페이지에 노출된 프로그램·행사 카드는 별도 `program` 이벤트로 함께 저장합니다.
+
+서울형 키즈카페는 `crawler/sources/seoul_kids_cafe.py`에서 우리동네키움포털의 서울형 키즈카페 예약 목록을 페이지별로 수집하고, 각 지점을 `venue_admission`으로 저장합니다.

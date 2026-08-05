@@ -1,14 +1,14 @@
 {
-  "captured_at": "2026-07-24",
+  "captured_at": "2026-07-27",
   "events": [
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "0~12세 어린이 및 가족",
         "category": "박물관",
         "description": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
-        "ends_at": "2027-01-20",
+        "ends_at": "2027-01-23",
         "item_type": "venue_admission",
         "locality": "서대문구",
         "notes": "입장권 사전 예매는 불가하며 현장 예매만 가능합니다.",
@@ -16,7 +16,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-07-24",
+        "starts_at": "2026-07-27",
         "tags": [
           "실내"
         ],
@@ -29,7 +29,7 @@
       "url": "https://namu.sdm.go.kr/web/main/contents/guide_info_fee"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -57,7 +57,7 @@
       "url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "전 연령",
@@ -85,7 +85,7 @@
       "url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -115,7 +115,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -145,7 +145,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -175,7 +175,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -205,7 +205,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -235,7 +235,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -265,7 +265,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -295,7 +295,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -325,7 +325,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -355,7 +355,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
@@ -385,7 +385,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "관심 있는 누구나",
@@ -398,7 +398,7 @@
         "price_text": "0원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "unknown",
+        "reservation_status": "closed",
         "starts_at": "2026-07-24",
         "summary": "○ 강연 내용 도시는 야생이 사라진 공간처럼 보인다. 회색 도시, 아파트 숲에서 야생이라는 말은 쉽게 떠오르지 않는다. 도시의 반의어로 생각될 지경이다. 하지만 도시의 틈새를 자세히 살펴보면, 도처에 야생의 존재들이 이미 함께 살아가고 있다. 이번 강연에서는 도시와 야생의 관계를 접촉, 갈등, 공존이라는 세 가지 키워드로 살펴본다. ○ 강연자 : 성민규(생명다양성재단 연구원) 대만에서 환경학을 공부하고, 국립대만박물관(자연사관)에서 국제도슨트로 활동했다. 이후 생명다양성재단 연구원으로 근무하며 도시의 생물다양성과 야생생물 서식지 보전 활동을 이어가고 있다.",
         "tags": [
@@ -415,7 +415,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -428,7 +428,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "식물의 형태와 구조를 통해 식물의 진화와 환경 적응 과정을 이해한다. 또한 식물이 다양한 생물의 출현과 생태계 형성에 어떤 영향을 주었는지 알아보며, 자연사적 관점에서 식물의 중요성과 의미를 탐구한다.",
         "tags": [
@@ -445,7 +445,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26072"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 3~4학년",
@@ -458,7 +458,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "식물의 형태와 구조를 통해 식물의 진화와 환경 적응 과정을 이해한다. 또한 식물이 다양한 생물의 출현과 생태계 형성에 어떤 영향을 주었는지 알아보며, 자연사적 관점에서 식물의 중요성과 의미를 탐구한다.",
         "tags": [
@@ -475,7 +475,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26073"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -488,7 +488,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "지구에서 가장 오래된 척추동물 중 하나인 상어의 기원과 진화과정을 알아보고, 오랜시간 살아남을 수 있었던 효율적인 생존 구조를 알아본다.",
         "tags": [
@@ -505,7 +505,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "유치부(2020년생 1월1일생 이후)",
@@ -518,7 +518,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "지구에서 가장 오래된 척추동물 중 하나인 상어의 기원과 진화과정을 알아보고, 오랜시간 살아남을 수 있었던 효율적인 생존 구조를 알아본다.",
         "tags": [
@@ -535,7 +535,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 포함 가족",
@@ -548,7 +548,7 @@
         "price_text": "25,000원 연간회원(일반) 25,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "- 쌍안경으로 밤하늘 관특하는 방법을 알려드리는 후 쌍안경을 빌려주는 가족프로그램 - 가족당 쌍안경 2대 대여 - 천체관측 기초 및 쌍안경 조작 실습 - 접수일 : 2026. 7. 13.(월) 11:00~ - 수업일 : 2026. 7. 25.(토) 19:30~21:00 - 과학도구 반납일 : 2026. 8. 23.(일) 16:00까지",
         "tags": [
@@ -565,7 +565,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등학생 이상 누구나 60명",
@@ -578,7 +578,7 @@
         "price_text": "12,000원 연간회원(일반) 10,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "[여름방학 특강 2강] 캄브리아기 바다부터 현재까지, 5억 년의 진화 5억 년 전 바다에 등장한 신기한 동물들부터 가혹한 환경을 이겨낸 작은 완보동물 물곰까지, 동물의 경이로운 적응 이야기를 만나본다. ○ 강연자 : 김지훈 박사(고생물학자, 극지연구소) 완보동물을 연구하는 국내 유일의 전문가로 UST(과학기술연합대학원대학교) 극지연구소 스쿨에서 박사학위를 취득했다. 그린란드 이끼에서 신종 완보동물을 발견하고, 학계에 보고된 적 없던 물곰의 새로운 감각기관을 찾아내는 연구를 수행했다. 현생 생물의 해부학적 정보를 수억 년 전 화석과 비교 분석해 생물의 진화 과정을 추적한다. 현재 극지연구소 박사후연구원으로 재직 중이다. 2026년에는 과학기술정보통신부와 한국연구재단이 주관하는 ‘한우물파기 기초연구’ 사업에 선정됐다. 이 사업은 잠재력 있는 젊은 연구자가 장기간 한 분야에서 도전적인 기초연구를 수행해 세계적 성과를 낼 수 있도록 돕는 제도이다.",
         "tags": [
@@ -595,7 +595,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26119"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -608,7 +608,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "(유치부 6세(2020년)~초등 1학년 수업) 박물관 3층 지구환경관을 관람하면서 지구의 탄생으로부터 현재에 이르기까지의 과정을 탐험하게 됩니다. 태양계의 행성들, 지진, 화산 등의 역동적인 지질현상, 동굴의 형성과정, 다양한 광물과 암석, 그리고 우리가 살고 있는 한반도에 대해서도 알아봅니다. (유치부 4~5세 신청불가)",
         "tags": [
@@ -625,7 +625,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25996"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -638,7 +638,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "지질시대에 자연스럽게 발생했던 5번의 대멸종과 달리 인류의 개입으로 급속도로 진행되는 멸종위기의 생물들을 알아보고, 왜 이러한 일이 이렇게 빠른 속도로 진행되는지 그 원인에 대해 알아 봅니다. 생물다양성의 중요성을 이해하고 멸종원인과 우리가 할 수 있는 노력을 생각해보고, 박물관에 전시되어 있던 멸종위기 야생생물(국제적 멸종위기종, 우리나라 멸종 위기종)에 대해 학습하는 프로그램입니다. (관련 부분에 대한 전시장 설명이 있습니다.)",
         "tags": [
@@ -655,7 +655,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25997"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "6세~초1 학년",
@@ -668,7 +668,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "(유치부 6세(2020년)~초등 1학년 수업) 박물관에 전시되어 있는 멸종위기 야생생물에 대해 알아보고 멸종위기 야생생물을 보호하기 위해 우리가 할 수 있는 노력을 생각해보는 프로그램입니다. (관련 부분에 대한 전시장 설명이 있습니다.) (유치부 4~5세 신청불가)",
         "tags": [
@@ -685,7 +685,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25998"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초1~3학년",
@@ -698,7 +698,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-25",
         "summary": "초등학생 저학년을 대상으로 박물관 3층 지구환경관을 관람하면서 지구의 탄생으로부터 현재에 이르기까지의 과정을 탐험하게 되고, 2층 생명진화관에서는 최초의 생명체로부터 신생대의 인류에 이르기까지 끊임없이 변천해온 생명의 진화과정에 대해서 알아보며, 1층 인간과 자연관을 관람하면서 환경보존의 중요성과 자연이 우리에게 주는 혜택을 알아봅니다.",
         "tags": [
@@ -715,7 +715,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25999"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -728,7 +728,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "영양분이 부족한 환경에서 살아가는 식충식물의 진화와 생존 전략을 탐구한다.",
         "tags": [
@@ -745,7 +745,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26086"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -758,7 +758,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "붕어의 몸속 구조를 관찰하며 물 속 환경에 적응한 어류의 특징을 이해한다. 아가미, 부레, 지느러미 등의 구조와 기능을 살펴보고 어류의 진화과정을 탐구한다.",
         "tags": [
@@ -775,7 +775,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26114"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 1~2학년",
@@ -788,7 +788,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "영양분이 부족한 환경에서 살아가는 식충식물의 진화와 생존 전략을 탐구한다.",
         "tags": [
@@ -805,7 +805,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26087"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초등 5~6학년",
@@ -818,7 +818,7 @@
         "price_text": "16,000원 연간회원(일반) 13,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "붕어의 몸속 구조를 관찰하며 물 속 환경에 적응한 어류의 특징을 이해한다. 아가미, 부레, 지느러미 등의 구조와 기능을 살펴보고 어류의 진화과정을 탐구한다.",
         "tags": [
@@ -835,7 +835,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26115"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초2~3학년",
@@ -848,7 +848,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "기존 일반투어를 수강하였던 2-3학년 아이들을 위한 탐구학습 프로그램입니다. 중앙홀과 2층 생명진화관(~신생대)에 대한 탐구 수업을 합니다.(2026년도 기준 1학년 신청불가)",
         "tags": [
@@ -865,7 +865,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26000"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "초4~6학년",
@@ -878,7 +878,7 @@
         "price_text": "16,000원 연간회원(일반) 11,000원",
         "region": "서울",
         "reservation_required": true,
-        "reservation_status": "available",
+        "reservation_status": "closed",
         "starts_at": "2026-07-26",
         "summary": "지질시대에 자연스럽게 발생했던 5번의 대멸종과 달리 인류의 개입으로 급속도로 진행되는 멸종위기의 생물들을 알아보고, 왜 이러한 일이 이렇게 빠른 속도로 진행되는지 그 원인에 대해 알아 봅니다. 생물다양성의 중요성을 이해하고 멸종원인과 우리가 할 수 있는 노력을 생각해보고, 박물관에 전시되어 있던 멸종위기 야생생물(국제적 멸종위기종, 우리나라 멸종 위기종)에 대해 학습하는 프로그램입니다. (관련 부분에 대한 전시장 설명이 있습니다.)",
         "tags": [
@@ -895,7 +895,7 @@
       "url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26001"
     },
     {
-      "captured_at": "2026-07-24",
+      "captured_at": "2026-07-27",
       "payload": {
         "address": "서울시 서대문구 연희로32길 51",
         "age_text": "성인 및 청소년 누구나 60명",
