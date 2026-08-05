@@ -18,6 +18,77 @@ const mockAsyncStorage = {
   }),
 };
 
+jest.mock('react-native', () => {
+  const React = require('react');
+  const ReactNative = jest.requireActual('react-native');
+
+  const renderListComponent = Component => {
+    if (!Component) {
+      return null;
+    }
+
+    if (React.isValidElement(Component)) {
+      return Component;
+    }
+
+    return React.createElement(Component);
+  };
+
+  const FlatList = ({
+    data = [],
+    keyExtractor,
+    renderItem,
+    ListHeaderComponent,
+    ListEmptyComponent,
+    contentContainerStyle,
+    onScroll,
+    scrollEventThrottle,
+  }) =>
+    React.createElement(
+      ReactNative.ScrollView,
+      { contentContainerStyle, onScroll, scrollEventThrottle },
+      [
+        React.createElement(
+          React.Fragment,
+          { key: 'list-header' },
+          renderListComponent(ListHeaderComponent),
+        ),
+        data.length === 0
+          ? React.createElement(
+              React.Fragment,
+              { key: 'list-empty' },
+              renderListComponent(ListEmptyComponent),
+            )
+          : data.map((item, index) =>
+              React.createElement(
+                React.Fragment,
+                {
+                  key: keyExtractor
+                    ? keyExtractor(item, index)
+                    : item?.id ?? String(index),
+                },
+                renderItem({
+                  item,
+                  index,
+                  separators: {
+                    highlight: jest.fn(),
+                    unhighlight: jest.fn(),
+                    updateProps: jest.fn(),
+                  },
+                }),
+              ),
+            ),
+      ],
+    );
+
+  Object.defineProperty(ReactNative, 'FlatList', {
+    configurable: true,
+    value: FlatList,
+  });
+
+  return ReactNative;
+});
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   __esModule: true,
   default: mockAsyncStorage,

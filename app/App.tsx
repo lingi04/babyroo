@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   BackHandler,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
+  FlatList,
   Image,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -1558,198 +1559,214 @@ function ExploreScreen({
 
   return (
     <View style={styles.exploreRoot}>
-      <ScrollView
+      <FlatList
+        data={filteredEvents}
+        keyExtractor={event => event.id}
+        renderItem={({ item, index }) => (
+          <EventCard
+            event={item}
+            tone={index}
+            showSequence
+            onPress={() => onOpenEvent(item)}
+          />
+        )}
         contentContainerStyle={[
           styles.screenWithTabs,
           tabScreenBottomPadding(bottomInset),
         ]}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        <View style={styles.headerRow}>
-          <View style={styles.headerTitleGroup}>
-            <Text style={styles.pageTitle}>행사 탐색</Text>
-          </View>
-          <Pressable
-            style={styles.iconButton}
-            onPress={onOpenSettings}
-            accessibilityLabel="Open user settings"
-          >
-            <Text style={styles.iconButtonText}>⚙</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.searchField}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            style={styles.searchInput}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="행사 제목 검색"
-            placeholderTextColor={colors.muted}
-            returnKeyType="search"
-            autoCorrect={false}
-          />
-        </View>
-
-        <View style={styles.contentTypeSelector}>
-          {exploreContentTypeOptions.map(option => {
-            const selected = filters.contentTypes.includes(option.value);
-
-            return (
+        ListHeaderComponent={
+          <>
+            <View style={styles.headerRow}>
+              <View style={styles.headerTitleGroup}>
+                <Text style={styles.pageTitle}>행사 탐색</Text>
+              </View>
               <Pressable
-                key={option.value}
-                style={[
-                  styles.contentTypeOption,
-                  selected && styles.contentTypeOptionSelected,
-                ]}
-                onPress={() => onToggleContentType(option.value)}
-                accessibilityLabel={`Toggle explore content type ${option.label}`}
+                style={styles.iconButton}
+                onPress={onOpenSettings}
+                accessibilityLabel="Open user settings"
               >
-                <View
-                  style={[
-                    styles.contentTypeIcon,
-                    selected && styles.contentTypeIconSelected,
-                  ]}
-                >
-                  <Text
+                <Text style={styles.iconButtonText}>⚙</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.searchField}>
+              <Text style={styles.searchIcon}>⌕</Text>
+              <TextInput
+                style={styles.searchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="행사 제목 검색"
+                placeholderTextColor={colors.muted}
+                returnKeyType="search"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.contentTypeSelector}>
+              {exploreContentTypeOptions.map(option => {
+                const selected = filters.contentTypes.includes(option.value);
+
+                return (
+                  <Pressable
+                    key={option.value}
                     style={[
-                      styles.contentTypeIconText,
-                      selected && styles.contentTypeIconTextSelected,
+                      styles.contentTypeOption,
+                      selected && styles.contentTypeOptionSelected,
                     ]}
+                    onPress={() => onToggleContentType(option.value)}
+                    accessibilityLabel={`Toggle explore content type ${option.label}`}
                   >
-                    {option.icon}
+                    <View
+                      style={[
+                        styles.contentTypeIcon,
+                        selected && styles.contentTypeIconSelected,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.contentTypeIconText,
+                          selected && styles.contentTypeIconTextSelected,
+                        ]}
+                      >
+                        {option.icon}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.contentTypeLabel,
+                        selected && styles.contentTypeLabelSelected,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <View
+              style={[
+                styles.exploreControlsPanel,
+                exploreControlsCollapsed &&
+                  styles.exploreControlsPanelCollapsed,
+              ]}
+            >
+              <Pressable
+                style={styles.exploreControlsHeader}
+                onPress={() =>
+                  setExploreControlsCollapsed(
+                    previousCollapsed => !previousCollapsed,
+                  )
+                }
+                accessibilityLabel="Toggle exploration controls"
+              >
+                <View>
+                  <View style={styles.exploreControlsTitleRow}>
+                    <Text style={styles.exploreControlsTitle}>탐색 기준</Text>
+                    <Text
+                      style={styles.exploreControlsSummary}
+                      numberOfLines={1}
+                    >
+                      {exploreCriteriaSummary}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.exploreControlsActions}>
+                  <Text style={styles.exploreControlsToggle}>
+                    {exploreControlsCollapsed ? '펼치기' : '접기'}
                   </Text>
                 </View>
-                <Text
-                  style={[
-                    styles.contentTypeLabel,
-                    selected && styles.contentTypeLabelSelected,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {option.label}
-                </Text>
               </Pressable>
-            );
-          })}
-        </View>
 
-        <View
-          style={[
-            styles.exploreControlsPanel,
-            exploreControlsCollapsed && styles.exploreControlsPanelCollapsed,
-          ]}
-        >
-          <Pressable
-            style={styles.exploreControlsHeader}
-            onPress={() =>
-              setExploreControlsCollapsed(
-                previousCollapsed => !previousCollapsed,
-              )
-            }
-            accessibilityLabel="Toggle exploration controls"
-          >
-            <View>
-              <View style={styles.exploreControlsTitleRow}>
-                <Text style={styles.exploreControlsTitle}>탐색 기준</Text>
-                <Text style={styles.exploreControlsSummary} numberOfLines={1}>
-                  {exploreCriteriaSummary}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.exploreControlsActions}>
-              <Text style={styles.exploreControlsToggle}>
-                {exploreControlsCollapsed ? '펼치기' : '접기'}
-              </Text>
-            </View>
-          </Pressable>
+              {exploreControlsCollapsed ? null : (
+                <>
+                  <View style={styles.exploreControlDivider} />
 
-          {exploreControlsCollapsed ? null : (
-            <>
-              <View style={styles.exploreControlDivider} />
+                  <View style={styles.exploreControlSection}>
+                    <Text style={styles.exploreControlLabel}>
+                      아이 월령 기준
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.childChipRow}
+                    >
+                      {childrenByAge.map(child => {
+                        const selected = user.activeChildIds.includes(child.id);
 
-              <View style={styles.exploreControlSection}>
-                <Text style={styles.exploreControlLabel}>아이 월령 기준</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.childChipRow}
-                >
-                  {childrenByAge.map(child => {
-                    const selected = user.activeChildIds.includes(child.id);
+                        return (
+                          <Pressable
+                            key={child.id}
+                            onPress={() => onToggleChild(child.id)}
+                            accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                          >
+                            <ChildContextChip
+                              child={child}
+                              selected={selected}
+                            />
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
 
-                    return (
-                      <Pressable
-                        key={child.id}
-                        onPress={() => onToggleChild(child.id)}
-                        accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
-                      >
-                        <ChildContextChip child={child} selected={selected} />
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
+                  <View style={styles.exploreControlDivider} />
 
-              <View style={styles.exploreControlDivider} />
-
-              <View
-                style={[
-                  styles.exploreControlSection,
-                  styles.exploreFilterSection,
-                ]}
-              >
-                <Text style={styles.exploreControlLabel}>필터</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.chipRow}
-                >
-                  {activeFilterLabels.map(chip => (
-                    <Chip key={chip} label={chip} selected />
-                  ))}
-                  <Pressable
-                    onPress={onOpenFilter}
-                    accessibilityLabel="Open filters"
+                  <View
+                    style={[
+                      styles.exploreControlSection,
+                      styles.exploreFilterSection,
+                    ]}
                   >
-                    <Chip
-                      label={
-                        activeFilterCount > 0
-                          ? `필터 ${activeFilterCount}`
-                          : '필터'
-                      }
-                    />
-                  </Pressable>
-                </ScrollView>
-              </View>
-            </>
-          )}
-        </View>
+                    <Text style={styles.exploreControlLabel}>필터</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.chipRow}
+                    >
+                      {activeFilterLabels.map(chip => (
+                        <Chip key={chip} label={chip} selected />
+                      ))}
+                      <Pressable
+                        onPress={onOpenFilter}
+                        accessibilityLabel="Open filters"
+                      >
+                        <Chip
+                          label={
+                            activeFilterCount > 0
+                              ? `필터 ${activeFilterCount}`
+                              : '필터'
+                          }
+                        />
+                      </Pressable>
+                    </ScrollView>
+                  </View>
+                </>
+              )}
+            </View>
 
-        <Text style={styles.resultCount}>
-          {filteredEvents.length}개 행사 · 최신 추가순
-        </Text>
-
-        {filteredEvents.length > 0 ? (
-          filteredEvents.map((event, index) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              tone={index}
-              showSequence
-              onPress={() => onOpenEvent(event)}
-            />
-          ))
-        ) : (
+            <Text style={styles.resultCount}>
+              {filteredEvents.length}개 행사 · 최신 추가순
+            </Text>
+          </>
+        }
+        ListEmptyComponent={
           <View style={styles.noResultsCard}>
             <Text style={styles.noResultsTitle}>조건에 맞는 행사가 없어요</Text>
             <Text style={styles.noResultsText}>
               검색어를 줄이거나 필터를 넓혀서 다시 찾아보세요.
             </Text>
           </View>
-        )}
-      </ScrollView>
+        }
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        onScroll={handleScroll}
+        removeClippedSubviews
+        scrollEventThrottle={16}
+        updateCellsBatchingPeriod={50}
+        windowSize={7}
+      />
 
       {recommendationCtaVisible ? (
         <Pressable
