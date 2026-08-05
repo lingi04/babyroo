@@ -7,12 +7,25 @@ export type Child = {
   gender: ChildGender;
 };
 
+export type UserHomeAddress = {
+  address: string;
+  roadAddress?: string;
+  jibunAddress?: string;
+  detailAddress?: string;
+  zonecode?: string;
+  sido?: string;
+  sigungu?: string;
+  bname?: string;
+  buildingName?: string;
+};
+
 export type User = {
   id: string;
   displayName: string;
   children: Child[];
   activeChildIds: string[];
   homeRegion: string;
+  homeAddress?: UserHomeAddress;
   preferredLocalities: string[];
 };
 

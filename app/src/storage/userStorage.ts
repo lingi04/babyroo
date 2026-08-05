@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Child, currentUser, User } from '../data/user';
+import { Child, currentUser, User, UserHomeAddress } from '../data/user';
 
 const USER_STORAGE_KEY = '@babyroo/user';
 
@@ -26,10 +26,28 @@ export async function clearSavedUser(): Promise<void> {
   await AsyncStorage.removeItem(USER_STORAGE_KEY);
 }
 
-function normalizeUser(user: User): User {
+function normalizeUser(user: Partial<User> & Pick<User, 'children'>): User {
   return {
+    ...currentUser,
     ...user,
     children: user.children.map(normalizeChild),
+    activeChildIds: user.activeChildIds ?? currentUser.activeChildIds,
+    homeRegion: user.homeRegion ?? currentUser.homeRegion,
+    homeAddress: normalizeHomeAddress(user.homeAddress),
+    preferredLocalities:
+      user.preferredLocalities ?? currentUser.preferredLocalities,
+  };
+}
+
+function normalizeHomeAddress(homeAddress?: UserHomeAddress) {
+  if (!homeAddress?.address?.trim()) {
+    return undefined;
+  }
+
+  return {
+    ...homeAddress,
+    address: homeAddress.address.trim(),
+    detailAddress: homeAddress.detailAddress?.trim() || undefined,
   };
 }
 
@@ -48,7 +66,11 @@ function normalizeChild(child: Child & { ageMonths?: number }): Child {
 
 function birthDateFromAgeMonths(ageMonths: number) {
   const today = new Date();
-  const birthDate = new Date(today.getFullYear(), today.getMonth() - ageMonths, today.getDate());
+  const birthDate = new Date(
+    today.getFullYear(),
+    today.getMonth() - ageMonths,
+    today.getDate(),
+  );
   const year = birthDate.getFullYear();
   const month = String(birthDate.getMonth() + 1).padStart(2, '0');
   const day = String(birthDate.getDate()).padStart(2, '0');

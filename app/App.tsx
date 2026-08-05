@@ -5,6 +5,7 @@ import {
   FlatList,
   Image,
   Linking,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -20,6 +21,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -65,6 +67,7 @@ import {
   getSelectedChildren,
   isUserProfileComplete,
   User,
+  UserHomeAddress,
 } from './src/data/user';
 import {
   clearAuthSession,
@@ -111,6 +114,66 @@ const exploreContentTypeOptions: Array<{
   { value: 'permanentVenue', label: '상설 전시', icon: '상' },
   { value: 'seoulKidsCafe', label: '서울형 키즈카페', icon: '키' },
 ];
+
+const postcodeSearchHtml = `
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <style>
+      html, body, #postcode {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .loading {
+        color: #667085;
+        font-size: 14px;
+        font-weight: 700;
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="postcode"><div class="loading">주소 검색을 불러오고 있어요.</div></div>
+    <script src="https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script>
+      function sendSelectedAddress(data) {
+        var payload = JSON.stringify({
+          address: data.address,
+          roadAddress: data.roadAddress,
+          jibunAddress: data.jibunAddress,
+          zonecode: data.zonecode,
+          sido: data.sido,
+          sigungu: data.sigungu,
+          bname: data.bname,
+          buildingName: data.buildingName
+        });
+
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(payload);
+        }
+
+        window.location.href = 'babyroo-postcode://selected?data=' + encodeURIComponent(payload);
+      }
+
+      new kakao.Postcode({
+        width: '100%',
+        height: '100%',
+        oncomplete: function(data) {
+          sendSelectedAddress(data);
+        }
+      }).embed(document.getElementById('postcode'));
+    </script>
+  </body>
+</html>
+`;
 
 function buildWeatherPlanQuestion(
   visitDay: RecommendationAnswerValue | undefined,
@@ -433,6 +496,16 @@ function BabyrooApp() {
     setUser(previousUser => ({ ...previousUser, homeRegion }));
   };
 
+  const updateHomeAddress = (homeAddress?: UserHomeAddress) => {
+    setUser(previousUser => ({
+      ...previousUser,
+      homeAddress,
+      homeRegion: homeAddress?.sido
+        ? regionFromAddressSido(homeAddress.sido)
+        : previousUser.homeRegion,
+    }));
+  };
+
   const updateDisplayName = (displayName: string) => {
     setUser(previousUser => ({ ...previousUser, displayName }));
   };
@@ -558,6 +631,7 @@ function BabyrooApp() {
           onUpdateChild={updateChild}
           onUpdateDisplayName={updateDisplayName}
           onToggleChild={toggleActiveChild}
+          onUpdateHomeAddress={updateHomeAddress}
           onSelectRegion={updateHomeRegion}
           onResetUser={resetUser}
           onSignOut={signOut}
@@ -733,6 +807,10 @@ function OnboardingScreen({
     initialUser.children[0]?.gender ?? 'unknown',
   );
   const [homeRegion, setHomeRegion] = useState(initialUser.homeRegion);
+  const [homeAddress, setHomeAddress] = useState<UserHomeAddress | undefined>(
+    initialUser.homeAddress,
+  );
+  const [postcodeOpen, setPostcodeOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const canProceed =
     step === 0
@@ -766,6 +844,7 @@ function OnboardingScreen({
       ],
       activeChildIds: [childId],
       homeRegion,
+      homeAddress,
     };
 
     setSaving(true);
@@ -856,7 +935,32 @@ function OnboardingScreen({
         <View style={styles.settingsCard}>
           <Text style={styles.settingsLabel}>거주지</Text>
           <Text style={styles.settingsTitle}>
-            추천에 우선 반영할 지역을 선택해주세요
+            추천에 우선 반영할 주소를 설정해주세요
+          </Text>
+          <AddressSummaryCard
+            homeAddress={homeAddress}
+            onOpenPostcode={() => setPostcodeOpen(true)}
+          />
+          {homeAddress ? (
+            <TextInput
+              style={styles.textInput}
+              value={homeAddress.detailAddress ?? ''}
+              onChangeText={detailAddress =>
+                setHomeAddress({
+                  ...homeAddress,
+                  detailAddress,
+                })
+              }
+              placeholder="상세 주소 예: 101동 1203호"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              textContentType="fullStreetAddress"
+            />
+          ) : null}
+          <Text style={styles.settingsMeta}>
+            주소 검색이 어렵다면 지역만 선택해도 추천을 시작할 수 있어요.
           </Text>
           <View style={styles.wrapRow}>
             {['서울', '경기', '기타 지역'].map(region => (
@@ -867,6 +971,19 @@ function OnboardingScreen({
           </View>
         </View>
       ) : null}
+
+      <PostcodeModal
+        visible={postcodeOpen}
+        onClose={() => setPostcodeOpen(false)}
+        onSelect={nextAddress => {
+          setHomeAddress({
+            ...nextAddress,
+            detailAddress: homeAddress?.detailAddress,
+          });
+          setHomeRegion(regionFromAddressSido(nextAddress.sido));
+          setPostcodeOpen(false);
+        }}
+      />
 
       <View style={styles.onboardingActions}>
         {step > 0 ? (
@@ -2002,6 +2119,7 @@ function SettingsScreen({
   onUpdateChild,
   onUpdateDisplayName,
   onToggleChild,
+  onUpdateHomeAddress,
   onSelectRegion,
   onResetUser,
   onSignOut,
@@ -2016,6 +2134,7 @@ function SettingsScreen({
   ) => void;
   onUpdateDisplayName: (displayName: string) => void;
   onToggleChild: (childId: string) => void;
+  onUpdateHomeAddress: (homeAddress?: UserHomeAddress) => void;
   onSelectRegion: (region: string) => void;
   onResetUser: () => void;
   onSignOut: () => Promise<void>;
@@ -2027,6 +2146,7 @@ function SettingsScreen({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<string | null>(null);
   const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [postcodeOpen, setPostcodeOpen] = useState(false);
   const displayNameInputRef = useRef<TextInput>(null);
 
   const commitDisplayName = () => {
@@ -2273,6 +2393,28 @@ function SettingsScreen({
         <Text style={styles.sectionMeta}>
           추천과 탐색 필터에서 우선 참고하는 지역입니다.
         </Text>
+        <AddressSummaryCard
+          homeAddress={user.homeAddress}
+          onOpenPostcode={() => setPostcodeOpen(true)}
+        />
+        {user.homeAddress ? (
+          <TextInput
+            style={styles.textInput}
+            value={user.homeAddress.detailAddress ?? ''}
+            onChangeText={detailAddress =>
+              onUpdateHomeAddress({
+                ...user.homeAddress!,
+                detailAddress,
+              })
+            }
+            placeholder="상세 주소 예: 101동 1203호"
+            placeholderTextColor={colors.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            textContentType="fullStreetAddress"
+          />
+        ) : null}
         <View style={styles.wrapRow}>
           {regions.map(region => (
             <Pressable key={region} onPress={() => onSelectRegion(region)}>
@@ -2281,6 +2423,18 @@ function SettingsScreen({
           ))}
         </View>
       </View>
+
+      <PostcodeModal
+        visible={postcodeOpen}
+        onClose={() => setPostcodeOpen(false)}
+        onSelect={nextAddress => {
+          onUpdateHomeAddress({
+            ...nextAddress,
+            detailAddress: user.homeAddress?.detailAddress,
+          });
+          setPostcodeOpen(false);
+        }}
+      />
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>초기화</Text>
@@ -2303,6 +2457,128 @@ function SettingsScreen({
         </Pressable>
       </View>
     </ScrollView>
+  );
+}
+
+function AddressSummaryCard({
+  homeAddress,
+  onOpenPostcode,
+}: {
+  homeAddress?: UserHomeAddress;
+  onOpenPostcode: () => void;
+}) {
+  return (
+    <View style={styles.addressCard}>
+      <View style={styles.addressTextGroup}>
+        <Text style={styles.addressTitle}>
+          {homeAddress ? formatHomeAddress(homeAddress) : '주소 미설정'}
+        </Text>
+        <Text style={styles.addressMeta}>
+          {homeAddress?.zonecode
+            ? `우편번호 ${homeAddress.zonecode}`
+            : '도로명 주소 검색으로 기준 위치를 설정해요.'}
+        </Text>
+      </View>
+      <Pressable
+        style={styles.addressSearchButton}
+        onPress={onOpenPostcode}
+        accessibilityLabel="Open postcode search"
+      >
+        <Text style={styles.addressSearchButtonText}>
+          {homeAddress ? '변경' : '검색'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+function PostcodeModal({
+  visible,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (homeAddress: UserHomeAddress) => void;
+}) {
+  const handleSelectedAddress = (data: UserHomeAddress) => {
+    const address = data.roadAddress || data.address || data.jibunAddress || '';
+
+    if (!address.trim()) {
+      return;
+    }
+
+    onSelect({
+      address,
+      roadAddress: data.roadAddress || undefined,
+      jibunAddress: data.jibunAddress || undefined,
+      zonecode: data.zonecode || undefined,
+      sido: data.sido || undefined,
+      sigungu: data.sigungu || undefined,
+      bname: data.bname || undefined,
+      buildingName: data.buildingName || undefined,
+    });
+  };
+
+  const handleMessage = (event: WebViewMessageEvent) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data) as UserHomeAddress;
+
+      handleSelectedAddress(data);
+    } catch {
+      onClose();
+    }
+  };
+
+  const handleShouldStartLoad = ({ url }: { url: string }) => {
+    const selectedAddress = parsePostcodeSelectionUrl(url);
+
+    if (selectedAddress) {
+      handleSelectedAddress(selectedAddress);
+      return false;
+    }
+
+    return true;
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={styles.postcodeModalRoot}>
+        <View style={styles.postcodeModalHeader}>
+          <View>
+            <Text style={styles.settingsLabel}>주소 검색</Text>
+            <Text style={styles.postcodeModalTitle}>기준 주소 선택</Text>
+          </View>
+          <Pressable
+            style={styles.iconButton}
+            onPress={onClose}
+            accessibilityLabel="Close postcode search"
+          >
+            <Text style={styles.iconButtonText}>×</Text>
+          </Pressable>
+        </View>
+        <WebView
+          source={{
+            html: postcodeSearchHtml,
+            baseUrl: 'https://postcode.map.kakao.com',
+          }}
+          style={styles.postcodeWebView}
+          originWhitelist={['*']}
+          domStorageEnabled
+          javaScriptEnabled
+          mixedContentMode="always"
+          onMessage={handleMessage}
+          onShouldStartLoadWithRequest={handleShouldStartLoad}
+          setSupportMultipleWindows={false}
+          thirdPartyCookiesEnabled
+        />
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -3539,8 +3815,52 @@ function cloneUser(user: User): User {
     ...user,
     children: user.children.map(child => ({ ...child })),
     activeChildIds: [...user.activeChildIds],
+    homeAddress: user.homeAddress ? { ...user.homeAddress } : undefined,
     preferredLocalities: [...user.preferredLocalities],
   };
+}
+
+function regionFromAddressSido(sido?: string) {
+  if (!sido) {
+    return '기타 지역';
+  }
+
+  if (sido.includes('서울')) {
+    return '서울';
+  }
+
+  if (sido.includes('경기')) {
+    return '경기';
+  }
+
+  return '기타 지역';
+}
+
+function formatHomeAddress(homeAddress: UserHomeAddress) {
+  return [
+    homeAddress.roadAddress || homeAddress.address,
+    homeAddress.detailAddress,
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function parsePostcodeSelectionUrl(url: string): UserHomeAddress | undefined {
+  if (!url.startsWith('babyroo-postcode://selected?')) {
+    return undefined;
+  }
+
+  const encodedData = url.match(/[?&]data=([^&]+)/)?.[1];
+
+  if (!encodedData) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(decodeURIComponent(encodedData)) as UserHomeAddress;
+  } catch {
+    return undefined;
+  }
 }
 
 function parseDateInput(value: string) {
@@ -4104,6 +4424,49 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 19,
     marginTop: spacing.xs,
+  },
+  addressCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+    minHeight: 68,
+    padding: spacing.md,
+  },
+  addressTextGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  addressTitle: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
+  addressMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  addressSearchButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    flexShrink: 0,
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  addressSearchButtonText: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
   },
   textInput: {
     backgroundColor: colors.surfaceRaised,
@@ -4991,6 +5354,27 @@ const styles = StyleSheet.create({
   },
   sheetApplyButton: {
     marginTop: spacing.xxl,
+  },
+  postcodeModalRoot: {
+    backgroundColor: colors.surface,
+    flex: 1,
+  },
+  postcodeModalHeader: {
+    alignItems: 'center',
+    borderBottomColor: colors.borderSubtle,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  postcodeModalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  postcodeWebView: {
+    flex: 1,
   },
   stepper: {
     alignItems: 'center',
