@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
+import { debugLog } from '../../../../common/debug-log';
 import { EventRepositoryPort } from '../../application/ports/out/event-repository.port';
 import { BabyrooEvent } from '../../domain/event.entity';
 
@@ -37,6 +38,10 @@ export class JsonEventRepository implements EventRepositoryPort {
     const path = this.resolveEventsPath();
     const payload = JSON.parse(readFileSync(path, 'utf8')) as { events: PublishedEvent[] };
     this.events = payload.events.map((event, index) => this.mapEvent(event, index + 1));
+    debugLog('events.repository.loaded', {
+      count: this.events.length,
+      path,
+    });
   }
 
   async list(): Promise<BabyrooEvent[]> {

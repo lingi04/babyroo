@@ -1,4 +1,5 @@
 import { NotFoundError } from '../../../../common/application-error';
+import { debugLog } from '../../../../common/debug-log';
 import { BabyrooEvent, EventListQuery, EventListResult } from '../../domain/event.entity';
 import { GetEventDetailUseCase } from '../ports/in/get-event-detail.use-case';
 import { GetEventsByIdsUseCase } from '../ports/in/get-events-by-ids.use-case';
@@ -16,6 +17,14 @@ export class EventsQueryService
   ) {}
 
   async list(query: EventListQuery): Promise<EventListResult> {
+    debugLog('events.list.start', {
+      q: query.q,
+      region: query.region,
+      locality: query.locality,
+      category: query.category,
+      limit: query.limit,
+      offset: query.offset,
+    });
     const allEvents = await this.events.list();
     const filtered = allEvents
       .filter(event => this.matchesQuery(event, query))
@@ -23,23 +32,38 @@ export class EventsQueryService
     const offset = Number(query.offset ?? 0);
     const limit = Math.min(Number(query.limit ?? 50), 100);
 
-    return {
+    const result = {
       count: filtered.length,
       events: filtered.slice(offset, offset + limit),
     };
+    debugLog('events.list.success', {
+      totalCount: allEvents.length,
+      filteredCount: result.count,
+      returnedCount: result.events.length,
+    });
+
+    return result;
   }
 
   async getById(id: string): Promise<BabyrooEvent> {
+    debugLog('events.getById.start', { eventId: id });
     const event = await this.events.findById(id);
     if (!event) {
+      debugLog('events.getById.notFound', { eventId: id });
       throw new NotFoundError('Event not found');
     }
+    debugLog('events.getById.success', { eventId: id });
     return event;
   }
 
   async getManyByIds(ids: string[]): Promise<BabyrooEvent[]> {
     const events = await Promise.all(ids.map(id => this.events.findById(id)));
-    return events.filter((event): event is BabyrooEvent => event !== null);
+    const foundEvents = events.filter((event): event is BabyrooEvent => event !== null);
+    debugLog('events.getManyByIds.success', {
+      requestedCount: ids.length,
+      foundCount: foundEvents.length,
+    });
+    return foundEvents;
   }
 
   private matchesQuery(event: BabyrooEvent, query: EventListQuery): boolean {

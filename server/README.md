@@ -113,9 +113,16 @@ PORT=3000
 HOST=127.0.0.1
 EVENT_DATA_PATH=data/events.json
 DEFAULT_RECOMMENDATION_CREDITS=3
+BABYROO_DEBUG_LOGS=true
 ```
 
 `EVENT_DATA_PATH` is useful if the server is started from a different working directory or if you want to test another event JSON file.
+
+Debug logs are enabled by default. Disable them with:
+
+```sh
+BABYROO_DEBUG_LOGS=false npm run start:dev
+```
 
 ## Quick Smoke Test
 

@@ -2,6 +2,7 @@ import {
   GET_EVENT_DETAIL_USE_CASE,
   GetEventDetailUseCase,
 } from '../../../events/application/ports/in/get-event-detail.use-case';
+import { debugLog } from '../../../../common/debug-log';
 import {
   GET_EVENTS_BY_IDS_USE_CASE,
   GetEventsByIdsUseCase,
@@ -24,22 +25,33 @@ export class SavedEventBookmarkService
   ) {}
 
   async save(userId: string, eventId: string) {
+    debugLog('savedEvents.save.start', { userId, eventId });
     await this.getEventDetailUseCase.getById(eventId);
-    return this.savedEvents.save(userId, eventId);
+    const savedEvent = await this.savedEvents.save(userId, eventId);
+    debugLog('savedEvents.save.success', { userId, eventId });
+    return savedEvent;
   }
 
   async unsave(userId: string, eventId: string) {
-    return this.savedEvents.unsave(userId, eventId);
+    debugLog('savedEvents.unsave.start', { userId, eventId });
+    await this.savedEvents.unsave(userId, eventId);
+    debugLog('savedEvents.unsave.success', { userId, eventId });
   }
 
   async list(userId: string) {
+    debugLog('savedEvents.list.start', { userId });
     const savedEvents = await this.savedEvents.list(userId);
     const events = await this.getEventsByIdsUseCase.getManyByIds(
       savedEvents.map(saved => saved.eventId),
     );
-    return {
+    const result = {
       count: events.length,
       events,
     };
+    debugLog('savedEvents.list.success', {
+      userId,
+      count: result.count,
+    });
+    return result;
   }
 }

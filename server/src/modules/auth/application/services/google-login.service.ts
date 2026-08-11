@@ -2,6 +2,7 @@ import {
   UPSERT_USER_FROM_AUTH_USE_CASE,
   UpsertUserFromAuthUseCase,
 } from '../../../users/application/ports/in/upsert-user-from-auth.use-case';
+import { debugLog } from '../../../../common/debug-log';
 import {
   GoogleLoginInput,
   LoginWithGoogleUseCase,
@@ -15,10 +16,17 @@ export class GoogleLoginService implements LoginWithGoogleUseCase {
 
   async loginWithGoogle(input: GoogleLoginInput): Promise<LoginWithGoogleResult> {
     const userId = this.toDevelopmentUserId(input.idToken);
+    debugLog('auth.google.login.start', {
+      userId,
+      hasDisplayName: Boolean(input.displayName),
+    });
     const user = await this.upsertUserFromAuthUseCase.upsertFromAuth(
       userId,
       input.displayName,
     );
+    debugLog('auth.google.login.success', {
+      userId: user.id,
+    });
 
     return {
       accessToken: `dev.${user.id}`,
