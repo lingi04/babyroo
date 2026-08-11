@@ -5,6 +5,7 @@ import type { BabyrooEvent, ReservationStatus } from '../data/events';
 
 export const BABYROO_API_BASE_URL = defaultApiBaseUrl();
 const DEFAULT_REQUEST_TIMEOUT_MS = 7000;
+const DEFAULT_EVENT_LIST_LIMIT = 300;
 
 export type BabyrooApiAuthResponse = {
   accessToken: string;
@@ -58,6 +59,7 @@ export type BabyrooEventListQuery = Partial<{
   reservationRequired: boolean;
   reservationStatus: ReservationStatus;
   category: string;
+  eventType: string;
   limit: number;
   offset: number;
 }>;
@@ -77,7 +79,10 @@ export async function loginWithBabyrooApi(
 export async function listEventsFromBabyrooApi(
   query: BabyrooEventListQuery = {},
 ): Promise<BabyrooEvent[]> {
-  const queryString = eventListQueryString({ limit: 100, ...query });
+  const queryString = eventListQueryString({
+    limit: DEFAULT_EVENT_LIST_LIMIT,
+    ...query,
+  });
   console.warn(
     `[Babyroo API] listEventsFromBabyrooApi called: ${BABYROO_API_BASE_URL}/events?${queryString}`,
   );

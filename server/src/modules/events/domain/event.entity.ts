@@ -38,6 +38,7 @@ export type EventListQuery = {
   reservationRequired?: string;
   reservationStatus?: ReservationStatus;
   category?: string;
+  eventType?: string;
   limit?: string;
   offset?: string;
 };
@@ -46,4 +47,3 @@ export type EventListResult = {
   count: number;
   events: BabyrooEvent[];
 };
-

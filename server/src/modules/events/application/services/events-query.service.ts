@@ -22,6 +22,7 @@ export class EventsQueryService
       region: query.region,
       locality: query.locality,
       category: query.category,
+      eventType: query.eventType,
       limit: query.limit,
       offset: query.offset,
     });
@@ -30,7 +31,7 @@ export class EventsQueryService
       .filter(event => this.matchesQuery(event, query))
       .sort((a, b) => b.csvSequence - a.csvSequence);
     const offset = Number(query.offset ?? 0);
-    const limit = Math.min(Number(query.limit ?? 50), 100);
+    const limit = Math.min(Number(query.limit ?? 50), 300);
 
     const result = {
       count: filtered.length,
@@ -79,6 +80,9 @@ export class EventsQueryService
     if (query.category && event.category !== query.category) {
       return false;
     }
+    if (query.eventType && !this.matchesEventTypes(event, query.eventType)) {
+      return false;
+    }
     if (query.priceType && event.priceType !== query.priceType) {
       return false;
     }
@@ -118,6 +122,60 @@ export class EventsQueryService
       return false;
     }
     return event.ageMinMonths !== undefined || event.ageMaxMonths !== undefined;
+  }
+
+  private matchesEventTypes(event: BabyrooEvent, eventTypeQuery: string): boolean {
+    const eventTypes = eventTypeQuery
+      .split(',')
+      .map(eventType => eventType.trim())
+      .filter(Boolean);
+
+    return eventTypes.includes(this.getExploreEventType(event));
+  }
+
+  private getExploreEventType(event: BabyrooEvent) {
+    if (this.eventIsSeoulKidsCafe(event)) {
+      return 'seoulKidsCafe';
+    }
+
+    if (this.eventIsPermanentVenue(event)) {
+      return 'permanentVenue';
+    }
+
+    return 'limitedEvent';
+  }
+
+  private eventIsSeoulKidsCafe(event: BabyrooEvent) {
+    const searchableText = [
+      event.title,
+      event.venueName,
+      event.summary,
+      ...event.tags,
+    ].join(' ');
+
+    return (
+      event.source === 'seoul_kids_cafe' ||
+      searchableText.includes('서울형 키즈카페') ||
+      searchableText.includes('서울형키즈카페')
+    );
+  }
+
+  private eventIsPermanentVenue(event: BabyrooEvent) {
+    const searchableText = [
+      event.title,
+      event.venueName,
+      event.summary,
+      event.sourceUrl,
+    ].join(' ');
+
+    return (
+      event.title.endsWith('관람') ||
+      event.title.endsWith('입장') ||
+      event.category === 'museum' ||
+      searchableText.includes('아쿠아리움 관람') ||
+      searchableText.includes('어린이박물관 관람') ||
+      searchableText.includes('체험관 관람')
+    );
   }
 
   private toBoolean(value: string): boolean {

@@ -3322,12 +3322,16 @@ function buildExploreEventListQuery(
   selectedChildren: Child[],
 ): BabyrooEventListQuery {
   const query: BabyrooEventListQuery = {
-    limit: 100,
+    limit: 300,
   };
   const trimmedSearchQuery = searchQuery.trim();
 
   if (trimmedSearchQuery) {
     query.q = trimmedSearchQuery;
+  }
+
+  if (filters.exploreEventTypes.length > 0) {
+    query.eventType = filters.exploreEventTypes.join(',');
   }
 
   if (filters.region === 'seoul') {
