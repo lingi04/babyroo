@@ -61,6 +61,11 @@ import {
   signOutFromGoogle,
 } from './src/auth/GoogleAuthService';
 import {
+  BabyrooEventListQuery,
+  listEventsFromBabyrooApi,
+  loginWithBabyrooApi,
+} from './src/api/babyrooApi';
+import {
   Child,
   ChildGender,
   createUserProfile,
@@ -84,13 +89,13 @@ type PlaceFilter = 'all' | 'indoor' | 'outdoor';
 type ReservationFilter = 'all' | 'required' | 'notRequired';
 type DateFilter = 'active' | 'scheduled' | 'ongoing';
 type RegionFilter = 'all' | 'seoul' | 'gyeonggi' | 'other';
-type ExploreContentType = 'limitedEvent' | 'permanentVenue' | 'seoulKidsCafe';
+type ExploreEventType = 'limitedEvent' | 'permanentVenue' | 'seoulKidsCafe';
 
 type ExploreFilters = {
   ageFit: boolean;
   date: DateFilter;
   region: RegionFilter;
-  contentTypes: ExploreContentType[];
+  exploreEventTypes: ExploreEventType[];
   place: PlaceFilter;
   price: PriceFilter;
   reservation: ReservationFilter;
@@ -100,14 +105,14 @@ const defaultExploreFilters: ExploreFilters = {
   ageFit: false,
   date: 'active',
   region: 'all',
-  contentTypes: ['limitedEvent'],
+  exploreEventTypes: ['limitedEvent'],
   place: 'all',
   price: 'all',
   reservation: 'all',
 };
 
-const exploreContentTypeOptions: Array<{
-  value: ExploreContentType;
+const exploreEventTypeOptions: Array<{
+  value: ExploreEventType;
   label: string;
   icon: string;
 }> = [
@@ -297,6 +302,7 @@ function BabyrooApp() {
   const [browsingAsGuest, setBrowsingAsGuest] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
+  const [events, setEvents] = useState<BabyrooEvent[]>(eventsNewestFirst);
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -305,6 +311,7 @@ function BabyrooApp() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const skipNextUserSaveRef = useRef(false);
+  const apiLoginAttemptedRef = useRef(false);
   const renderTabScreen = (
     screenTab: Tab,
     navigateToTab: (tab: Tab) => void,
@@ -321,6 +328,8 @@ function BabyrooApp() {
 
       return (
         <HomeScreen
+          authSession={authSession}
+          events={events}
           user={user}
           onOpenRecommendationDetail={openRecommendationDetail}
           onOpenSettings={openSettings}
@@ -332,6 +341,8 @@ function BabyrooApp() {
     if (screenTab === 'explore') {
       return (
         <ExploreScreen
+          events={events}
+          onChangeEvents={setEvents}
           user={user}
           filters={exploreFilters}
           onOpenEvent={openDetail}
@@ -340,12 +351,12 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
-          onToggleContentType={contentType =>
+          onToggleEventType={eventType =>
             setExploreFilters(previousFilters => ({
               ...previousFilters,
-              contentTypes: toggleExploreContentType(
-                previousFilters.contentTypes,
-                contentType,
+              exploreEventTypes: toggleExploreEventType(
+                previousFilters.exploreEventTypes,
+                eventType,
               ),
             }))
           }
@@ -398,6 +409,39 @@ function BabyrooApp() {
       saveUser(user).catch(() => undefined);
     }
   }, [authSession, user, userLoaded]);
+
+  useEffect(() => {
+    if (
+      !authLoaded ||
+      !authSession ||
+      authSession.apiAccessToken ||
+      apiLoginAttemptedRef.current
+    ) {
+      return;
+    }
+
+    apiLoginAttemptedRef.current = true;
+
+    loginWithBabyrooApi(authSession)
+      .then(apiAuth => {
+        const apiSession: AuthSession = {
+          ...authSession,
+          apiAccessToken: apiAuth.accessToken,
+          apiUserId: apiAuth.user.id,
+        };
+
+        setAuthSession(apiSession);
+        return saveAuthSession(apiSession);
+      })
+      .catch(error => {
+        Alert.alert(
+          '서버 연결 실패',
+          error instanceof Error
+            ? error.message
+            : 'Babyroo 서버에 로그인하지 못했습니다.',
+        );
+      });
+  }, [authLoaded, authSession]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -478,9 +522,28 @@ function BabyrooApp() {
           })
         : user;
 
-    await saveAuthSession(result.session);
+    let apiSession: AuthSession;
+
+    try {
+      const apiAuth = await loginWithBabyrooApi(result.session);
+      apiSession = {
+        ...result.session,
+        apiAccessToken: apiAuth.accessToken,
+        apiUserId: apiAuth.user.id,
+      };
+    } catch (error) {
+      Alert.alert(
+        '서버 연결 실패',
+        error instanceof Error
+          ? error.message
+          : 'Babyroo 서버에 로그인하지 못했습니다.',
+      );
+      return;
+    }
+
+    await saveAuthSession(apiSession);
     await saveUser(nextUser);
-    setAuthSession(result.session);
+    setAuthSession(apiSession);
     setBrowsingAsGuest(false);
     setUser(nextUser);
   };
@@ -633,6 +696,7 @@ function BabyrooApp() {
         </View>
       ) : !authSession && !browsingAsGuest ? (
         <AuthScreen
+          eventCount={events.length}
           onBrowse={() => setBrowsingAsGuest(true)}
           onSignIn={handleGoogleSignIn}
         />
@@ -685,9 +749,9 @@ function BabyrooApp() {
           {selectedRecommendationSession ? (
             <RecommendationSessionDetail
               bottomInset={bottomInset}
-              events={eventsNewestFirst}
+              events={events}
               questions={buildRecommendationQuestions(
-                eventsNewestFirst,
+                events,
                 sortChildrenByAge(getSelectedChildren(user)),
                 preferencesToAnswers(selectedRecommendationSession.preferences),
                 user.homeAddress,
@@ -712,9 +776,11 @@ function BabyrooApp() {
 }
 
 function AuthScreen({
+  eventCount,
   onBrowse,
   onSignIn,
 }: {
+  eventCount: number;
   onBrowse?: () => void;
   onSignIn: () => Promise<void>;
 }) {
@@ -742,7 +808,7 @@ function AuthScreen({
       </Text>
       <View style={styles.authValuePanel}>
         <View style={styles.authValueItem}>
-          <Text style={styles.authValueNumber}>{eventsNewestFirst.length}</Text>
+          <Text style={styles.authValueNumber}>{eventCount}</Text>
           <Text style={styles.authValueLabel}>검토할 행사</Text>
         </View>
         <View style={styles.authValueDivider} />
@@ -1046,11 +1112,15 @@ function OnboardingScreen({
 }
 
 function HomeScreen({
+  authSession,
+  events,
   user,
   onOpenRecommendationDetail,
   onOpenSettings,
   bottomInset,
 }: {
+  authSession: AuthSession;
+  events: BabyrooEvent[];
   user: User;
   onOpenRecommendationDetail: (session: RecommendationSession) => void;
   onOpenSettings: () => void;
@@ -1079,7 +1149,7 @@ function HomeScreen({
   const recommendationQuestions = useMemo(
     () =>
       buildRecommendationQuestions(
-        eventsNewestFirst,
+        events,
         selectedChildren,
         recommendationAnswers,
         user.homeAddress,
@@ -1095,17 +1165,21 @@ function HomeScreen({
   const recommendationService = useMemo(
     () =>
       createRecommendationService({
-        provider: 'mock',
+        provider: authSession.apiAccessToken ? 'remote' : 'mock',
         mockOptions: {
           delayMs: 0,
           getLocalContext: () => ({
-            events: eventsNewestFirst,
+            events,
             selectedChildren,
             user,
           }),
         },
+        remoteOptions: {
+          accessToken: authSession.apiAccessToken,
+          selectedChildren,
+        },
       }),
-    [selectedChildren, user],
+    [authSession.apiAccessToken, events, selectedChildren, user],
   );
   const currentRecommendationQuestion =
     recommendationQuestions[recommendationQuestionIndex];
@@ -1155,6 +1229,8 @@ function HomeScreen({
       sessionId,
       userId: user.id,
       selectedChildIds: selectedChildren.map(child => child.id),
+      selectedChildren,
+      answers,
       preferences,
       client: {
         locale: 'ko-KR',
@@ -1367,7 +1443,7 @@ function HomeScreen({
             storedRecommendationSessions.map(session => (
               <RecommendationSessionCard
                 key={session.id}
-                events={eventsNewestFirst}
+                events={events}
                 questions={recommendationQuestions}
                 session={session}
                 onPress={() => {
@@ -1823,29 +1899,34 @@ function RecommendationDebugPrompt({
 }
 
 function ExploreScreen({
+  events,
+  onChangeEvents,
   user,
   filters,
   onOpenEvent,
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
-  onToggleContentType,
+  onToggleEventType,
   onToggleChild,
   bottomInset,
 }: {
+  events: BabyrooEvent[];
+  onChangeEvents: (events: BabyrooEvent[]) => void;
   user: User;
   filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
-  onToggleContentType: (contentType: ExploreContentType) => void;
+  onToggleEventType: (eventType: ExploreEventType) => void;
   onToggleChild: (childId: string) => void;
   bottomInset: number;
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
   const [searchQuery, setSearchQuery] = useState('');
+  const [eventsLoaded, setEventsLoaded] = useState(false);
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
   const [exploreControlsCollapsed, setExploreControlsCollapsed] =
@@ -1853,14 +1934,59 @@ function ExploreScreen({
   const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
     () =>
-      filterEvents(eventsNewestFirst, searchQuery, filters, selectedChildren),
-    [filters, searchQuery, selectedChildren],
+      filterEvents(events, searchQuery, filters, selectedChildren),
+    [events, filters, searchQuery, selectedChildren],
   );
   const activeFilterLabels = getActiveExploreFilterLabels(filters);
   const exploreCriteriaSummary = formatExploreCriteriaSummary(
     selectedChildren,
     activeFilterLabels,
   );
+  const eventListQuery = useMemo(
+    () => buildExploreEventListQuery(searchQuery, filters, selectedChildren),
+    [filters, searchQuery, selectedChildren],
+  );
+  const eventListQueryKey = JSON.stringify(eventListQuery);
+
+  useEffect(() => {
+    let mounted = true;
+
+    console.warn(
+      `[Babyroo Explore] loading events from API with query ${JSON.stringify(
+        eventListQuery,
+      )}`,
+    );
+    setEventsLoaded(false);
+    listEventsFromBabyrooApi(eventListQuery)
+      .then(apiEvents => {
+        if (mounted) {
+          console.warn(
+            `[Babyroo Explore] loaded ${apiEvents.length} events from API`,
+          );
+          onChangeEvents(apiEvents);
+        }
+      })
+      .catch(error => {
+        if (mounted) {
+          console.warn('[Babyroo Explore] failed to load events from API', error);
+          Alert.alert(
+            '행사 데이터를 불러오지 못했어요',
+            error instanceof Error
+              ? error.message
+              : 'Babyroo 서버에서 행사 목록을 가져오지 못했습니다.',
+          );
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setEventsLoaded(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [eventListQueryKey, onChangeEvents]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const nextVisible = event.nativeEvent.contentOffset.y > 420;
@@ -1915,30 +2041,30 @@ function ExploreScreen({
               />
             </View>
 
-            <View style={styles.contentTypeSelector}>
-              {exploreContentTypeOptions.map(option => {
-                const selected = filters.contentTypes.includes(option.value);
+            <View style={styles.eventTypeSelector}>
+              {exploreEventTypeOptions.map(option => {
+                const selected = filters.exploreEventTypes.includes(option.value);
 
                 return (
                   <Pressable
                     key={option.value}
                     style={[
-                      styles.contentTypeOption,
-                      selected && styles.contentTypeOptionSelected,
+                      styles.eventTypeOption,
+                      selected && styles.eventTypeOptionSelected,
                     ]}
-                    onPress={() => onToggleContentType(option.value)}
-                    accessibilityLabel={`Toggle explore content type ${option.label}`}
+                    onPress={() => onToggleEventType(option.value)}
+                    accessibilityLabel={`Toggle explore event type ${option.label}`}
                   >
                     <View
                       style={[
-                        styles.contentTypeIcon,
-                        selected && styles.contentTypeIconSelected,
+                        styles.eventTypeIcon,
+                        selected && styles.eventTypeIconSelected,
                       ]}
                     >
                       <Text
                         style={[
-                          styles.contentTypeIconText,
-                          selected && styles.contentTypeIconTextSelected,
+                          styles.eventTypeIconText,
+                          selected && styles.eventTypeIconTextSelected,
                         ]}
                       >
                         {option.icon}
@@ -1946,8 +2072,8 @@ function ExploreScreen({
                     </View>
                     <Text
                       style={[
-                        styles.contentTypeLabel,
-                        selected && styles.contentTypeLabelSelected,
+                        styles.eventTypeLabel,
+                        selected && styles.eventTypeLabelSelected,
                       ]}
                       numberOfLines={1}
                     >
@@ -2066,9 +2192,15 @@ function ExploreScreen({
         }
         ListEmptyComponent={
           <View style={styles.noResultsCard}>
-            <Text style={styles.noResultsTitle}>조건에 맞는 행사가 없어요</Text>
+            <Text style={styles.noResultsTitle}>
+              {eventsLoaded
+                ? '조건에 맞는 행사가 없어요'
+                : '행사 데이터를 불러오고 있어요'}
+            </Text>
             <Text style={styles.noResultsText}>
-              검색어를 줄이거나 필터를 넓혀서 다시 찾아보세요.
+              {eventsLoaded
+                ? '검색어를 줄이거나 필터를 넓혀서 다시 찾아보세요.'
+                : 'Babyroo 서버에서 최신 행사 목록을 가져오는 중입니다.'}
             </Text>
           </View>
         }
@@ -2796,11 +2928,17 @@ function FilterSheet({
   onChangeFilters: (filters: ExploreFilters) => void;
   onClose: () => void;
 }) {
+  const [draftFilters, setDraftFilters] = useState(filters);
   const updateFilter = <Key extends keyof ExploreFilters>(
     key: Key,
     value: ExploreFilters[Key],
   ) => {
-    onChangeFilters({ ...filters, [key]: value });
+    setDraftFilters(previousFilters => ({ ...previousFilters, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    onChangeFilters(draftFilters);
+    onClose();
   };
 
   return (
@@ -2817,7 +2955,7 @@ function FilterSheet({
               직접 찾고 싶은 조건만 좁혀보세요
             </Text>
           </View>
-          <Pressable onPress={() => onChangeFilters(defaultExploreFilters)}>
+          <Pressable onPress={() => setDraftFilters(defaultExploreFilters)}>
             <Text style={styles.linkText}>초기화</Text>
           </Pressable>
         </View>
@@ -2828,10 +2966,12 @@ function FilterSheet({
         >
           <Text style={styles.fieldLabel}>아이 월령</Text>
           <View style={styles.wrapRow}>
-            <Pressable onPress={() => updateFilter('ageFit', !filters.ageFit)}>
+            <Pressable
+              onPress={() => updateFilter('ageFit', !draftFilters.ageFit)}
+            >
               <Chip
                 label="선택한 아이에게 맞는 행사"
-                selected={filters.ageFit}
+                selected={draftFilters.ageFit}
               />
             </Pressable>
           </View>
@@ -2849,7 +2989,10 @@ function FilterSheet({
               >
                 <Chip
                   label={label}
-                  selected={filters.date === 'active' || filters.date === value}
+                  selected={
+                    draftFilters.date === 'active' ||
+                    draftFilters.date === value
+                  }
                 />
               </Pressable>
             ))}
@@ -2867,7 +3010,7 @@ function FilterSheet({
                 key={value}
                 onPress={() => updateFilter('region', value as RegionFilter)}
               >
-                <Chip label={label} selected={filters.region === value} />
+                <Chip label={label} selected={draftFilters.region === value} />
               </Pressable>
             ))}
           </View>
@@ -2883,7 +3026,7 @@ function FilterSheet({
                 key={value}
                 onPress={() => updateFilter('price', value as PriceFilter)}
               >
-                <Chip label={label} selected={filters.price === value} />
+                <Chip label={label} selected={draftFilters.price === value} />
               </Pressable>
             ))}
           </View>
@@ -2899,7 +3042,7 @@ function FilterSheet({
                 key={value}
                 onPress={() => updateFilter('place', value as PlaceFilter)}
               >
-                <Chip label={label} selected={filters.place === value} />
+                <Chip label={label} selected={draftFilters.place === value} />
               </Pressable>
             ))}
           </View>
@@ -2917,14 +3060,17 @@ function FilterSheet({
                   updateFilter('reservation', value as ReservationFilter)
                 }
               >
-                <Chip label={label} selected={filters.reservation === value} />
+                <Chip
+                  label={label}
+                  selected={draftFilters.reservation === value}
+                />
               </Pressable>
             ))}
           </View>
 
           <Pressable
             style={[styles.primaryButton, styles.sheetApplyButton]}
-            onPress={onClose}
+            onPress={applyFilters}
             accessibilityLabel="Apply filters"
           >
             <Text style={styles.primaryButtonText}>결과 보기</Text>
@@ -3170,6 +3316,55 @@ function BottomTabs({
   );
 }
 
+function buildExploreEventListQuery(
+  searchQuery: string,
+  filters: ExploreFilters,
+  selectedChildren: Child[],
+): BabyrooEventListQuery {
+  const query: BabyrooEventListQuery = {
+    limit: 100,
+  };
+  const trimmedSearchQuery = searchQuery.trim();
+
+  if (trimmedSearchQuery) {
+    query.q = trimmedSearchQuery;
+  }
+
+  if (filters.region === 'seoul') {
+    query.region = '서울';
+  }
+
+  if (filters.region === 'gyeonggi') {
+    query.region = '경기';
+  }
+
+  if (filters.ageFit && selectedChildren.length > 0) {
+    query.childAgeMonths = calculateAgeMonths(selectedChildren[0].birthDate);
+  }
+
+  if (filters.price !== 'all') {
+    query.priceType = filters.price;
+  }
+
+  if (filters.place === 'indoor') {
+    query.indoor = true;
+  }
+
+  if (filters.place === 'outdoor') {
+    query.indoor = false;
+  }
+
+  if (filters.reservation === 'required') {
+    query.reservationRequired = true;
+  }
+
+  if (filters.reservation === 'notRequired') {
+    query.reservationRequired = false;
+  }
+
+  return query;
+}
+
 function filterEvents(
   events: BabyrooEvent[],
   searchQuery: string,
@@ -3201,7 +3396,7 @@ function filterEvents(
       return false;
     }
 
-    if (!eventMatchesExploreContentTypes(event, filters.contentTypes)) {
+    if (!eventMatchesExploreEventTypes(event, filters.exploreEventTypes)) {
       return false;
     }
 
@@ -3695,31 +3890,31 @@ function eventMatchesRegionFilter(
   return event.region !== '서울' && event.region !== '경기';
 }
 
-function eventMatchesExploreContentTypes(
+function eventMatchesExploreEventTypes(
   event: BabyrooEvent,
-  contentTypes: ExploreContentType[],
+  exploreEventTypes: ExploreEventType[],
 ) {
-  return contentTypes.includes(getExploreContentType(event));
+  return exploreEventTypes.includes(getExploreEventType(event));
 }
 
-function toggleExploreContentType(
-  selectedContentTypes: ExploreContentType[],
-  contentType: ExploreContentType,
+function toggleExploreEventType(
+  selectedEventTypes: ExploreEventType[],
+  eventType: ExploreEventType,
 ) {
-  if (selectedContentTypes.includes(contentType)) {
-    if (selectedContentTypes.length === 1) {
-      return selectedContentTypes;
+  if (selectedEventTypes.includes(eventType)) {
+    if (selectedEventTypes.length === 1) {
+      return selectedEventTypes;
     }
 
-    return selectedContentTypes.filter(
-      selectedContentType => selectedContentType !== contentType,
+    return selectedEventTypes.filter(
+      selectedEventType => selectedEventType !== eventType,
     );
   }
 
-  return [...selectedContentTypes, contentType];
+  return [...selectedEventTypes, eventType];
 }
 
-function getExploreContentType(event: BabyrooEvent): ExploreContentType {
+function getExploreEventType(event: BabyrooEvent): ExploreEventType {
   if (eventIsSeoulKidsCafe(event)) {
     return 'seoulKidsCafe';
   }
@@ -4982,7 +5177,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  contentTypeSelector: {
+  eventTypeSelector: {
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
@@ -4998,7 +5193,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 16,
   },
-  contentTypeOption: {
+  eventTypeOption: {
     alignItems: 'center',
     backgroundColor: colors.surfaceRaised,
     borderRadius: radius.pill,
@@ -5010,10 +5205,10 @@ const styles = StyleSheet.create({
     minWidth: 0,
     paddingHorizontal: spacing.sm,
   },
-  contentTypeOptionSelected: {
+  eventTypeOptionSelected: {
     backgroundColor: colors.primarySoft,
   },
-  contentTypeIcon: {
+  eventTypeIcon: {
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
@@ -5024,25 +5219,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 24,
   },
-  contentTypeIconSelected: {
+  eventTypeIconSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primaryStrong,
   },
-  contentTypeIconText: {
+  eventTypeIconText: {
     color: colors.primaryStrong,
     fontSize: 11,
     fontWeight: '900',
   },
-  contentTypeIconTextSelected: {
+  eventTypeIconTextSelected: {
     color: colors.surface,
   },
-  contentTypeLabel: {
+  eventTypeLabel: {
     color: colors.text,
     flexShrink: 1,
     fontSize: 12,
     fontWeight: '900',
   },
-  contentTypeLabelSelected: {
+  eventTypeLabelSelected: {
     color: colors.primaryStrong,
   },
   resultCount: {

@@ -7,6 +7,8 @@ export type AuthSession = {
   displayName: string;
   photoUrl?: string;
   idToken?: string;
+  apiAccessToken?: string;
+  apiUserId?: string;
 };
 
 export type AuthErrorCode =

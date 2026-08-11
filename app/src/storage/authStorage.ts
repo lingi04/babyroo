@@ -34,5 +34,7 @@ function normalizeAuthSession(session: AuthSession): AuthSession {
     displayName: session.displayName ?? '',
     photoUrl: session.photoUrl,
     idToken: session.idToken,
+    apiAccessToken: session.apiAccessToken,
+    apiUserId: session.apiUserId,
   };
 }

@@ -91,6 +91,8 @@ export type RecommendationRequest = {
   sessionId: string;
   userId: string;
   selectedChildIds: string[];
+  selectedChildren?: Child[];
+  answers?: RecommendationAnswerMap;
   preferences: Preferences;
   client: {
     appVersion?: string;

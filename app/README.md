@@ -18,6 +18,42 @@ npm start
 yarn start
 ```
 
+## Babyroo API server
+
+The app calls the local Babyroo API server for login exchange and remote recommendations.
+
+Start the server in another terminal:
+
+```sh
+cd ../server
+# npm run start:dev
+HOST=0.0.0.0 PORT=3000 npm run start:dev
+```
+
+Default API URLs used by the app:
+
+```text
+iOS simulator: http://127.0.0.1:3000/api
+Android emulator: http://10.0.2.2:3000/api
+```
+
+For a physical device, replace the API base URL in `src/api/babyrooApi.ts` with your machine's LAN address.
+
+For Android physical-device testing:
+
+```sh
+cd ../server
+HOST=0.0.0.0 npm run start:dev
+```
+
+Then use your Mac LAN IP in `src/api/babyrooApi.ts`, for example:
+
+```ts
+return 'http://172.30.1.90:3000/api';
+```
+
+Debug Android builds allow local HTTP traffic. Release builds should use HTTPS.
+
 ## Step 2: Build and run your app
 
 With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
