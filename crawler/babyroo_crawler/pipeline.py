@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 NORMALIZED_DIR = DATA_DIR / "normalized"
-PUBLIC_DIR = ROOT / "public"
+SERVER_DATA_DIR = ROOT / "server" / "data"
 
 
 def normalize_all(raw_dir: Path = RAW_DIR, normalized_dir: Path = NORMALIZED_DIR) -> list[dict]:
@@ -63,7 +63,7 @@ def make_age_normalization_warning(raw_event: dict[str, Any], normalized_event: 
 
 def publish(
     normalized_dir: Path = NORMALIZED_DIR,
-    public_dir: Path = PUBLIC_DIR,
+    server_data_dir: Path = SERVER_DATA_DIR,
     today: str | None = None,
 ) -> dict:
     normalized = read_json(normalized_dir / "events.json")
@@ -75,7 +75,7 @@ def publish(
         "count": len(events),
         "events": events,
     }
-    write_json(public_dir / "events.json", payload)
+    write_json(server_data_dir / "events.json", payload)
     write_json(
         normalized_dir / "publish_report.json",
         make_publish_report(normalized_events, events, today),

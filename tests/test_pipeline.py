@@ -72,7 +72,7 @@ class PublishTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             normalized_dir = root / "normalized"
-            public_dir = root / "public"
+            server_data_dir = root / "server" / "data"
 
             valid_event = make_event(id="valid")
             ended_event = make_event(id="ended", ends_at="2026-06-04")
@@ -93,13 +93,13 @@ class PublishTest(unittest.TestCase):
 
             payload = publish(
                 normalized_dir=normalized_dir,
-                public_dir=public_dir,
+                server_data_dir=server_data_dir,
                 today="2026-06-05",
             )
 
             self.assertEqual(payload["count"], 1)
             self.assertEqual(payload["events"], [valid_event])
-            self.assertEqual(read_json(public_dir / "events.json"), payload)
+            self.assertEqual(read_json(server_data_dir / "events.json"), payload)
 
             report = read_json(normalized_dir / "publish_report.json")
             self.assertEqual(report["input_count"], 4)

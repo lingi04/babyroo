@@ -15,10 +15,10 @@
    - 날짜, 가격, 월령, 카테고리, 외출 결정 태그를 정리합니다.
 
 3. `publish`
-   - 정적 웹이 읽을 `public/events.json`을 생성합니다.
+   - API 서버가 읽을 `server/data/events.json`을 생성합니다.
    - 종료 행사와 노출 최소 기준 미달 행사를 제외하는 품질 게이트 역할을 합니다.
 
-`publish`는 사용자에게 보여도 되는 유효 행사만 남깁니다. 추천 로직은 `public/events.json`에 공개된 유효 행사 안에서만 월령, 날짜, 지역, 카테고리, 상황 태그를 기준으로 후보를 고릅니다.
+`publish`는 사용자에게 보여도 되는 유효 행사만 남깁니다. 추천 로직은 `server/data/events.json`에 공개된 유효 행사 안에서만 월령, 날짜, 지역, 카테고리, 상황 태그를 기준으로 후보를 고릅니다.
 
 ## 공통 이벤트 필드
 
@@ -75,7 +75,7 @@
 
 ## publish 제외 기준
 
-`public/events.json`에는 사용자에게 바로 보여줄 수 있는 행사만 포함합니다.
+`server/data/events.json`에는 사용자에게 바로 보여줄 수 있는 행사만 포함합니다.
 
 - `ends_at`이 오늘보다 이전이면 제외합니다.
 - 노출 최소 기준을 만족하지 못하면 제외합니다.
@@ -94,7 +94,7 @@
 
 공개 JSON은 작고 안정적으로 유지하고, 디버깅용 근거는 중간 산출물에 남깁니다.
 
-LLM의 `confidence`, `evidence`, 원문 일부, 파싱 실패 이유는 `public/events.json`에 넣지 않습니다. 공개 JSON은 사용자 경험에 필요한 안정 필드만 담는 계약으로 유지합니다.
+LLM의 `confidence`, `evidence`, 원문 일부, 파싱 실패 이유는 `server/data/events.json`에 넣지 않습니다. 공개 JSON은 사용자 경험에 필요한 안정 필드만 담는 계약으로 유지합니다.
 
 `publish`에서 제외된 행사는 `data/normalized/publish_report.json`에 제외 사유를 남깁니다. 리포트는 운영자 디버깅용이며 `public/`에는 공개하지 않습니다.
 

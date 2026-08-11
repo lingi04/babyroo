@@ -103,7 +103,7 @@ Babyroo의 1차 성공 장면은 금요일 밤이나 토요일 아침에 서울/
 
 ## 유효 행사와 추천 후보
 
-`publish` 단계는 사용자에게 보여도 되는 유효 행사만 `public/events.json`에 남기는 품질 게이트입니다.
+`publish` 단계는 사용자에게 보여도 되는 유효 행사만 `server/data/events.json`에 남기는 품질 게이트입니다.
 
 하드 제외 기준:
 
@@ -206,7 +206,7 @@ MVP에서는 실시간 예약 가능 여부를 Babyroo가 책임지지 않습니
 
 ## 공개 JSON 경계
 
-`public/events.json`은 웹이 읽는 사용자용 계약입니다.
+`server/data/events.json`은 API 서버가 읽는 사용자용 계약입니다.
 
 포함:
 

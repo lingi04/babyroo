@@ -12,7 +12,7 @@ The current server exposes the first backend surface for:
 - recommendation credits
 - recommendation sessions
 
-Events are read from the existing `../public/events.json` file. User, saved event, credit, and recommendation data are currently stored in memory, so they reset when the server restarts.
+Events are read from `data/events.json` under this server directory. User, saved event, credit, and recommendation data are currently stored in memory, so they reset when the server restarts.
 
 ## Architecture
 
@@ -111,7 +111,7 @@ Optional:
 ```text
 PORT=3000
 HOST=127.0.0.1
-EVENT_DATA_PATH=../public/events.json
+EVENT_DATA_PATH=data/events.json
 DEFAULT_RECOMMENDATION_CREDITS=3
 ```
 

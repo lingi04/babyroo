@@ -3,7 +3,7 @@
 Babyroo의 데이터 파이프라인은 처음부터 작게 시작합니다.
 
 ```text
-data/raw/*.json -> data/normalized/events.json -> public/events.json
+data/raw/*.json -> data/normalized/events.json -> server/data/events.json
 ```
 
 ## 실행
@@ -102,7 +102,7 @@ PYTHONPATH=crawler python3 -m babyroo_crawler.cli publish
 
 3. `publish`
    - 종료 행사와 필수값이 없는 행사를 제외합니다.
-   - 웹이 읽을 `public/events.json`을 생성합니다.
+   - 서버가 읽을 `server/data/events.json`을 생성합니다.
    - 제외 이유는 `data/normalized/publish_report.json`에 기록합니다.
 
 수집기와 정규화를 분리했기 때문에, 다음 사이트를 추가할 때는 `crawler/sources/`에 collector만 추가하고 기존 normalize/publish 흐름을 재사용할 수 있습니다.

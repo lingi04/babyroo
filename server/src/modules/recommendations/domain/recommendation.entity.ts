@@ -1,3 +1,5 @@
+import { Child } from '../../users/domain/user.entity';
+
 export type RecommendationPreferences = Partial<{
   startRegion: 'seoul' | 'gyeonggi' | 'other';
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
@@ -33,7 +35,7 @@ export type RecommendationSession = {
 
 export type CreateRecommendationSessionInput = {
   selectedChildIds?: string[];
+  selectedChildren?: Child[];
   answers?: RecommendationAnswerMap;
   preferences?: RecommendationPreferences;
 };
-

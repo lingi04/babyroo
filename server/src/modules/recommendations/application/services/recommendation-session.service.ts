@@ -51,9 +51,10 @@ export class RecommendationSessionService
         : user.activeChildIds.length > 0
           ? user.activeChildIds
           : user.children.map(child => child.id);
-    const selectedChildren = user.children.filter(child =>
-      selectedChildIds.includes(child.id),
-    );
+    const selectedChildren =
+      input.selectedChildren && input.selectedChildren.length > 0
+        ? input.selectedChildren
+        : user.children.filter(child => selectedChildIds.includes(child.id));
     const eventList = await this.listEventsUseCase.list({ limit: '100' });
     const results = this.recommender.recommend(
       eventList.events,

@@ -81,8 +81,8 @@ export class JsonEventRepository implements EventRepositoryPort {
     }
 
     const candidates = [
-      resolve(process.cwd(), '../public/events.json'),
-      resolve(process.cwd(), 'public/events.json'),
+      resolve(process.cwd(), 'data/events.json'),
+      resolve(process.cwd(), 'server/data/events.json'),
     ];
     const match = candidates.find(candidate => existsSync(candidate));
     return match ?? candidates[0];

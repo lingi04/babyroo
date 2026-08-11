@@ -46,7 +46,7 @@ def main() -> None:
     )
     kids_cafe_parser.add_argument("--pages", type=int, default=None)
     subparsers.add_parser("normalize", help="Normalize raw files into data/normalized/events.json")
-    subparsers.add_parser("publish", help="Publish normalized events into public/events.json")
+    subparsers.add_parser("publish", help="Publish normalized events into server/data/events.json")
     subparsers.add_parser("run-sample", help="Run collect-sample, normalize, and publish")
     run_seoul_parser = subparsers.add_parser(
         "run-seoul",
