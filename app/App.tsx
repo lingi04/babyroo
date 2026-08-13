@@ -62,9 +62,14 @@ import {
 } from './src/auth/GoogleAuthService';
 import {
   BabyrooEventListQuery,
+  createChildInBabyrooApi,
+  deleteChildFromBabyrooApi,
   getEventFromBabyrooApi,
+  getCurrentUserFromBabyrooApi,
   listEventsFromBabyrooApi,
   loginWithBabyrooApi,
+  updateChildInBabyrooApi,
+  updateCurrentUserInBabyrooApi,
 } from './src/api/babyrooApi';
 import {
   Child,
@@ -313,6 +318,7 @@ function BabyrooApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const skipNextUserSaveRef = useRef(false);
   const apiLoginAttemptedRef = useRef(false);
+  const apiUserHydrationAttemptedRef = useRef(false);
   const renderTabScreen = (
     screenTab: Tab,
     navigateToTab: (tab: Tab) => void,
@@ -433,7 +439,10 @@ function BabyrooApp() {
         };
 
         setAuthSession(apiSession);
-        return saveAuthSession(apiSession);
+        return Promise.all([
+          saveAuthSession(apiSession),
+          hydrateUserFromBabyrooApi(apiAuth.accessToken),
+        ]);
       })
       .catch(error => {
         Alert.alert(
@@ -444,6 +453,40 @@ function BabyrooApp() {
         );
       });
   }, [authLoaded, authSession]);
+
+  useEffect(() => {
+    if (
+      !authLoaded ||
+      !userLoaded ||
+      !authSession ||
+      !authSession.apiAccessToken ||
+      apiUserHydrationAttemptedRef.current
+    ) {
+      return;
+    }
+
+    apiUserHydrationAttemptedRef.current = true;
+
+    hydrateUserFromBabyrooApi(authSession.apiAccessToken).catch(() => {
+      loginWithBabyrooApi(authSession)
+        .then(apiAuth => {
+          const apiSession: AuthSession = {
+            ...authSession,
+            apiAccessToken: apiAuth.accessToken,
+            apiUserId: apiAuth.user.id,
+          };
+
+          setAuthSession(apiSession);
+          return Promise.all([
+            saveAuthSession(apiSession),
+            hydrateUserFromBabyrooApi(apiAuth.accessToken),
+          ]);
+        })
+        .catch(error => {
+          console.warn('[Babyroo API] failed to hydrate current user', error);
+        });
+    });
+  }, [authLoaded, authSession, userLoaded]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener(
@@ -543,16 +586,21 @@ function BabyrooApp() {
       return;
     }
 
+    const serverUser = await getCurrentUserFromBabyrooApi(
+      apiSession.apiAccessToken!,
+    ).catch(() => null);
+
     await saveAuthSession(apiSession);
-    await saveUser(nextUser);
+    await saveUser(serverUser ?? nextUser);
     setAuthSession(apiSession);
     setBrowsingAsGuest(false);
-    setUser(nextUser);
+    setUser(serverUser ?? nextUser);
   };
 
   const completeOnboarding = async (nextUser: User) => {
-    await saveUser(nextUser);
-    setUser(nextUser);
+    const savedUser = await saveUserProfileToBabyrooApi(nextUser);
+    await saveUser(savedUser);
+    setUser(savedUser);
   };
 
   const signOut = async () => {
@@ -578,25 +626,88 @@ function BabyrooApp() {
 
   const closeSettings = () => setSettingsOpen(false);
 
+  const hydrateUserFromBabyrooApi = async (accessToken: string) => {
+    const serverUser = await getCurrentUserFromBabyrooApi(accessToken);
+    await saveUser(serverUser);
+    setUser(serverUser);
+    return serverUser;
+  };
+
+  const saveUserProfileToBabyrooApi = async (nextUser: User) => {
+    if (!authSession?.apiAccessToken) {
+      return nextUser;
+    }
+
+    let serverUser = await updateCurrentUserInBabyrooApi({
+      accessToken: authSession.apiAccessToken,
+      user: {
+        displayName: nextUser.displayName,
+        homeAddress: nextUser.homeAddress,
+        homeRegion: nextUser.homeRegion,
+        preferredLocalities: nextUser.preferredLocalities,
+      },
+    });
+
+    if (serverUser.children.length === 0 && nextUser.children.length > 0) {
+      const child = nextUser.children[0];
+      await createChildInBabyrooApi({
+        accessToken: authSession.apiAccessToken,
+        child: {
+          birthDate: child.birthDate,
+          gender: child.gender,
+          nickname: child.nickname,
+        },
+      });
+      serverUser = await getCurrentUserFromBabyrooApi(authSession.apiAccessToken);
+    }
+
+    return serverUser;
+  };
+
+  const updateUserProfileOnBabyrooApi = (
+    userPatch: Parameters<typeof updateCurrentUserInBabyrooApi>[0]['user'],
+  ) => {
+    if (!authSession?.apiAccessToken) {
+      return;
+    }
+
+    updateCurrentUserInBabyrooApi({
+      accessToken: authSession.apiAccessToken,
+      user: userPatch,
+    })
+      .then(serverUser => {
+        setUser(serverUser);
+        return saveUser(serverUser);
+      })
+      .catch(error => {
+        console.warn('[Babyroo API] failed to sync user profile', error);
+      });
+  };
+
   const updateHomeRegion = (homeRegion: string) => {
     setUser(previousUser => ({ ...previousUser, homeRegion }));
+    updateUserProfileOnBabyrooApi({ homeRegion });
   };
 
   const updateHomeAddress = (homeAddress?: UserHomeAddress) => {
+    const homeRegion = homeAddress?.sido
+      ? regionFromAddressSido(homeAddress.sido)
+      : user.homeRegion;
+
     setUser(previousUser => ({
       ...previousUser,
       homeAddress,
-      homeRegion: homeAddress?.sido
-        ? regionFromAddressSido(homeAddress.sido)
-        : previousUser.homeRegion,
+      homeRegion,
     }));
+    updateUserProfileOnBabyrooApi({ homeAddress, homeRegion });
   };
 
   const updateDisplayName = (displayName: string) => {
     setUser(previousUser => ({ ...previousUser, displayName }));
+    updateUserProfileOnBabyrooApi({ displayName });
   };
 
-  const addChild = (child: Omit<Child, 'id'>) => {
+  const addChild = async (child: Omit<Child, 'id'>) => {
     const id = `child-${Date.now()}`;
 
     setUser(previousUser => {
@@ -606,6 +717,21 @@ function BabyrooApp() {
         activeChildIds: [...previousUser.activeChildIds, id],
       };
     });
+
+    if (authSession?.apiAccessToken) {
+      createChildInBabyrooApi({
+        accessToken: authSession.apiAccessToken,
+        child,
+      })
+        .then(() => getCurrentUserFromBabyrooApi(authSession.apiAccessToken!))
+        .then(serverUser => {
+          setUser(serverUser);
+          return saveUser(serverUser);
+        })
+        .catch(error => {
+          console.warn('[Babyroo API] failed to create child', error);
+        });
+    }
 
     return id;
   };
@@ -620,6 +746,16 @@ function BabyrooApp() {
         child.id === childId ? { ...child, ...childPatch } : child,
       ),
     }));
+
+    if (authSession?.apiAccessToken) {
+      updateChildInBabyrooApi({
+        accessToken: authSession.apiAccessToken,
+        childId,
+        childPatch,
+      }).catch(error => {
+        console.warn('[Babyroo API] failed to update child', error);
+      });
+    }
   };
 
   const removeChild = (childId: string) => {
@@ -642,6 +778,15 @@ function BabyrooApp() {
           activeChildIds.length > 0 ? activeChildIds : [children[0].id],
       };
     });
+
+    if (authSession?.apiAccessToken) {
+      deleteChildFromBabyrooApi({
+        accessToken: authSession.apiAccessToken,
+        childId,
+      }).catch(error => {
+        console.warn('[Babyroo API] failed to delete child', error);
+      });
+    }
   };
 
   const toggleActiveChild = (childId: string) => {
@@ -658,6 +803,15 @@ function BabyrooApp() {
             ? activeChildIds
             : previousUser.activeChildIds,
       };
+    });
+
+    const isActive = user.activeChildIds.includes(childId);
+    const activeChildIds = isActive
+      ? user.activeChildIds.filter(id => id !== childId)
+      : [...user.activeChildIds, childId];
+    updateUserProfileOnBabyrooApi({
+      activeChildIds:
+        activeChildIds.length > 0 ? activeChildIds : user.activeChildIds,
     });
   };
 
@@ -1138,6 +1292,7 @@ function HomeScreen({
     useState<string | null>(null);
   const [recommendationAnswers, setRecommendationAnswers] =
     useState<RecommendationAnswerMap>({});
+  const recommendationHistoryLoadedRef = useRef<string | null>(null);
   const [recommendationFlowStep, setRecommendationFlowStep] = useState<
     'idle' | 'interview' | 'confirming'
   >('idle');
@@ -1177,6 +1332,34 @@ function HomeScreen({
   const storedRecommendationSessions = recommendationSessions.filter(
     session => session.status === 'success' && session.results.length > 0,
   );
+
+  useEffect(() => {
+    if (
+      !authSession.apiAccessToken ||
+      recommendationHistoryLoadedRef.current === authSession.apiAccessToken
+    ) {
+      return;
+    }
+
+    recommendationHistoryLoadedRef.current = authSession.apiAccessToken;
+
+    new RemoteRecommendationService({
+      accessToken: authSession.apiAccessToken,
+    })
+      .listSessions()
+      .then(sessions => {
+        setRecommendationSessions(sessions);
+        setSelectedRecommendationSessionId(
+          sessions.length > 0 ? sessions[0].id : null,
+        );
+      })
+      .catch(error => {
+        console.warn(
+          '[Babyroo API] failed to load recommendation sessions',
+          error,
+        );
+      });
+  }, [authSession.apiAccessToken]);
 
   const startRecommendationInterview = () => {
     setRecommendationAnswers({});
@@ -2474,7 +2657,7 @@ function SettingsScreen({
 }: {
   user: User;
   onBack: () => void;
-  onAddChild: (child: Omit<Child, 'id'>) => string;
+  onAddChild: (child: Omit<Child, 'id'>) => Promise<string>;
   onRemoveChild: (childId: string) => void;
   onUpdateChild: (
     childId: string,
@@ -2512,8 +2695,8 @@ function SettingsScreen({
     onBack();
   };
 
-  const handleAddChild = () => {
-    const newChildId = onAddChild({
+  const handleAddChild = async () => {
+    const newChildId = await onAddChild({
       nickname: '새 아이',
       birthDate: formatDateInput(defaultBirthDate()),
       gender: 'unknown',

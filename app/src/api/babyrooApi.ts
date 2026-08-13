@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 import type { AuthSession } from '../auth/types';
 import type { BabyrooEvent, ReservationStatus } from '../data/events';
+import type { Child, User, UserHomeAddress } from '../data/user';
 
 export const BABYROO_API_BASE_URL = defaultApiBaseUrl();
 const DEFAULT_REQUEST_TIMEOUT_MS = 7000;
@@ -45,6 +46,11 @@ type BabyrooApiEvent = {
 type BabyrooApiEventListResponse = {
   count: number;
   events: BabyrooApiEvent[];
+};
+
+type BabyrooApiUser = User & {
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type BabyrooEventListQuery = Partial<{
@@ -111,6 +117,85 @@ export async function getEventFromBabyrooApi(id: string): Promise<BabyrooEvent> 
   };
 }
 
+export async function getCurrentUserFromBabyrooApi(
+  accessToken: string,
+): Promise<User> {
+  const user = await getJson<BabyrooApiUser>({
+    accessToken,
+    path: '/users/me',
+  });
+
+  return toAppUser(user);
+}
+
+export async function updateCurrentUserInBabyrooApi({
+  accessToken,
+  user,
+}: {
+  accessToken: string;
+  user: Partial<
+    Pick<
+      User,
+      | 'activeChildIds'
+      | 'displayName'
+      | 'homeAddress'
+      | 'homeRegion'
+      | 'preferredLocalities'
+    >
+  >;
+}): Promise<User> {
+  const updatedUser = await patchJson<BabyrooApiUser>({
+    accessToken,
+    body: user,
+    path: '/users/me',
+  });
+
+  return toAppUser(updatedUser);
+}
+
+export async function createChildInBabyrooApi({
+  accessToken,
+  child,
+}: {
+  accessToken: string;
+  child: Omit<Child, 'id'>;
+}): Promise<Child> {
+  return postJson<Child>({
+    accessToken,
+    body: child,
+    path: '/users/me/children',
+  });
+}
+
+export async function updateChildInBabyrooApi({
+  accessToken,
+  childId,
+  childPatch,
+}: {
+  accessToken: string;
+  childId: string;
+  childPatch: Partial<Omit<Child, 'id'>>;
+}): Promise<Child> {
+  return patchJson<Child>({
+    accessToken,
+    body: childPatch,
+    path: `/users/me/children/${encodeURIComponent(childId)}`,
+  });
+}
+
+export async function deleteChildFromBabyrooApi({
+  accessToken,
+  childId,
+}: {
+  accessToken: string;
+  childId: string;
+}): Promise<void> {
+  await deleteJson({
+    accessToken,
+    path: `/users/me/children/${encodeURIComponent(childId)}`,
+  });
+}
+
 function eventListQueryString(query: BabyrooEventListQuery) {
   const params = new URLSearchParams();
 
@@ -162,6 +247,43 @@ export async function postJson<T>({
   });
 }
 
+export async function patchJson<T>({
+  accessToken,
+  body,
+  path,
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+}: {
+  accessToken?: string;
+  body: unknown;
+  path: string;
+  timeoutMs?: number;
+}): Promise<T> {
+  return requestJson<T>({
+    accessToken,
+    body,
+    method: 'PATCH',
+    path,
+    timeoutMs,
+  });
+}
+
+export async function deleteJson<T = void>({
+  accessToken,
+  path,
+  timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+}: {
+  accessToken?: string;
+  path: string;
+  timeoutMs?: number;
+}): Promise<T> {
+  return requestJson<T>({
+    accessToken,
+    method: 'DELETE',
+    path,
+    timeoutMs,
+  });
+}
+
 async function requestJson<T>({
   accessToken,
   body,
@@ -171,7 +293,7 @@ async function requestJson<T>({
 }: {
   accessToken?: string;
   body?: unknown;
-  method: 'GET' | 'POST';
+  method: 'DELETE' | 'GET' | 'PATCH' | 'POST';
   path: string;
   timeoutMs: number;
 }): Promise<T> {
@@ -236,4 +358,16 @@ function isAbortError(error: unknown) {
     error instanceof Error &&
     (error.name === 'AbortError' || error.message.includes('aborted'))
   );
+}
+
+function toAppUser(user: BabyrooApiUser): User {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    children: user.children ?? [],
+    activeChildIds: user.activeChildIds ?? [],
+    homeRegion: user.homeRegion,
+    homeAddress: user.homeAddress as UserHomeAddress | undefined,
+    preferredLocalities: user.preferredLocalities ?? [],
+  };
 }

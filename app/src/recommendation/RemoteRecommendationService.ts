@@ -1,11 +1,17 @@
 import type { RecommendationService } from './RecommendationService';
-import { BABYROO_API_BASE_URL, postJson } from '../api/babyrooApi';
+import {
+  BABYROO_API_BASE_URL,
+  getEventFromBabyrooApi,
+  getJson,
+  postJson,
+} from '../api/babyrooApi';
 import type { Child } from '../data/user';
 import type {
   RecommendationErrorCode,
   RecommendationRequest,
   RecommendationResponse,
   RecommendationResult,
+  RecommendationSession,
 } from './types';
 
 export type RemoteRecommendationServiceOptions = {
@@ -30,6 +36,19 @@ type RemoteRecommendationSession = {
 
 export class RemoteRecommendationService implements RecommendationService {
   constructor(private readonly options: RemoteRecommendationServiceOptions = {}) {}
+
+  async listSessions(): Promise<RecommendationSession[]> {
+    if (!this.options.accessToken) {
+      return [];
+    }
+
+    const sessions = await getJson<RemoteRecommendationSession[]>({
+      accessToken: this.options.accessToken,
+      path: this.options.endpointUrl ?? '/recommendation-sessions',
+    });
+
+    return Promise.all(sessions.map(toRecommendationSession));
+  }
 
   async recommend(
     request: RecommendationRequest,
@@ -85,6 +104,48 @@ export class RemoteRecommendationService implements RecommendationService {
       };
     }
   }
+}
+
+async function toRecommendationSession(
+  session: RemoteRecommendationSession,
+): Promise<RecommendationSession> {
+  const eventSnapshots = await loadRecommendationEventSnapshots(session.results);
+
+  return {
+    id: session.id,
+    createdAt: session.createdAt,
+    userId: session.userId,
+    selectedChildIds: session.selectedChildIds,
+    preferences: session.preferences,
+    status: session.status,
+    results: session.results,
+    eventSnapshots,
+    credit: {
+      policy: 'on_success_with_results',
+      cost: session.creditCost,
+      consumed: session.creditCost > 0,
+    },
+    error:
+      session.status === 'failed'
+        ? {
+            code: 'no_results',
+            message: 'Babyroo API did not return recommendation results.',
+            retryable: true,
+          }
+        : undefined,
+  };
+}
+
+async function loadRecommendationEventSnapshots(
+  results: RecommendationResult[],
+) {
+  const settledEvents = await Promise.allSettled(
+    results.map(result => getEventFromBabyrooApi(result.eventId)),
+  );
+
+  return settledEvents
+    .map(result => (result.status === 'fulfilled' ? result.value : null))
+    .filter(event => event !== null);
 }
 
 function remoteRecommendationErrorCode(
