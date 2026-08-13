@@ -43,7 +43,6 @@ import {
   useTabSwipePressGuard,
 } from './src/mobileLayout';
 import {
-  createRecommendationService,
   Preferences,
   RecommendationAnswerMap,
   RecommendationAnswerValue,
@@ -54,6 +53,7 @@ import {
   RecommendationQuestionOption,
   RecommendationResult,
   RecommendationSession,
+  RemoteRecommendationService,
 } from './src/recommendation';
 import { AuthSession } from './src/auth/types';
 import {
@@ -62,6 +62,7 @@ import {
 } from './src/auth/GoogleAuthService';
 import {
   BabyrooEventListQuery,
+  getEventFromBabyrooApi,
   listEventsFromBabyrooApi,
   loginWithBabyrooApi,
 } from './src/api/babyrooApi';
@@ -331,6 +332,7 @@ function BabyrooApp() {
           authSession={authSession}
           events={events}
           user={user}
+          onChangeAuthSession={setAuthSession}
           onOpenRecommendationDetail={openRecommendationDetail}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
@@ -1115,6 +1117,7 @@ function HomeScreen({
   authSession,
   events,
   user,
+  onChangeAuthSession,
   onOpenRecommendationDetail,
   onOpenSettings,
   bottomInset,
@@ -1122,6 +1125,7 @@ function HomeScreen({
   authSession: AuthSession;
   events: BabyrooEvent[];
   user: User;
+  onChangeAuthSession: (session: AuthSession) => void;
   onOpenRecommendationDetail: (session: RecommendationSession) => void;
   onOpenSettings: () => void;
   bottomInset: number;
@@ -1157,29 +1161,11 @@ function HomeScreen({
       ),
     [
       departureAddress,
+      events,
       recommendationAnswers,
       selectedChildren,
       user.homeAddress,
     ],
-  );
-  const recommendationService = useMemo(
-    () =>
-      createRecommendationService({
-        provider: authSession.apiAccessToken ? 'remote' : 'mock',
-        mockOptions: {
-          delayMs: 0,
-          getLocalContext: () => ({
-            events,
-            selectedChildren,
-            user,
-          }),
-        },
-        remoteOptions: {
-          accessToken: authSession.apiAccessToken,
-          selectedChildren,
-        },
-      }),
-    [authSession.apiAccessToken, events, selectedChildren, user],
   );
   const currentRecommendationQuestion =
     recommendationQuestions[recommendationQuestionIndex];
@@ -1201,6 +1187,27 @@ function HomeScreen({
   };
 
   const requestRecommendation = async (answers: RecommendationAnswerMap) => {
+    let apiSession: AuthSession;
+
+    try {
+      const apiAuth = await loginWithBabyrooApi(authSession);
+      apiSession = {
+        ...authSession,
+        apiAccessToken: apiAuth.accessToken,
+        apiUserId: apiAuth.user.id,
+      };
+      onChangeAuthSession(apiSession);
+      await saveAuthSession(apiSession);
+    } catch (error) {
+      Alert.alert(
+        '서버 연결 실패',
+        error instanceof Error
+          ? error.message
+          : 'Babyroo 서버에 로그인하지 못했습니다.',
+      );
+      return;
+    }
+
     const sessionId = `recommendation-${Date.now()}`;
     const preferences = answersToPreferences(answers, departureAddress);
     const loadingSession: RecommendationSession = {
@@ -1225,6 +1232,11 @@ function HomeScreen({
     ]);
     setSelectedRecommendationSessionId(sessionId);
 
+    const recommendationService = new RemoteRecommendationService({
+      accessToken: apiSession.apiAccessToken,
+      selectedChildren,
+    });
+
     const response = await recommendationService.recommend({
       sessionId,
       userId: user.id,
@@ -1239,6 +1251,10 @@ function HomeScreen({
       },
       debug: __DEV__,
     });
+    const eventSnapshots =
+      response.status === 'success'
+        ? await loadRecommendationEventSnapshots(response.results)
+        : [];
 
     const resolvedSession: RecommendationSession =
       response.status === 'success'
@@ -1246,6 +1262,7 @@ function HomeScreen({
             ...loadingSession,
             status: 'success',
             results: response.results,
+            eventSnapshots,
             debug: response.debug,
           }
         : {
@@ -1747,8 +1764,7 @@ function RecommendationConfirmationCard({
       <Text style={styles.settingsLabel}>추천 확인</Text>
       <Text style={styles.settingsTitle}>이 조건으로 추천 받을까요?</Text>
       <Text style={styles.settingsMeta}>
-        지금은 추천권이 차감되지 않아요. 추천 결과가 있으면 나중에 1회가 사용될
-        수 있어요.
+        추천 결과가 생성되면 추천권 1회가 사용돼요.
       </Text>
       <RecommendationAnswerSummary
         answers={answers}
@@ -2350,7 +2366,11 @@ function RecommendationSessionDetail({
   topInset: number;
 }) {
   const recommendedEvents = session.results
-    .map(result => events.find(event => event.id === result.eventId))
+    .map(result =>
+      [...(session.eventSnapshots ?? []), ...events].find(
+        event => event.id === result.eventId,
+      ),
+    )
     .filter((event): event is BabyrooEvent => Boolean(event));
 
   return (
@@ -3551,7 +3571,11 @@ function formatRecommendationSessionEventPreview(
   events: BabyrooEvent[],
 ) {
   const recommendedEvents = session.results
-    .map(result => events.find(event => event.id === result.eventId))
+    .map(result =>
+      [...(session.eventSnapshots ?? []), ...events].find(
+        event => event.id === result.eventId,
+      ),
+    )
     .filter((event): event is BabyrooEvent => Boolean(event));
   const previewTitles = recommendedEvents.slice(0, 2).map(event => event.title);
   const remainingCount = Math.max(
@@ -3568,6 +3592,18 @@ function formatRecommendationSessionEventPreview(
   }
 
   return previewTitles.join(', ');
+}
+
+async function loadRecommendationEventSnapshots(
+  results: RecommendationResult[],
+): Promise<BabyrooEvent[]> {
+  const settledEvents = await Promise.allSettled(
+    results.map(result => getEventFromBabyrooApi(result.eventId)),
+  );
+
+  return settledEvents
+    .map(result => (result.status === 'fulfilled' ? result.value : null))
+    .filter((event): event is BabyrooEvent => Boolean(event));
 }
 
 function answersToPreferences(

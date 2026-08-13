@@ -100,6 +100,17 @@ export async function listEventsFromBabyrooApi(
   }));
 }
 
+export async function getEventFromBabyrooApi(id: string): Promise<BabyrooEvent> {
+  const event = await getJson<BabyrooApiEvent>({
+    path: `/events/${encodeURIComponent(id)}`,
+  });
+
+  return {
+    ...event,
+    tags: event.tags ?? [],
+  };
+}
+
 function eventListQueryString(query: BabyrooEventListQuery) {
   const params = new URLSearchParams();
 

@@ -2,6 +2,7 @@ import type { RecommendationService } from './RecommendationService';
 import { BABYROO_API_BASE_URL, postJson } from '../api/babyrooApi';
 import type { Child } from '../data/user';
 import type {
+  RecommendationErrorCode,
   RecommendationRequest,
   RecommendationResponse,
   RecommendationResult,
@@ -11,6 +12,20 @@ export type RemoteRecommendationServiceOptions = {
   endpointUrl?: string;
   accessToken?: string;
   selectedChildren?: Child[];
+  timeoutMs?: number;
+};
+
+const DEFAULT_RECOMMENDATION_TIMEOUT_MS = 70000;
+
+type RemoteRecommendationSession = {
+  id: string;
+  userId: string;
+  selectedChildIds: string[];
+  preferences: RecommendationRequest['preferences'];
+  results: RecommendationResult[];
+  creditCost: number;
+  status: 'success' | 'failed';
+  createdAt: string;
 };
 
 export class RemoteRecommendationService implements RecommendationService {
@@ -30,7 +45,7 @@ export class RemoteRecommendationService implements RecommendationService {
     }
 
     try {
-      const session = await postJson<{ results: RecommendationResult[] }>({
+      const session = await postJson<RemoteRecommendationSession>({
         accessToken: this.options.accessToken,
         body: {
           selectedChildIds: request.selectedChildIds,
@@ -39,7 +54,18 @@ export class RemoteRecommendationService implements RecommendationService {
           preferences: request.preferences,
         },
         path: this.options.endpointUrl ?? '/recommendation-sessions',
+        timeoutMs: this.options.timeoutMs ?? DEFAULT_RECOMMENDATION_TIMEOUT_MS,
       });
+
+      if (session.status === 'failed' || session.results.length === 0) {
+        return {
+          status: 'failed',
+          provider: 'remote',
+          errorCode: 'no_results',
+          errorMessage: 'Babyroo API did not return recommendation results.',
+          retryable: true,
+        };
+      }
 
       return {
         status: 'success',
@@ -50,7 +76,7 @@ export class RemoteRecommendationService implements RecommendationService {
       return {
         status: 'failed',
         provider: 'remote',
-        errorCode: 'network_error',
+        errorCode: remoteRecommendationErrorCode(error),
         errorMessage:
           error instanceof Error
             ? error.message
@@ -59,4 +85,14 @@ export class RemoteRecommendationService implements RecommendationService {
       };
     }
   }
+}
+
+function remoteRecommendationErrorCode(
+  error: unknown,
+): RecommendationErrorCode {
+  if (error instanceof Error && error.message.includes('timed out')) {
+    return 'timeout';
+  }
+
+  return 'network_error';
 }

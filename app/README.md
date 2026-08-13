@@ -27,7 +27,11 @@ Start the server in another terminal:
 ```sh
 cd ../server
 # npm run start:dev
-HOST=0.0.0.0 PORT=3000 npm run start:dev
+HOST=0.0.0.0 \
+PORT=3000 \
+BABYROO_RECOMMENDATION_ENGINE=openai \
+OPENAI_API_KEY=replace-me-openai-api-key \
+npm run start:dev
 ```
 
 Default API URLs used by the app:

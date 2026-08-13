@@ -145,6 +145,7 @@ export type RecommendationSession = {
   preferences: Preferences;
   status: 'loading' | 'success' | 'failed';
   results: RecommendationResult[];
+  eventSnapshots?: BabyrooEvent[];
   credit: RecommendationCredit;
   debug?: RecommendationDebugInfo;
   error?: {
