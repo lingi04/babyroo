@@ -114,6 +114,11 @@ HOST=127.0.0.1
 EVENT_DATA_PATH=data/events.json
 DEFAULT_RECOMMENDATION_CREDITS=3
 BABYROO_DEBUG_LOGS=true
+BABYROO_RECOMMENDATION_ENGINE=rule-based
+OPENAI_API_KEY=replace-me-openai-api-key
+OPENAI_RECOMMENDATION_MODEL=gpt-5-mini
+OPENAI_RECOMMENDATION_MAX_CANDIDATES=20
+OPENAI_RECOMMENDATION_TIMEOUT_MS=60000
 ```
 
 `EVENT_DATA_PATH` is useful if the server is started from a different working directory or if you want to test another event JSON file.
@@ -123,6 +128,19 @@ Debug logs are enabled by default. Disable them with:
 ```sh
 BABYROO_DEBUG_LOGS=false npm run start:dev
 ```
+
+Recommendation ranking uses the rule-based engine by default. To try the OpenAI-backed adapter:
+
+```sh
+HOST=0.0.0.0 \
+PORT=3000 \
+BABYROO_RECOMMENDATION_ENGINE=openai \
+OPENAI_API_KEY=replace-me-openai-api-key \
+OPENAI_RECOMMENDATION_TIMEOUT_MS=60000 \
+npm run start:dev
+```
+
+Replace `OPENAI_API_KEY` with a real key before expecting successful LLM responses. `OPENAI_RECOMMENDATION_MODEL` defaults to `gpt-5-mini`.
 
 ## Quick Smoke Test
 
@@ -238,5 +256,5 @@ Authenticated:
 - Google auth is a development placeholder. Real Google token verification still needs to be added.
 - Persistence is in memory except event data.
 - Prisma/PostgreSQL has not been connected yet.
-- Recommendation ranking is rule-based, not LLM-backed.
+- Recommendation ranking is rule-based by default. OpenAI-backed ranking is available behind `BABYROO_RECOMMENDATION_ENGINE=openai`.
 - `npm audit` reports NestJS transitive dependency warnings that need a separate dependency upgrade pass.

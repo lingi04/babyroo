@@ -2,6 +2,7 @@ import { Child } from '../../users/domain/user.entity';
 
 export type RecommendationPreferences = Partial<{
   startRegion: 'seoul' | 'gyeonggi' | 'other';
+  departureAddress: string;
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
   weatherPlan: 'outdoor_if_suitable' | 'prefer_indoor' | 'prefer_outdoor';
   mobility: 'car' | 'transit' | 'nearby';

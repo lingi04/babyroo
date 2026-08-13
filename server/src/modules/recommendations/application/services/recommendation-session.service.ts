@@ -15,9 +15,9 @@ import {
 } from '../../../users/application/ports/in/get-current-user.use-case';
 import {
   CreateRecommendationSessionInput,
+  RecommendationResult,
   RecommendationSession,
 } from '../../domain/recommendation.entity';
-import { RuleBasedRecommender } from '../../domain/rule-based-recommender';
 import { CreateRecommendationSessionUseCase } from '../ports/in/create-recommendation-session.use-case';
 import { GetRecommendationSessionUseCase } from '../ports/in/get-recommendation-session.use-case';
 import { ListRecommendationSessionsUseCase } from '../ports/in/list-recommendation-sessions.use-case';
@@ -25,6 +25,9 @@ import {
   RECOMMENDATION_SESSION_REPOSITORY_PORT,
   RecommendationSessionRepositoryPort,
 } from '../ports/out/recommendation-session-repository.port';
+import {
+  RecommendationEnginePort,
+} from '../ports/out/recommendation-engine.port';
 
 export class RecommendationSessionService
   implements
@@ -32,13 +35,12 @@ export class RecommendationSessionService
     ListRecommendationSessionsUseCase,
     GetRecommendationSessionUseCase
 {
-  private readonly recommender = new RuleBasedRecommender();
-
   constructor(
     private readonly sessions: RecommendationSessionRepositoryPort,
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly listEventsUseCase: ListEventsUseCase,
     private readonly consumeRecommendationCreditUseCase: ConsumeRecommendationCreditUseCase,
+    private readonly recommendationEngine: RecommendationEnginePort,
   ) {}
 
   async createSession(
@@ -64,19 +66,34 @@ export class RecommendationSessionService
       input.selectedChildren && input.selectedChildren.length > 0
         ? input.selectedChildren
         : user.children.filter(child => selectedChildIds.includes(child.id));
-    const eventList = await this.listEventsUseCase.list({ limit: '100' });
+    const eventList = await this.listEventsUseCase.list({ limit: '300' });
     debugLog('recommendations.candidates.loaded', {
       userId,
       eventCount: eventList.events.length,
       selectedChildCount: selectedChildren.length,
     });
-    const results = this.recommender.recommend(
-      eventList.events,
-      selectedChildren,
-      input.preferences ?? {},
-    );
+    const createdAt = new Date().toISOString();
+    let results: RecommendationResult[] = [];
 
-    await this.consumeRecommendationCreditUseCase.consumeRecommendationCredit(userId);
+    try {
+      results = await this.recommendationEngine.recommend({
+        events: eventList.events,
+        children: selectedChildren,
+        preferences: input.preferences ?? {},
+        requestedAt: createdAt,
+        userHomeRegion: user.homeRegion,
+        userHomeAddress: user.homeAddress,
+      });
+    } catch (error) {
+      debugLog('recommendations.engine.failed', {
+        userId,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    if (results.length > 0) {
+      await this.consumeRecommendationCreditUseCase.consumeRecommendationCredit(userId);
+    }
 
     const session: RecommendationSession = {
       id: createId('rec'),
@@ -85,9 +102,9 @@ export class RecommendationSessionService
       answers: input.answers ?? {},
       preferences: input.preferences ?? {},
       results,
-      creditCost: 1,
+      creditCost: results.length > 0 ? 1 : 0,
       status: results.length > 0 ? 'success' : 'failed',
-      createdAt: new Date().toISOString(),
+      createdAt,
     };
 
     const createdSession = await this.sessions.create(session);
