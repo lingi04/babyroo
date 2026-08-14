@@ -99,6 +99,7 @@ export class RecommendationSessionService
       id: createId('rec'),
       userId,
       selectedChildIds,
+      selectedChildrenSnapshot: selectedChildren,
       answers: input.answers ?? {},
       preferences: input.preferences ?? {},
       results,

@@ -142,6 +142,7 @@ export type RecommendationSession = {
   createdAt: string;
   userId: string;
   selectedChildIds: string[];
+  selectedChildrenSnapshot?: Child[];
   preferences: Preferences;
   status: 'loading' | 'success' | 'failed';
   results: RecommendationResult[];

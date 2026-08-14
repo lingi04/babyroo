@@ -26,6 +26,7 @@ export type RecommendationSession = {
   id: string;
   userId: string;
   selectedChildIds: string[];
+  selectedChildrenSnapshot: Child[];
   answers: RecommendationAnswerMap;
   preferences: RecommendationPreferences;
   results: RecommendationResult[];

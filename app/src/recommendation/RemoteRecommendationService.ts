@@ -27,6 +27,7 @@ type RemoteRecommendationSession = {
   id: string;
   userId: string;
   selectedChildIds: string[];
+  selectedChildrenSnapshot?: Child[];
   preferences: RecommendationRequest['preferences'];
   results: RecommendationResult[];
   creditCost: number;
@@ -116,6 +117,7 @@ async function toRecommendationSession(
     createdAt: session.createdAt,
     userId: session.userId,
     selectedChildIds: session.selectedChildIds,
+    selectedChildrenSnapshot: session.selectedChildrenSnapshot,
     preferences: session.preferences,
     status: session.status,
     results: session.results,

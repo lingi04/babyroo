@@ -38,6 +38,7 @@ test('posts recommendation context to the Babyroo API with bearer auth', async (
       id: 'rec-001',
       userId: 'user-001',
       selectedChildIds: ['child-001'],
+      selectedChildrenSnapshot: baseRequest.selectedChildren,
       preferences: baseRequest.preferences,
       results: [{ eventId: 'event-001', reasons: ['Good fit.'] }],
       creditCost: 1,
@@ -98,6 +99,7 @@ test('maps empty API recommendation results to no_results', async () => {
       id: 'rec-empty',
       userId: 'user-001',
       selectedChildIds: ['child-001'],
+      selectedChildrenSnapshot: baseRequest.selectedChildren,
       preferences: baseRequest.preferences,
       results: [],
       creditCost: 1,
@@ -135,6 +137,7 @@ test('loads recommendation session history from the Babyroo API', async () => {
               id: 'rec-001',
               userId: 'user-001',
               selectedChildIds: ['child-001'],
+              selectedChildrenSnapshot: baseRequest.selectedChildren,
               preferences: baseRequest.preferences,
               results: [{ eventId: 'event-001', reasons: ['Good fit.'] }],
               creditCost: 1,
@@ -186,6 +189,12 @@ test('loads recommendation session history from the Babyroo API', async () => {
     expect.objectContaining({
       id: 'rec-001',
       status: 'success',
+      selectedChildrenSnapshot: [
+        expect.objectContaining({
+          id: 'child-001',
+          nickname: 'Roo',
+        }),
+      ],
       results: [{ eventId: 'event-001', reasons: ['Good fit.'] }],
       eventSnapshots: [
         expect.objectContaining({

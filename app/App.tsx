@@ -1398,6 +1398,7 @@ function HomeScreen({
       createdAt: new Date().toISOString(),
       userId: user.id,
       selectedChildIds: selectedChildren.map(child => child.id),
+      selectedChildrenSnapshot: selectedChildren,
       preferences,
       status: 'loading',
       results: [],
@@ -1445,6 +1446,7 @@ function HomeScreen({
             ...loadingSession,
             status: 'success',
             results: response.results,
+            selectedChildrenSnapshot: selectedChildren,
             eventSnapshots,
             debug: response.debug,
           }
@@ -1996,6 +1998,9 @@ function RecommendationSessionCard({
           </Text>
           <Text style={styles.recommendationHistoryBadge}>보기</Text>
         </View>
+        <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
+          {formatRecommendationSessionChildSummary(session)}
+        </Text>
         <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
           {formatRecommendationSessionAnswerSummary(session, questions)}
         </Text>
@@ -2577,6 +2582,9 @@ function RecommendationSessionDetail({
             <Text style={styles.recommendationDetailTitle}>추천 결과</Text>
             <Text style={styles.recommendationDetailTime}>
               {formatRecommendationSessionTime(session.createdAt)}에 저장된 추천
+            </Text>
+            <Text style={styles.recommendationDetailTime}>
+              {formatRecommendationSessionChildSummary(session)} 기준
             </Text>
           </View>
         </View>
@@ -3747,6 +3755,26 @@ function formatRecommendationSessionAnswerSummary(
   }
 
   return labels.join(' · ');
+}
+
+function formatRecommendationSessionChildSummary(
+  session: RecommendationSession,
+) {
+  const children = session.selectedChildrenSnapshot ?? [];
+
+  if (children.length === 1) {
+    return `${children[0].nickname} · ${formatChildAge(children[0])}`;
+  }
+
+  if (children.length > 1) {
+    return `${children[0].nickname} 외 ${children.length - 1}명`;
+  }
+
+  if (session.selectedChildIds.length > 0) {
+    return `${session.selectedChildIds.length}명 기준`;
+  }
+
+  return '아이 정보 없음';
 }
 
 function formatRecommendationSessionEventPreview(
