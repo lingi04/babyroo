@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { InMemoryUserRepository } from './adapters/out/in-memory-user.repository';
+import { PrismaUserRepository } from './adapters/out/prisma-user.repository';
 import { UsersController } from './adapters/in/users.controller';
 import { DELETE_USER_USE_CASE } from './application/ports/in/delete-user.use-case';
 import { GET_CURRENT_USER_USE_CASE } from './application/ports/in/get-current-user.use-case';
@@ -14,7 +15,9 @@ import { UserAccountService } from './application/services/user-account.service'
   providers: [
     {
       provide: USER_REPOSITORY_PORT,
-      useClass: InMemoryUserRepository,
+      useClass: process.env.DATABASE_URL
+        ? PrismaUserRepository
+        : InMemoryUserRepository,
     },
     {
       provide: UserAccountService,

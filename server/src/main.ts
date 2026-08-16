@@ -1,3 +1,4 @@
+import './common/load-env';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ApplicationErrorFilter } from './common/application-error.filter';

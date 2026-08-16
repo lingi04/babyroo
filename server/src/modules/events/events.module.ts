@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EventsController } from './adapters/in/events.controller';
 import { JsonEventRepository } from './adapters/out/json-event.repository';
+import { PrismaEventRepository } from './adapters/out/prisma-event.repository';
 import { GET_EVENT_DETAIL_USE_CASE } from './application/ports/in/get-event-detail.use-case';
 import { GET_EVENTS_BY_IDS_USE_CASE } from './application/ports/in/get-events-by-ids.use-case';
 import { LIST_EVENTS_USE_CASE } from './application/ports/in/list-events.use-case';
@@ -12,7 +13,9 @@ import { EventsQueryService } from './application/services/events-query.service'
   providers: [
     {
       provide: EVENT_REPOSITORY_PORT,
-      useClass: JsonEventRepository,
+      useClass: process.env.DATABASE_URL
+        ? PrismaEventRepository
+        : JsonEventRepository,
     },
     {
       provide: EventsQueryService,

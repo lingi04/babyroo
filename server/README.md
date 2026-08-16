@@ -12,7 +12,7 @@ The current server exposes the first backend surface for:
 - recommendation credits
 - recommendation sessions
 
-Events are read from `data/events.json` under this server directory. User, saved event, credit, and recommendation data are currently stored in memory, so they reset when the server restarts.
+Events, users, and children are stored in Neon Postgres when `DATABASE_URL` is set. Events can be imported from `data/events.json` under this server directory. Without `DATABASE_URL`, events fall back to the JSON file and users/children fall back to memory for local smoke testing. Saved event, credit, and recommendation data still use in-memory repositories for now.
 
 ## Architecture
 
@@ -119,9 +119,20 @@ OPENAI_API_KEY=replace-me-openai-api-key
 OPENAI_RECOMMENDATION_MODEL=gpt-5-mini
 OPENAI_RECOMMENDATION_MAX_CANDIDATES=20
 OPENAI_RECOMMENDATION_TIMEOUT_MS=60000
+DATABASE_URL=postgresql://...
 ```
 
 `EVENT_DATA_PATH` is useful if the server is started from a different working directory or if you want to test another event JSON file.
+
+`DATABASE_URL` is optional for local smoke testing. If it is not set, the server uses in-memory user storage. Set it to a Neon Postgres development branch URL to persist users and children locally.
+
+The server loads env files in this order, with earlier files taking priority:
+
+```text
+.env.development.local
+.env.local
+.env
+```
 
 Debug logs are enabled by default. Disable them with:
 
@@ -141,6 +152,54 @@ npm run start:dev
 ```
 
 Replace `OPENAI_API_KEY` with a real key before expecting successful LLM responses. `OPENAI_RECOMMENDATION_MODEL` defaults to `gpt-5-mini`.
+
+## Database
+
+The persistent DB slice stores events, users, and children in Neon Postgres through Prisma. Other data, such as saved events, credits, and recommendation sessions, still uses in-memory repositories for now.
+
+For local development, create a Neon development branch and pull the Vercel-managed environment variables into the server directory:
+
+```sh
+cd server
+npx vercel link
+npx vercel env pull .env.development.local
+```
+
+If you are not using Vercel envs locally, put `DATABASE_URL` in `server/.env.local` instead.
+
+Generate Prisma Client:
+
+```sh
+npm run db:generate
+```
+
+Apply schema changes to the Neon development branch:
+
+```sh
+npm run db:migrate
+```
+
+Apply committed migrations in deployment or production-like environments:
+
+```sh
+npm run db:deploy
+```
+
+Inspect data:
+
+```sh
+npm run db:studio
+```
+
+Import the current JSON event catalog into Postgres:
+
+```sh
+npm run db:seed:events
+```
+
+The event import reads `server/data/events.json` and upserts rows by event `id`.
+
+`npm run typecheck` and `npm run build` run `prisma generate` automatically.
 
 ## Quick Smoke Test
 
