@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { getDatabaseUrl } from '../../common/database-url';
 import { InMemoryUserRepository } from './adapters/out/in-memory-user.repository';
 import { PrismaUserRepository } from './adapters/out/prisma-user.repository';
 import { UsersController } from './adapters/in/users.controller';
@@ -15,7 +16,7 @@ import { UserAccountService } from './application/services/user-account.service'
   providers: [
     {
       provide: USER_REPOSITORY_PORT,
-      useClass: process.env.DATABASE_URL
+      useClass: getDatabaseUrl()
         ? PrismaUserRepository
         : InMemoryUserRepository,
     },

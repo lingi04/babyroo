@@ -124,7 +124,18 @@ DATABASE_URL=postgresql://...
 
 `EVENT_DATA_PATH` is useful if the server is started from a different working directory or if you want to test another event JSON file.
 
-`DATABASE_URL` is optional for local smoke testing. If it is not set, the server uses in-memory user storage. Set it to a Neon Postgres development branch URL to persist users and children locally.
+`DATABASE_URL` is optional for local smoke testing. If it is not set, the server uses in-memory user storage and JSON-backed events. Set it to a Neon Postgres development branch URL to persist users, children, and events locally.
+
+Vercel Storage may prefix Neon variables with the connected project/store name. The server accepts these database URL names:
+
+```text
+DATABASE_URL
+babyroo_DATABASE_URL
+POSTGRES_PRISMA_URL
+babyroo_POSTGRES_PRISMA_URL
+POSTGRES_URL
+babyroo_POSTGRES_URL
+```
 
 The server loads env files in this order, with earlier files taking priority:
 

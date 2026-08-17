@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { getDatabaseUrl } from '../../common/database-url';
 import { EventsController } from './adapters/in/events.controller';
 import { JsonEventRepository } from './adapters/out/json-event.repository';
 import { PrismaEventRepository } from './adapters/out/prisma-event.repository';
@@ -13,7 +14,7 @@ import { EventsQueryService } from './application/services/events-query.service'
   providers: [
     {
       provide: EVENT_REPOSITORY_PORT,
-      useClass: process.env.DATABASE_URL
+      useClass: getDatabaseUrl()
         ? PrismaEventRepository
         : JsonEventRepository,
     },

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { getDatabaseUrl } from '../../../../common/database-url';
 import { createId } from '../../../../common/id';
 import { Prisma, PrismaClient } from '../../../../generated/prisma/client';
 import {
@@ -21,7 +22,7 @@ type UserWithChildren = Prisma.UserGetPayload<{
 export class PrismaUserRepository implements UserRepositoryPort {
   private readonly prisma = new PrismaClient({
     adapter: new PrismaNeon({
-      connectionString: process.env.DATABASE_URL ?? '',
+      connectionString: getDatabaseUrl() ?? '',
     }),
   });
 

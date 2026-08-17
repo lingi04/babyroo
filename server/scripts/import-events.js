@@ -8,10 +8,16 @@ loadEnvFile({ path: '.env.development.local' });
 loadEnvFile({ path: '.env.local' });
 loadEnvFile({ path: '.env' });
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl =
+  process.env.DATABASE_URL ||
+  process.env.babyroo_DATABASE_URL ||
+  process.env.POSTGRES_PRISMA_URL ||
+  process.env.babyroo_POSTGRES_PRISMA_URL ||
+  process.env.POSTGRES_URL ||
+  process.env.babyroo_POSTGRES_URL;
 
 if (!databaseUrl) {
-  console.error('DATABASE_URL is required to import events.');
+  console.error('A database URL env var is required to import events.');
   process.exit(1);
 }
 

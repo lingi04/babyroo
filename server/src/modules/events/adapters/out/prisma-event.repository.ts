@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaNeon } from '@prisma/adapter-neon';
+import { getDatabaseUrl } from '../../../../common/database-url';
 import { debugLog } from '../../../../common/debug-log';
 import { Event as PrismaEvent, PrismaClient } from '../../../../generated/prisma/client';
 import { EventRepositoryPort } from '../../application/ports/out/event-repository.port';
@@ -9,7 +10,7 @@ import { BabyrooEvent, ReservationStatus } from '../../domain/event.entity';
 export class PrismaEventRepository implements EventRepositoryPort {
   private readonly prisma = new PrismaClient({
     adapter: new PrismaNeon({
-      connectionString: process.env.DATABASE_URL ?? '',
+      connectionString: getDatabaseUrl() ?? '',
     }),
   });
 
