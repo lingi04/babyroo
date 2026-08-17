@@ -1,0 +1,9 @@
+.git
+.env*
+node_modules
+**/node_modules
+dist
+**/dist
+server/src/generated
+**/.DS_Store
+app/assets/brand/samples
