@@ -7,3 +7,11 @@ dist
 server/src/generated
 **/.DS_Store
 app/assets/brand/samples
+admin
+app
+crawler
+data
+docs
+public
+scripts
+tests
