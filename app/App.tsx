@@ -135,6 +135,7 @@ const exploreEventTypeOptions: Array<{
 ];
 
 const EXPLORE_HEADER_FULL_HEIGHT = 230;
+const EXPLORE_HEADER_EXPANDED_HEIGHT = 430;
 const EXPLORE_HEADER_COMPACT_HEIGHT = 76;
 const EXPLORE_HEADER_COLLAPSE_DISTANCE =
   EXPLORE_HEADER_FULL_HEIGHT - EXPLORE_HEADER_COMPACT_HEIGHT;
@@ -1040,6 +1041,35 @@ function AuthRequiredScreen({
   );
 }
 
+function BabyrooBrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <View
+      style={[
+        styles.babyrooBrandMark,
+        compact && styles.babyrooBrandMarkCompact,
+      ]}
+    >
+      <Image
+        source={brandIcon}
+        resizeMode="cover"
+        style={[
+          styles.babyrooBrandIcon,
+          compact && styles.babyrooBrandIconCompact,
+        ]}
+        accessibilityIgnoresInvertColors
+      />
+      <Text
+        style={[
+          styles.babyrooBrandText,
+          compact && styles.babyrooBrandTextCompact,
+        ]}
+      >
+        babyroo
+      </Text>
+    </View>
+  );
+}
+
 function OnboardingScreen({
   authSession,
   initialUser,
@@ -1566,7 +1596,7 @@ function HomeScreen({
       >
         <View style={styles.homeMasthead}>
           <View style={styles.mastheadTopRow}>
-            <Text style={styles.mastheadEyebrow}>Babyroo picks</Text>
+            <BabyrooBrandMark />
             <Pressable
               style={styles.mastheadIconButton}
               onPress={onOpenSettings}
@@ -2298,8 +2328,10 @@ function ExploreScreen({
       <Animated.View
         style={[
           styles.exploreFixedHeader,
-          exploreControlsCollapsed && {
-            height: animatedFixedHeaderHeight,
+          {
+            height: exploreControlsCollapsed
+              ? animatedFixedHeaderHeight
+              : EXPLORE_HEADER_EXPANDED_HEIGHT,
           },
         ]}
       >
@@ -2319,7 +2351,7 @@ function ExploreScreen({
             !exploreControlsCollapsed && styles.exploreHiddenHeaderLayer,
           ]}
         >
-          <Text style={styles.exploreTopTitle}>BABYROO</Text>
+          <BabyrooBrandMark compact />
           <Pressable
             style={styles.exploreCompactSummary}
             onPress={() => setExploreControlsCollapsed(false)}
@@ -2356,7 +2388,7 @@ function ExploreScreen({
               },
             ]}
           >
-            <Text style={styles.exploreTopTitle}>BABYROO</Text>
+            <BabyrooBrandMark />
             <Pressable
               style={styles.mastheadIconButton}
               onPress={onOpenSettings}
@@ -2559,6 +2591,12 @@ function ExploreScreen({
         )}
         contentContainerStyle={[
           styles.exploreListContent,
+          {
+            paddingTop:
+              (exploreControlsCollapsed
+                ? EXPLORE_HEADER_FULL_HEIGHT
+                : EXPLORE_HEADER_EXPANDED_HEIGHT) + spacing.lg,
+          },
           tabScreenBottomPadding(bottomInset),
         ]}
         ListHeaderComponent={
@@ -2567,7 +2605,7 @@ function ExploreScreen({
               <View>
                 <Text style={styles.sectionTitle}>행사 목록</Text>
                 <Text style={styles.sectionMeta}>
-                  {filteredEvents.length}개 · 최신 추가순
+                  {filteredEvents.length}개
                 </Text>
               </View>
             </View>
@@ -4479,8 +4517,8 @@ function formatExploreIntentSummary(
     title: `${childSubject} 갈 ${filterPhrase}이벤트`,
     meta:
       activeFilterLabels.length > 0
-        ? `${activeFilterLabels.join(' · ')} · 최신 추가순`
-        : '기본 필터 · 최신 추가순',
+        ? activeFilterLabels.join(' · ')
+        : '기본 필터',
   };
 }
 
@@ -5156,10 +5194,38 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     paddingTop: spacing.sm,
   },
-  exploreTopTitle: {
-    ...typography.caption,
-    color: colors.primary,
-    textTransform: 'uppercase',
+  babyrooBrandMark: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  babyrooBrandMarkCompact: {
+    flexShrink: 0,
+    gap: spacing.xs,
+  },
+  babyrooBrandIcon: {
+    borderColor: 'rgba(232, 94, 37, 0.16)',
+    borderRadius: 11,
+    borderWidth: 1,
+    height: 34,
+    width: 34,
+  },
+  babyrooBrandIconCompact: {
+    borderRadius: 9,
+    height: 28,
+    width: 28,
+  },
+  babyrooBrandText: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 0,
+    lineHeight: 22,
+  },
+  babyrooBrandTextCompact: {
+    fontSize: 14,
+    lineHeight: 18,
   },
   exploreMasthead: {
     backgroundColor: colors.primarySoft,
