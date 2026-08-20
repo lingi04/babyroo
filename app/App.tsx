@@ -96,7 +96,7 @@ import {
   typography,
 } from './src/theme/tokens';
 
-type Tab = 'home' | 'explore' | 'saved';
+type Tab = 'home' | 'explore';
 type PriceFilter = 'all' | 'free' | 'paid';
 type PlaceFilter = 'all' | 'indoor' | 'outdoor';
 type ReservationFilter = 'all' | 'required' | 'notRequired';
@@ -300,7 +300,7 @@ function coreRecommendationQuestions(
   ] satisfies RecommendationQuestion[];
 }
 
-const TAB_ORDER: Tab[] = ['home', 'explore', 'saved'];
+const TAB_ORDER: Tab[] = ['home', 'explore'];
 const brandIcon = require('./assets/brand/babyroo-app-icon-1024.png');
 
 function App() {
@@ -387,16 +387,7 @@ function BabyrooApp() {
       );
     }
 
-    if (!authSession) {
-      return (
-        <AuthRequiredScreen
-          bottomInset={bottomInset}
-          onSignIn={handleGoogleSignIn}
-        />
-      );
-    }
-
-    return <SavedScreen bottomInset={bottomInset} />;
+    return null;
   };
   useEffect(() => {
     let mounted = true;
@@ -1028,7 +1019,7 @@ function AuthRequiredScreen({
     >
       <Text style={styles.pageTitle}>로그인이 필요해요</Text>
       <Text style={styles.pageSubtitle}>
-        추천과 저장 기능은 Google 로그인 후 사용할 수 있어요.
+        추천 기능은 Google 로그인 후 사용할 수 있어요.
       </Text>
       <Pressable
         style={styles.authRequiredButton}
@@ -1605,12 +1596,6 @@ function HomeScreen({
               <Text style={styles.mastheadIconText}>⚙</Text>
             </Pressable>
           </View>
-          <Text style={styles.homeMastheadTitle}>
-            오늘 아이와 갈 곳, 짧게 골라드릴게요.
-          </Text>
-          <Text style={styles.homeMastheadText}>
-            아이 정보와 출발 조건을 바탕으로 지금 갈 만한 후보만 남겨요.
-          </Text>
         </View>
 
         <View style={styles.recommendationSetupCard}>
@@ -2853,23 +2838,6 @@ function RecommendationSessionDetail({
   );
 }
 
-function SavedScreen({ bottomInset }: { bottomInset: number }) {
-  return (
-    <View
-      style={[
-        styles.screenWithTabs,
-        tabScreenBottomPadding(bottomInset),
-        styles.emptyState,
-      ]}
-    >
-      <Text style={styles.pageTitle}>저장한 행사</Text>
-      <Text style={styles.pageSubtitle}>
-        관심 있는 행사를 저장하면 여기에 모입니다.
-      </Text>
-    </View>
-  );
-}
-
 function SettingsScreen({
   user,
   onBack,
@@ -3734,7 +3702,6 @@ function BottomTabs({
   const tabs: Array<{ id: Tab; label: string; mark: string }> = [
     { id: 'home', label: '추천', mark: '⌂' },
     { id: 'explore', label: '탐색', mark: '⌕' },
-    { id: 'saved', label: '저장', mark: '♡' },
   ];
 
   return (
@@ -5149,17 +5116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
-  },
-  mastheadEyebrow: {
-    ...typography.caption,
-    color: colors.primary,
-    textTransform: 'uppercase',
-  },
-  mastheadEyebrowDark: {
-    ...typography.caption,
-    color: colors.text,
-    textTransform: 'uppercase',
   },
   mastheadIconButton: {
     alignItems: 'center',
@@ -5173,19 +5129,6 @@ const styles = StyleSheet.create({
     color: colors.inverseText,
     fontSize: 17,
     fontWeight: '900',
-  },
-  homeMastheadTitle: {
-    color: colors.text,
-    fontSize: 42,
-    fontWeight: '900',
-    lineHeight: 43,
-    maxWidth: 340,
-  },
-  homeMastheadText: {
-    ...typography.body,
-    color: colors.muted,
-    marginTop: spacing.lg,
-    maxWidth: 300,
   },
   exploreTopHeader: {
     alignItems: 'center',
@@ -5270,7 +5213,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: radius.xxl,
     borderWidth: 1,
-    marginTop: spacing.xxxl,
+    marginTop: spacing.lg,
     padding: layout.cardPadding,
     ...shadows.elevated,
   },
