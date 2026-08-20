@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   BackHandler,
-  FlatList,
   Image,
   Linking,
   Modal,
@@ -87,7 +87,14 @@ import {
   saveAuthSession,
 } from './src/storage/authStorage';
 import { clearSavedUser, loadUser, saveUser } from './src/storage/userStorage';
-import { colors, radius, spacing } from './src/theme/tokens';
+import {
+  colors,
+  layout,
+  radius,
+  shadows,
+  spacing,
+  typography,
+} from './src/theme/tokens';
 
 type Tab = 'home' | 'explore' | 'saved';
 type PriceFilter = 'all' | 'free' | 'paid';
@@ -126,6 +133,11 @@ const exploreEventTypeOptions: Array<{
   { value: 'permanentVenue', label: '상설 전시', icon: '상' },
   { value: 'seoulKidsCafe', label: '서울형 키즈카페', icon: '키' },
 ];
+
+const EXPLORE_HEADER_FULL_HEIGHT = 230;
+const EXPLORE_HEADER_COMPACT_HEIGHT = 76;
+const EXPLORE_HEADER_COLLAPSE_DISTANCE =
+  EXPLORE_HEADER_FULL_HEIGHT - EXPLORE_HEADER_COMPACT_HEIGHT;
 
 const postcodeSearchHtml = `
 <!doctype html>
@@ -658,7 +670,9 @@ function BabyrooApp() {
           nickname: child.nickname,
         },
       });
-      serverUser = await getCurrentUserFromBabyrooApi(authSession.apiAccessToken);
+      serverUser = await getCurrentUserFromBabyrooApi(
+        authSession.apiAccessToken,
+      );
     }
 
     return serverUser;
@@ -1550,27 +1564,32 @@ function HomeScreen({
           tabScreenBottomPadding(bottomInset),
         ]}
       >
-        <View style={styles.headerRow}>
-          <View style={styles.headerTitleGroup}>
-            <Text style={styles.pageTitle}>맞춤 추천</Text>
-            <Text style={styles.pageSubtitle}>아이와 어디 갈까요?</Text>
+        <View style={styles.homeMasthead}>
+          <View style={styles.mastheadTopRow}>
+            <Text style={styles.mastheadEyebrow}>Babyroo picks</Text>
+            <Pressable
+              style={styles.mastheadIconButton}
+              onPress={onOpenSettings}
+              accessibilityLabel="Open user settings"
+            >
+              <Text style={styles.mastheadIconText}>⚙</Text>
+            </Pressable>
           </View>
-          <Pressable
-            style={styles.iconButton}
-            onPress={onOpenSettings}
-            accessibilityLabel="Open user settings"
-          >
-            <Text style={styles.iconButtonText}>⚙</Text>
-          </Pressable>
+          <Text style={styles.homeMastheadTitle}>
+            오늘 아이와 갈 곳, 짧게 골라드릴게요.
+          </Text>
+          <Text style={styles.homeMastheadText}>
+            아이 정보와 출발 조건을 바탕으로 지금 갈 만한 후보만 남겨요.
+          </Text>
         </View>
 
         <View style={styles.recommendationSetupCard}>
-          <Text style={styles.settingsLabel}>오늘의 추천</Text>
-          <Text style={styles.settingsTitle}>맞춤 후보 찾기</Text>
-          <Text style={styles.settingsMeta}>
-            아이 월령과 오늘의 조건을 기준으로 갈 만한 곳을 추려드려요.
-          </Text>
-
+          <View>
+            <Text style={styles.recommendationSetupLabel}>추천 시작</Text>
+            <Text style={styles.recommendationSetupTitle}>
+              조건 몇 개만 고르면 끝
+            </Text>
+          </View>
           <Pressable
             style={styles.recommendationContextRow}
             onPress={onOpenSettings}
@@ -1597,7 +1616,7 @@ function HomeScreen({
             </Text>
           </Pressable>
           {latestRecommendationSession ? (
-            <Text style={styles.settingsMeta}>
+            <Text style={styles.recommendationSetupFootnote}>
               최근 추천{' '}
               {formatRecommendationSessionTime(
                 latestRecommendationSession.createdAt,
@@ -2129,31 +2148,40 @@ function ExploreScreen({
 }) {
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
-  const [searchQuery, setSearchQuery] = useState('');
+  const searchQuery = '';
+  const exploreScrollY = useRef(new Animated.Value(0)).current;
   const [eventsLoaded, setEventsLoaded] = useState(false);
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
+  const [compactHeaderTouchable, setCompactHeaderTouchable] = useState(false);
   const [exploreControlsCollapsed, setExploreControlsCollapsed] =
     useState(true);
   const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
-    () =>
-      filterEvents(events, searchQuery, filters, selectedChildren),
+    () => filterEvents(events, searchQuery, filters, selectedChildren),
     [events, filters, searchQuery, selectedChildren],
   );
   const activeFilterLabels = getActiveExploreFilterLabels(filters);
-  const exploreCriteriaSummary = formatExploreCriteriaSummary(
+  const exploreIntentSummary = formatExploreIntentSummary(
     selectedChildren,
     activeFilterLabels,
   );
-  const eventListQuery = useMemo(
-    () => buildExploreEventListQuery(searchQuery, filters, selectedChildren),
+  const exploreEventTypeSummary = formatExploreEventTypeSummary(
+    filters.exploreEventTypes,
+  );
+  const eventListQueryKey = useMemo(
+    () =>
+      JSON.stringify(
+        buildExploreEventListQuery(searchQuery, filters, selectedChildren),
+      ),
     [filters, searchQuery, selectedChildren],
   );
-  const eventListQueryKey = JSON.stringify(eventListQuery);
 
   useEffect(() => {
     let mounted = true;
+    const eventListQuery = JSON.parse(
+      eventListQueryKey,
+    ) as BabyrooEventListQuery;
 
     console.warn(
       `[Babyroo Explore] loading events from API with query ${JSON.stringify(
@@ -2172,7 +2200,10 @@ function ExploreScreen({
       })
       .catch(error => {
         if (mounted) {
-          console.warn('[Babyroo Explore] failed to load events from API', error);
+          console.warn(
+            '[Babyroo Explore] failed to load events from API',
+            error,
+          );
           Alert.alert(
             '행사 데이터를 불러오지 못했어요',
             error instanceof Error
@@ -2193,16 +2224,329 @@ function ExploreScreen({
   }, [eventListQueryKey, onChangeEvents]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const nextVisible = event.nativeEvent.contentOffset.y > 420;
+    const scrollOffsetY = event.nativeEvent.contentOffset.y;
+    const nextVisible = scrollOffsetY > 420;
+    const nextCompactTouchable = compactHeaderTouchable
+      ? scrollOffsetY > 44
+      : scrollOffsetY > 78;
 
     if (nextVisible !== recommendationCtaVisible) {
       setRecommendationCtaVisible(nextVisible);
     }
+
+    if (nextCompactTouchable !== compactHeaderTouchable) {
+      setCompactHeaderTouchable(nextCompactTouchable);
+    }
   };
+  const animatedFixedHeaderHeight = exploreScrollY.interpolate({
+    inputRange: [0, 40, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [
+      EXPLORE_HEADER_FULL_HEIGHT,
+      176,
+      EXPLORE_HEADER_COMPACT_HEIGHT,
+    ],
+    extrapolate: 'clamp',
+  });
+  const brandRowOpacity = exploreScrollY.interpolate({
+    inputRange: [0, 16, 40],
+    outputRange: [1, 0.7, 0],
+    extrapolate: 'clamp',
+  });
+  const brandRowTranslateY = exploreScrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -8],
+    extrapolate: 'clamp',
+  });
+  const eventTypeOpacity = exploreScrollY.interpolate({
+    inputRange: [12, 44, 64],
+    outputRange: [1, 0.45, 0],
+    extrapolate: 'clamp',
+  });
+  const eventTypeTranslateY = exploreScrollY.interpolate({
+    inputRange: [12, 64],
+    outputRange: [0, -10],
+    extrapolate: 'clamp',
+  });
+  const mastheadOpacity = exploreScrollY.interpolate({
+    inputRange: [36, 72, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp',
+  });
+  const mastheadTranslateY = exploreScrollY.interpolate({
+    inputRange: [36, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [0, -14],
+    extrapolate: 'clamp',
+  });
+  const compactHeaderOpacity = exploreScrollY.interpolate({
+    inputRange: [48, 76, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [0, 0.45, 1],
+    extrapolate: 'clamp',
+  });
+  const compactHeaderTranslateY = exploreScrollY.interpolate({
+    inputRange: [48, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [8, 0],
+    extrapolate: 'clamp',
+  });
+  const compactHeaderScale = exploreScrollY.interpolate({
+    inputRange: [48, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    outputRange: [0.98, 1],
+    extrapolate: 'clamp',
+  });
 
   return (
     <View style={styles.exploreRoot}>
-      <FlatList
+      <Animated.View
+        style={[
+          styles.exploreFixedHeader,
+          exploreControlsCollapsed && {
+            height: animatedFixedHeaderHeight,
+          },
+        ]}
+      >
+        <Animated.View
+          pointerEvents={
+            exploreControlsCollapsed && compactHeaderTouchable ? 'auto' : 'none'
+          }
+          style={[
+            styles.exploreCompactHeader,
+            {
+              opacity: compactHeaderOpacity,
+              transform: [
+                { translateY: compactHeaderTranslateY },
+                { scale: compactHeaderScale },
+              ],
+            },
+            !exploreControlsCollapsed && styles.exploreHiddenHeaderLayer,
+          ]}
+        >
+          <Text style={styles.exploreTopTitle}>BABYROO</Text>
+          <Pressable
+            style={styles.exploreCompactSummary}
+            onPress={() => setExploreControlsCollapsed(false)}
+            accessibilityLabel="Open exploration conditions"
+          >
+            <Text style={styles.exploreCompactTitle} numberOfLines={1}>
+              {exploreEventTypeSummary} · {exploreIntentSummary.title}
+            </Text>
+            <Text style={styles.exploreCompactMeta} numberOfLines={1}>
+              {exploreIntentSummary.meta}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.exploreCompactIconButton}
+            onPress={onOpenSettings}
+            accessibilityLabel="Open user settings"
+          >
+            <Text style={styles.exploreCompactIconText}>⚙</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Animated.View
+          pointerEvents={
+            exploreControlsCollapsed && compactHeaderTouchable ? 'none' : 'auto'
+          }
+          style={styles.exploreFullHeader}
+        >
+          <Animated.View
+            style={[
+              styles.exploreTopHeader,
+              exploreControlsCollapsed && {
+                opacity: brandRowOpacity,
+                transform: [{ translateY: brandRowTranslateY }],
+              },
+            ]}
+          >
+            <Text style={styles.exploreTopTitle}>BABYROO</Text>
+            <Pressable
+              style={styles.mastheadIconButton}
+              onPress={onOpenSettings}
+              accessibilityLabel="Open user settings"
+            >
+              <Text style={styles.mastheadIconText}>⚙</Text>
+            </Pressable>
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.eventTypeSelector,
+              exploreControlsCollapsed && {
+                opacity: eventTypeOpacity,
+                transform: [{ translateY: eventTypeTranslateY }],
+              },
+            ]}
+          >
+            {exploreEventTypeOptions.map(option => {
+              const selected = filters.exploreEventTypes.includes(option.value);
+
+              return (
+                <Pressable
+                  key={option.value}
+                  style={[
+                    styles.eventTypeOption,
+                    selected && styles.eventTypeOptionSelected,
+                  ]}
+                  onPress={() => onToggleEventType(option.value)}
+                  accessibilityLabel={`Toggle explore event type ${option.label}`}
+                >
+                  <View
+                    style={[
+                      styles.eventTypeIcon,
+                      selected && styles.eventTypeIconSelected,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.eventTypeIconText,
+                        selected && styles.eventTypeIconTextSelected,
+                      ]}
+                    >
+                      {option.icon}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.eventTypeLabel,
+                      selected && styles.eventTypeLabelSelected,
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </Animated.View>
+
+          <Animated.View
+            style={[
+              styles.exploreMasthead,
+              exploreControlsCollapsed && {
+                opacity: mastheadOpacity,
+                transform: [{ translateY: mastheadTranslateY }],
+              },
+            ]}
+          >
+            <Pressable
+              style={styles.exploreControlsHeader}
+              onPress={() =>
+                setExploreControlsCollapsed(
+                  previousCollapsed => !previousCollapsed,
+                )
+              }
+              accessibilityLabel="Toggle exploration controls"
+            >
+              <View style={styles.exploreControlsSummaryArea}>
+                <View style={styles.exploreControlsTitleRow}>
+                  <View style={styles.exploreCriteriaSummaryBlock}>
+                    <Text style={styles.exploreIntentTitle} numberOfLines={2}>
+                      {exploreIntentSummary.title}
+                    </Text>
+                    <Text style={styles.exploreIntentMeta} numberOfLines={1}>
+                      {exploreIntentSummary.meta}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.exploreControlsToggle,
+                        styles.exploreControlsToggleInMasthead,
+                      ]}
+                    >
+                      {exploreControlsCollapsed ? '조건 바꾸기' : '조건 접기'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </Pressable>
+
+            {exploreControlsCollapsed ? null : (
+              <>
+                <View
+                  style={[
+                    styles.exploreControlDivider,
+                    styles.exploreControlDividerInMasthead,
+                  ]}
+                />
+
+                <View style={styles.exploreControlSection}>
+                  <Text
+                    style={[
+                      styles.exploreControlLabel,
+                      styles.exploreControlLabelInMasthead,
+                    ]}
+                  >
+                    아이 월령 기준
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.childChipRow}
+                  >
+                    {childrenByAge.map(child => {
+                      const selected = user.activeChildIds.includes(child.id);
+
+                      return (
+                        <Pressable
+                          key={child.id}
+                          onPress={() => onToggleChild(child.id)}
+                          accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                        >
+                          <ChildContextChip child={child} selected={selected} />
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                <View
+                  style={[
+                    styles.exploreControlDivider,
+                    styles.exploreControlDividerInMasthead,
+                  ]}
+                />
+
+                <View
+                  style={[
+                    styles.exploreControlSection,
+                    styles.exploreFilterSection,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.exploreControlLabel,
+                      styles.exploreControlLabelInMasthead,
+                    ]}
+                  >
+                    필터
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.chipRow}
+                  >
+                    {activeFilterLabels.map(chip => (
+                      <Chip key={chip} label={chip} selected />
+                    ))}
+                    <Pressable
+                      onPress={onOpenFilter}
+                      accessibilityLabel="Open filters"
+                    >
+                      <Chip
+                        label={
+                          activeFilterCount > 0
+                            ? `필터 ${activeFilterCount}`
+                            : '필터'
+                        }
+                      />
+                    </Pressable>
+                  </ScrollView>
+                </View>
+              </>
+            )}
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
+
+      <Animated.FlatList
+        style={styles.exploreList}
         data={filteredEvents}
         keyExtractor={event => event.id}
         renderItem={({ item, index }) => (
@@ -2214,184 +2558,19 @@ function ExploreScreen({
           />
         )}
         contentContainerStyle={[
-          styles.screenWithTabs,
+          styles.exploreListContent,
           tabScreenBottomPadding(bottomInset),
         ]}
         ListHeaderComponent={
           <>
-            <View style={styles.headerRow}>
-              <View style={styles.headerTitleGroup}>
-                <Text style={styles.pageTitle}>행사 탐색</Text>
+            <View style={styles.resultHeaderRow}>
+              <View>
+                <Text style={styles.sectionTitle}>행사 목록</Text>
+                <Text style={styles.sectionMeta}>
+                  {filteredEvents.length}개 · 최신 추가순
+                </Text>
               </View>
-              <Pressable
-                style={styles.iconButton}
-                onPress={onOpenSettings}
-                accessibilityLabel="Open user settings"
-              >
-                <Text style={styles.iconButtonText}>⚙</Text>
-              </Pressable>
             </View>
-
-            <View style={styles.searchField}>
-              <Text style={styles.searchIcon}>⌕</Text>
-              <TextInput
-                style={styles.searchInput}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="행사 제목 검색"
-                placeholderTextColor={colors.muted}
-                returnKeyType="search"
-                autoCorrect={false}
-              />
-            </View>
-
-            <View style={styles.eventTypeSelector}>
-              {exploreEventTypeOptions.map(option => {
-                const selected = filters.exploreEventTypes.includes(option.value);
-
-                return (
-                  <Pressable
-                    key={option.value}
-                    style={[
-                      styles.eventTypeOption,
-                      selected && styles.eventTypeOptionSelected,
-                    ]}
-                    onPress={() => onToggleEventType(option.value)}
-                    accessibilityLabel={`Toggle explore event type ${option.label}`}
-                  >
-                    <View
-                      style={[
-                        styles.eventTypeIcon,
-                        selected && styles.eventTypeIconSelected,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.eventTypeIconText,
-                          selected && styles.eventTypeIconTextSelected,
-                        ]}
-                      >
-                        {option.icon}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.eventTypeLabel,
-                        selected && styles.eventTypeLabelSelected,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View
-              style={[
-                styles.exploreControlsPanel,
-                exploreControlsCollapsed &&
-                  styles.exploreControlsPanelCollapsed,
-              ]}
-            >
-              <Pressable
-                style={styles.exploreControlsHeader}
-                onPress={() =>
-                  setExploreControlsCollapsed(
-                    previousCollapsed => !previousCollapsed,
-                  )
-                }
-                accessibilityLabel="Toggle exploration controls"
-              >
-                <View>
-                  <View style={styles.exploreControlsTitleRow}>
-                    <Text style={styles.exploreControlsTitle}>탐색 기준</Text>
-                    <Text
-                      style={styles.exploreControlsSummary}
-                      numberOfLines={1}
-                    >
-                      {exploreCriteriaSummary}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.exploreControlsActions}>
-                  <Text style={styles.exploreControlsToggle}>
-                    {exploreControlsCollapsed ? '펼치기' : '접기'}
-                  </Text>
-                </View>
-              </Pressable>
-
-              {exploreControlsCollapsed ? null : (
-                <>
-                  <View style={styles.exploreControlDivider} />
-
-                  <View style={styles.exploreControlSection}>
-                    <Text style={styles.exploreControlLabel}>
-                      아이 월령 기준
-                    </Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.childChipRow}
-                    >
-                      {childrenByAge.map(child => {
-                        const selected = user.activeChildIds.includes(child.id);
-
-                        return (
-                          <Pressable
-                            key={child.id}
-                            onPress={() => onToggleChild(child.id)}
-                            accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
-                          >
-                            <ChildContextChip
-                              child={child}
-                              selected={selected}
-                            />
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-
-                  <View style={styles.exploreControlDivider} />
-
-                  <View
-                    style={[
-                      styles.exploreControlSection,
-                      styles.exploreFilterSection,
-                    ]}
-                  >
-                    <Text style={styles.exploreControlLabel}>필터</Text>
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.chipRow}
-                    >
-                      {activeFilterLabels.map(chip => (
-                        <Chip key={chip} label={chip} selected />
-                      ))}
-                      <Pressable
-                        onPress={onOpenFilter}
-                        accessibilityLabel="Open filters"
-                      >
-                        <Chip
-                          label={
-                            activeFilterCount > 0
-                              ? `필터 ${activeFilterCount}`
-                              : '필터'
-                          }
-                        />
-                      </Pressable>
-                    </ScrollView>
-                  </View>
-                </>
-              )}
-            </View>
-
-            <Text style={styles.resultCount}>
-              {filteredEvents.length}개 행사 · 최신 추가순
-            </Text>
           </>
         }
         ListEmptyComponent={
@@ -2410,7 +2589,10 @@ function ExploreScreen({
         }
         initialNumToRender={8}
         maxToRenderPerBatch={8}
-        onScroll={handleScroll}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: exploreScrollY } } }],
+          { useNativeDriver: false, listener: handleScroll },
+        )}
         removeClippedSubviews
         scrollEventThrottle={16}
         updateCellsBatchingPeriod={50}
@@ -3326,7 +3508,13 @@ function EventCard({
           <Text style={styles.sequenceText}>{event.csvSequence}</Text>
         </View>
       ) : null}
-      <View style={[styles.thumbnail, { backgroundColor: color }]}>
+      <View
+        style={[
+          styles.thumbnail,
+          !compact && styles.thumbnailFeature,
+          { backgroundColor: color },
+        ]}
+      >
         {event.imageUrl ? (
           <Image
             source={{ uri: event.imageUrl }}
@@ -3338,7 +3526,18 @@ function EventCard({
           <EventThumbnailFallback event={event} tone={tone} />
         )}
       </View>
-      <View style={styles.cardBody}>
+      <View style={[styles.cardBody, !compact && styles.cardBodyFeature]}>
+        {!compact ? (
+          <View style={styles.cardKickerRow}>
+            <Text style={styles.cardKickerText} numberOfLines={1}>
+              {event.locality || '지역 확인'}
+            </Text>
+            <Text style={styles.cardKickerDivider}>/</Text>
+            <Text style={styles.cardKickerText} numberOfLines={1}>
+              {thumbnailCategoryLabel(event)}
+            </Text>
+          </View>
+        ) : null}
         <Text style={styles.cardTitle} numberOfLines={compact ? 2 : 3}>
           {event.title}
         </Text>
@@ -3356,7 +3555,9 @@ function EventCard({
           {event.indoor === undefined ? null : (
             <Chip label={event.indoor ? '실내' : '야외'} dense />
           )}
-          <Text style={styles.cardDate}>{formatShortDate(event.startsAt)}</Text>
+          <Text style={compact ? styles.cardDate : styles.cardOpenHint}>
+            {compact ? formatShortDate(event.startsAt) : '자세히 보기'}
+          </Text>
         </View>
         {recommendationResult ? (
           <View style={styles.recommendationReasonBox}>
@@ -3389,10 +3590,10 @@ function EventThumbnailFallback({
   tone: number;
 }) {
   const palette = [
-    [colors.primary, colors.mint, colors.blue],
-    [colors.blueText, colors.primarySoft, colors.lilac],
-    [colors.mintText, colors.blue, colors.primarySoft],
-    [colors.lilacText, colors.mint, colors.blue],
+    [colors.primary, colors.primarySoft],
+    [colors.blueText, colors.lilac],
+    [colors.mintText, colors.mint],
+    [colors.amberText, colors.amber],
   ][tone % 4];
 
   return (
@@ -3401,10 +3602,7 @@ function EventThumbnailFallback({
         style={[styles.thumbnailBackdrop, { backgroundColor: palette[1] }]}
       />
       <View
-        style={[styles.thumbnailAccentLarge, { backgroundColor: palette[0] }]}
-      />
-      <View
-        style={[styles.thumbnailAccentSmall, { backgroundColor: palette[2] }]}
+        style={[styles.thumbnailTopLine, { backgroundColor: palette[0] }]}
       />
       <Text style={styles.thumbnailSourceText} numberOfLines={1}>
         {thumbnailSourceLabel(event)}
@@ -4270,29 +4468,64 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
   return labels;
 }
 
-function formatExploreCriteriaSummary(
+function formatExploreIntentSummary(
   selectedChildren: Child[],
   activeFilterLabels: string[],
 ) {
-  const childSummary =
-    selectedChildren.length === 0
-      ? '아이 정보 없음'
-      : selectedChildren.length === 1
-      ? `${selectedChildren[0].nickname} · ${formatChildAge(
-          selectedChildren[0],
-        )}`
-      : `${selectedChildren[0].nickname} 외 ${selectedChildren.length - 1}명`;
-  const filterSummary =
-    activeFilterLabels.length > 0
-      ? activeFilterLabels.slice(0, 2).join(', ')
-      : '기본 필터';
-  const remainingFilterCount = Math.max(activeFilterLabels.length - 2, 0);
+  const childSubject = formatExploreIntentChildSubject(selectedChildren);
+  const filterPhrase = formatExploreIntentFilterPhrase(activeFilterLabels);
 
-  if (remainingFilterCount > 0) {
-    return `${childSummary} · ${filterSummary} 외 ${remainingFilterCount}`;
+  return {
+    title: `${childSubject} 갈 ${filterPhrase}이벤트`,
+    meta:
+      activeFilterLabels.length > 0
+        ? `${activeFilterLabels.join(' · ')} · 최신 추가순`
+        : '기본 필터 · 최신 추가순',
+  };
+}
+
+function formatExploreEventTypeSummary(selectedEventTypes: ExploreEventType[]) {
+  const selectedLabels = exploreEventTypeOptions
+    .filter(option => selectedEventTypes.includes(option.value))
+    .map(option => option.label);
+
+  if (selectedLabels.length === 0) {
+    return '행사 유형 없음';
   }
 
-  return `${childSummary} · ${filterSummary}`;
+  if (selectedLabels.length === exploreEventTypeOptions.length) {
+    return '전체 유형';
+  }
+
+  return selectedLabels.join(' · ');
+}
+
+function formatExploreIntentChildSubject(selectedChildren: Child[]) {
+  if (selectedChildren.length === 0) {
+    return '아이와';
+  }
+
+  if (selectedChildren.length === 1) {
+    return `${formatChildAge(selectedChildren[0])} 아이와`;
+  }
+
+  return `${selectedChildren[0].nickname} 외 ${
+    selectedChildren.length - 1
+  }명과`;
+}
+
+function formatExploreIntentFilterPhrase(activeFilterLabels: string[]) {
+  if (activeFilterLabels.length === 0) {
+    return '';
+  }
+
+  const priorityLabels = activeFilterLabels.filter(label =>
+    ['무료', '유료', '서울', '경기', '실내', '야외'].includes(label),
+  );
+  const selectedLabels =
+    priorityLabels.length > 0 ? priorityLabels : activeFilterLabels;
+
+  return `${selectedLabels.slice(0, 2).join(' · ')} `;
 }
 
 function formatRecommendationCriteriaSummary(selectedChildren: Child[]) {
@@ -4666,7 +4899,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     flex: 1,
     justifyContent: 'center',
-    padding: spacing.xl,
+    padding: layout.screenPadding,
   },
   authBrandRow: {
     alignItems: 'center',
@@ -4675,26 +4908,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   authLogo: {
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     height: 56,
     width: 56,
   },
   authEyebrow: {
-    color: colors.primaryStrong,
-    fontSize: 16,
-    fontWeight: '900',
+    ...typography.caption,
+    color: colors.primary,
   },
   authTitle: {
+    ...typography.display,
     color: colors.text,
-    fontSize: 30,
-    fontWeight: '900',
-    lineHeight: 37,
   },
   authSubtitle: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 21,
     marginBottom: spacing.xl,
     marginTop: spacing.md,
   },
@@ -4702,15 +4930,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     flexDirection: 'row',
     marginBottom: spacing.xl,
-    padding: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 22,
+    padding: layout.cardPadding,
+    ...shadows.card,
   },
   authValueItem: {
     flex: 1,
@@ -4742,19 +4967,18 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     height: 54,
     justifyContent: 'center',
     marginTop: spacing.xl,
   },
   onboardingScreen: {
-    padding: spacing.xl,
+    padding: layout.screenPadding,
     paddingBottom: spacing.xxxl,
   },
   onboardingStepText: {
-    color: colors.primaryStrong,
-    fontSize: 12,
-    fontWeight: '900',
+    ...typography.caption,
+    color: colors.primary,
     marginTop: spacing.xxl,
   },
   onboardingActions: {
@@ -4763,45 +4987,112 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   screenWithTabs: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.xl,
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   exploreRoot: {
     flex: 1,
   },
+  exploreFixedHeader: {
+    backgroundColor: colors.background,
+    elevation: 4,
+    left: 0,
+    overflow: 'hidden',
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.xl,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 4,
+  },
+  exploreCompactHeader: {
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderColor: 'rgba(232, 94, 37, 0.12)',
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minHeight: 52,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    position: 'absolute',
+    left: layout.screenPadding,
+    right: layout.screenPadding,
+    top: spacing.md,
+  },
+  exploreHiddenHeaderLayer: {
+    opacity: 0,
+  },
+  exploreCompactSummary: {
+    flex: 1,
+    minWidth: 0,
+  },
+  exploreCompactTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '900',
+    lineHeight: 17,
+  },
+  exploreCompactMeta: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    lineHeight: 14,
+    marginTop: 1,
+  },
+  exploreCompactIconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.foreground,
+    borderRadius: radius.pill,
+    flexShrink: 0,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
+  },
+  exploreCompactIconText: {
+    color: colors.inverseText,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  exploreList: {
+    flex: 1,
+  },
+  exploreListContent: {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: EXPLORE_HEADER_FULL_HEIGHT + spacing.lg,
+    paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
+  },
   floatingRecommendationCta: {
     alignItems: 'center',
-    backgroundColor: colors.primaryStrong,
-    borderRadius: radius.md,
+    backgroundColor: colors.foreground,
+    borderRadius: radius.xl,
     bottom: FLOATING_RECOMMENDATION_BOTTOM,
     flexDirection: 'row',
     justifyContent: 'space-between',
     left: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     position: 'absolute',
     right: spacing.xl,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
+    ...shadows.elevated,
+  },
+  exploreFullHeader: {
+    paddingBottom: spacing.lg,
   },
   floatingRecommendationTitle: {
+    ...typography.caption,
     color: colors.primarySoft,
-    fontSize: 12,
-    fontWeight: '900',
   },
   floatingRecommendationText: {
-    color: colors.surface,
-    fontSize: 14,
-    fontWeight: '900',
+    ...typography.body,
+    color: colors.inverseText,
     marginTop: 2,
   },
   floatingRecommendationBadge: {
-    color: colors.surface,
-    fontSize: 12,
-    fontWeight: '900',
+    ...typography.caption,
+    color: colors.inverseText,
   },
   headerRow: {
     alignItems: 'flex-start',
@@ -4812,60 +5103,135 @@ const styles = StyleSheet.create({
   headerTitleGroup: {
     flex: 1,
   },
-  eyebrow: {
-    color: colors.primaryStrong,
-    fontSize: 12,
+  homeMasthead: {
+    backgroundColor: colors.background,
+    paddingTop: spacing.sm,
+  },
+  mastheadTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xl,
+  },
+  mastheadEyebrow: {
+    ...typography.caption,
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  mastheadEyebrowDark: {
+    ...typography.caption,
+    color: colors.text,
+    textTransform: 'uppercase',
+  },
+  mastheadIconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.foreground,
+    borderRadius: radius.pill,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  mastheadIconText: {
+    color: colors.inverseText,
+    fontSize: 17,
     fontWeight: '900',
+  },
+  homeMastheadTitle: {
+    color: colors.text,
+    fontSize: 42,
+    fontWeight: '900',
+    lineHeight: 43,
+    maxWidth: 340,
+  },
+  homeMastheadText: {
+    ...typography.body,
+    color: colors.muted,
+    marginTop: spacing.lg,
+    maxWidth: 300,
+  },
+  exploreTopHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+    paddingTop: spacing.sm,
+  },
+  exploreTopTitle: {
+    ...typography.caption,
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  exploreMasthead: {
+    backgroundColor: colors.primarySoft,
+    borderColor: 'rgba(232, 94, 37, 0.12)',
+    borderWidth: 1,
+    borderRadius: radius.xxxl,
+    marginTop: spacing.lg,
+    padding: spacing.xl,
+  },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.primary,
     marginBottom: spacing.xs,
   },
   pageTitle: {
+    ...typography.display,
     color: colors.text,
-    fontSize: 27,
-    fontWeight: '900',
-    lineHeight: 33,
   },
   pageSubtitle: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: '600',
     marginTop: spacing.xs,
   },
   iconButton: {
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     height: 34,
     justifyContent: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
+    ...shadows.card,
     width: 34,
   },
   iconButtonText: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 16,
     fontWeight: '700',
   },
   recommendationSetupCard: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.foreground,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xxl,
     borderWidth: 1,
-    marginTop: spacing.xl,
-    padding: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
+    marginTop: spacing.xxxl,
+    padding: layout.cardPadding,
+    ...shadows.elevated,
+  },
+  recommendationSetupLabel: {
+    ...typography.caption,
+    color: colors.primarySoft,
+  },
+  recommendationSetupTitle: {
+    ...typography.title,
+    color: colors.inverseText,
+    marginTop: spacing.xs,
+  },
+  recommendationSetupMeta: {
+    ...typography.body,
+    color: colors.inverseMuted,
+    marginTop: spacing.sm,
+  },
+  recommendationSetupFootnote: {
+    ...typography.caption,
+    color: colors.inverseMuted,
+    marginTop: spacing.md,
   },
   recommendationContextRow: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceRaised,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    backgroundColor: colors.foregroundSoft,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -4875,35 +5241,30 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   recommendationContextLabel: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
+    ...typography.caption,
+    color: colors.inverseMuted,
   },
   recommendationContextValue: {
-    color: colors.text,
+    color: colors.inverseText,
     fontSize: 14,
     fontWeight: '900',
     marginTop: 2,
   },
   recommendationContextAction: {
-    color: colors.primaryStrong,
-    fontSize: 12,
-    fontWeight: '900',
+    ...typography.caption,
+    color: colors.primarySoft,
   },
   recommendationPrimaryButton: {
     marginTop: spacing.lg,
   },
   recommendationQuestionCard: {
     backgroundColor: colors.surface,
-    borderColor: '#B9DED8',
-    borderRadius: radius.lg,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.xl,
     borderWidth: 1,
     marginTop: spacing.lg,
-    padding: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
+    padding: layout.cardPadding,
+    ...shadows.card,
   },
   recommendationQuestionHeader: {
     alignItems: 'flex-start',
@@ -4916,9 +5277,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   recommendationOption: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     minHeight: 48,
     justifyContent: 'center',
@@ -4926,7 +5287,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   recommendationOptionText: {
-    color: colors.primaryStrong,
+    color: colors.text,
     fontSize: 14,
     fontWeight: '900',
   },
@@ -5100,44 +5461,41 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   settingsScreen: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xxxl,
   },
   settingsCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     marginTop: spacing.xxl,
-    padding: spacing.lg,
+    padding: layout.cardPadding,
+    ...shadows.card,
   },
   settingsSection: {
     marginTop: spacing.xxxl,
   },
   settingsLabel: {
-    color: colors.primaryStrong,
-    fontSize: 12,
-    fontWeight: '900',
+    ...typography.caption,
+    color: colors.primary,
     marginBottom: spacing.xs,
   },
   settingsTitle: {
+    ...typography.section,
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
   },
   settingsMeta: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 19,
     marginTop: spacing.xs,
   },
   addressCard: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.md,
@@ -5164,7 +5522,7 @@ const styles = StyleSheet.create({
   },
   addressSearchButton: {
     alignItems: 'center',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.foreground,
     borderRadius: radius.pill,
     flexShrink: 0,
     minHeight: 38,
@@ -5172,14 +5530,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   addressSearchButtonText: {
-    color: colors.primaryStrong,
+    color: colors.inverseText,
     fontSize: 12,
     fontWeight: '900',
   },
   textInput: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     color: colors.text,
     fontSize: 15,
@@ -5193,9 +5551,9 @@ const styles = StyleSheet.create({
     opacity: 0.55,
   },
   datePickerButton: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.md,
     minHeight: 58,
@@ -5219,7 +5577,7 @@ const styles = StyleSheet.create({
   childCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     marginTop: spacing.md,
     padding: spacing.lg,
@@ -5272,7 +5630,7 @@ const styles = StyleSheet.create({
     color: colors.surface,
   },
   editButton: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
     borderRadius: radius.pill,
     borderWidth: 1,
@@ -5280,7 +5638,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   editButtonText: {
-    color: colors.primaryStrong,
+    color: colors.text,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -5318,9 +5676,9 @@ const styles = StyleSheet.create({
   },
   addChildButton: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderStyle: 'dashed',
     borderWidth: 1,
     flexDirection: 'row',
@@ -5330,17 +5688,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   addChildPlus: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 22,
     fontWeight: '900',
   },
   addChildText: {
-    color: colors.primaryStrong,
+    color: colors.text,
     fontSize: 14,
     fontWeight: '900',
   },
   linkText: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 14,
     fontWeight: '800',
   },
@@ -5351,7 +5709,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
     borderRadius: radius.pill,
     borderWidth: 1,
@@ -5360,8 +5718,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   chipSelected: {
-    backgroundColor: colors.primarySoft,
-    borderColor: '#B9DED8',
+    backgroundColor: colors.foreground,
+    borderColor: colors.foreground,
   },
   chipDense: {
     paddingHorizontal: spacing.sm,
@@ -5373,7 +5731,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   chipTextSelected: {
-    color: colors.primaryStrong,
+    color: colors.inverseText,
   },
   sectionHeader: {
     marginTop: spacing.xxxl,
@@ -5382,82 +5740,38 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   sectionTitle: {
+    ...typography.section,
     color: colors.text,
-    fontSize: 18,
-    fontWeight: '800',
-    lineHeight: 24,
   },
   sectionMeta: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
     marginTop: 3,
-  },
-  searchField: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 48,
-    justifyContent: 'center',
-    marginTop: spacing.xl,
-    paddingHorizontal: spacing.md,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-  },
-  searchIcon: {
-    color: colors.primaryStrong,
-    fontSize: 20,
-    fontWeight: '900',
-    marginRight: spacing.sm,
-  },
-  searchInput: {
-    color: colors.text,
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '700',
-    height: '100%',
-    padding: 0,
-  },
-  searchText: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: '600',
   },
   eventTypeSelector: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
+    backgroundColor: 'transparent',
     borderRadius: radius.lg,
-    borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
+    marginTop: 0,
   },
   eventTypeOption: {
     alignItems: 'center',
-    backgroundColor: colors.surfaceRaised,
-    borderRadius: radius.pill,
+    backgroundColor: colors.cream,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     flex: 1,
     flexDirection: 'row',
     gap: spacing.xs,
-    height: 42,
+    height: 44,
     justifyContent: 'center',
     minWidth: 0,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
   eventTypeOptionSelected: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.foreground,
   },
   eventTypeIcon: {
     alignItems: 'center',
@@ -5466,30 +5780,33 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
     flexShrink: 0,
-    height: 24,
+    height: 22,
     justifyContent: 'center',
-    width: 24,
+    width: 22,
   },
   eventTypeIconSelected: {
     backgroundColor: colors.primary,
-    borderColor: colors.primaryStrong,
+    borderColor: colors.primary,
   },
   eventTypeIconText: {
-    color: colors.primaryStrong,
-    fontSize: 11,
+    color: colors.primary,
+    fontSize: 10,
     fontWeight: '900',
+    lineHeight: 13,
   },
   eventTypeIconTextSelected: {
-    color: colors.surface,
+    color: colors.inverseText,
   },
   eventTypeLabel: {
     color: colors.text,
     flexShrink: 1,
     fontSize: 12,
+    lineHeight: 15,
     fontWeight: '900',
+    textAlign: 'center',
   },
   eventTypeLabelSelected: {
-    color: colors.primaryStrong,
+    color: colors.inverseText,
   },
   resultCount: {
     color: colors.muted,
@@ -5497,22 +5814,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: spacing.md,
   },
-  exploreControlsPanel: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    marginTop: spacing.lg,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
-  },
-  exploreControlsPanelCollapsed: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+  resultHeaderRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 0,
   },
   exploreControlsHeader: {
     alignItems: 'center',
@@ -5521,17 +5827,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: 32,
   },
+  exploreControlsSummaryArea: {
+    flex: 1,
+    minWidth: 0,
+  },
   exploreControlsTitleRow: {
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  exploreCriteriaSummaryBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
+  exploreIntentTitle: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+    lineHeight: 22,
+  },
+  exploreIntentMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    marginTop: spacing.xs,
+  },
   exploreControlsTitle: {
+    ...typography.caption,
     color: colors.text,
     flexShrink: 0,
-    fontSize: 13,
-    fontWeight: '900',
+  },
+  exploreControlsTitleInMasthead: {
+    color: colors.text,
   },
   exploreControlsSummary: {
     color: colors.muted,
@@ -5539,16 +5868,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  exploreControlsToggle: {
-    color: colors.primaryStrong,
-    fontSize: 12,
+  exploreControlsSummaryInMasthead: {
+    color: colors.text,
+    fontSize: 14,
     fontWeight: '900',
+    lineHeight: 18,
+    marginTop: 2,
   },
-  exploreControlsActions: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flexShrink: 0,
-    gap: spacing.md,
+  exploreControlsToggle: {
+    ...typography.caption,
+    color: colors.primary,
+  },
+  exploreControlsToggleInMasthead: {
+    alignSelf: 'flex-start',
+    color: colors.primaryStrong,
+    marginTop: spacing.md,
   },
   exploreControlSection: {
     minHeight: 58,
@@ -5561,10 +5895,15 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: spacing.md,
   },
+  exploreControlDividerInMasthead: {
+    backgroundColor: 'rgba(232, 94, 37, 0.16)',
+  },
   exploreControlLabel: {
+    ...typography.caption,
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
+  },
+  exploreControlLabelInMasthead: {
+    color: colors.primaryStrong,
   },
   childChipRow: {
     marginHorizontal: -spacing.md,
@@ -5572,9 +5911,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   childContextChip: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     marginRight: spacing.sm,
     minWidth: 92,
@@ -5582,8 +5921,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   childContextChipSelected: {
-    backgroundColor: colors.primarySoft,
-    borderColor: '#B9DED8',
+    backgroundColor: colors.foreground,
+    borderColor: colors.foreground,
   },
   childContextName: {
     color: colors.text,
@@ -5592,7 +5931,7 @@ const styles = StyleSheet.create({
     maxWidth: 116,
   },
   childContextNameSelected: {
-    color: colors.primaryStrong,
+    color: colors.inverseText,
   },
   childContextAge: {
     color: colors.muted,
@@ -5601,15 +5940,15 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   childContextAgeSelected: {
-    color: colors.primaryStrong,
+    color: colors.inverseMuted,
   },
   noResultsCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     marginTop: spacing.md,
-    padding: spacing.xl,
+    padding: layout.cardPadding,
   },
   noResultsTitle: {
     color: colors.text,
@@ -5626,19 +5965,18 @@ const styles = StyleSheet.create({
   eventCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    flexDirection: 'row',
-    marginTop: spacing.sm,
-    minHeight: 140,
+    marginTop: spacing.lg,
+    overflow: 'hidden',
     padding: spacing.md,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
+    ...shadows.card,
   },
   eventCardCompact: {
+    flexDirection: 'row',
+    marginTop: spacing.sm,
     minHeight: 132,
+    overflow: 'visible',
   },
   sequenceBadge: {
     alignItems: 'center',
@@ -5659,12 +5997,20 @@ const styles = StyleSheet.create({
   },
   thumbnail: {
     alignItems: 'center',
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     height: 84,
     justifyContent: 'center',
     marginRight: spacing.md,
     overflow: 'hidden',
     width: 84,
+  },
+  thumbnailFeature: {
+    aspectRatio: 1.65,
+    borderRadius: radius.lg,
+    height: undefined,
+    marginBottom: spacing.lg,
+    marginRight: 0,
+    width: '100%',
   },
   thumbnailImage: {
     height: '100%',
@@ -5673,7 +6019,7 @@ const styles = StyleSheet.create({
   thumbnailFallback: {
     height: '100%',
     justifyContent: 'flex-end',
-    padding: spacing.sm,
+    padding: spacing.md,
     width: '100%',
   },
   thumbnailBackdrop: {
@@ -5684,27 +6030,16 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
   },
-  thumbnailAccentLarge: {
-    borderRadius: 28,
-    height: 58,
-    opacity: 0.85,
+  thumbnailTopLine: {
+    height: 8,
+    left: 0,
     position: 'absolute',
-    right: -18,
-    top: -14,
-    width: 58,
-  },
-  thumbnailAccentSmall: {
-    borderRadius: 16,
-    bottom: 30,
-    height: 32,
-    left: -10,
-    opacity: 0.9,
-    position: 'absolute',
-    width: 32,
+    right: 0,
+    top: 0,
   },
   thumbnailSourceText: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '900',
   },
   thumbnailCategoryText: {
@@ -5716,11 +6051,32 @@ const styles = StyleSheet.create({
   cardBody: {
     flex: 1,
   },
+  cardBodyFeature: {
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  cardKickerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  cardKickerText: {
+    color: colors.primary,
+    flexShrink: 1,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  cardKickerDivider: {
+    color: colors.border,
+    fontSize: 11,
+    fontWeight: '900',
+  },
   cardTitle: {
     color: colors.text,
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 22,
+    fontSize: 17,
+    fontWeight: '900',
+    lineHeight: 23,
   },
   cardMeta: {
     color: colors.muted,
@@ -5742,12 +6098,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   cardDate: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '800',
   },
+  cardOpenHint: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '900',
+    marginLeft: 'auto',
+  },
   recommendationReasonBox: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     borderWidth: 1,
@@ -5755,7 +6117,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   recommendationReasonTitle: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: '900',
     marginBottom: spacing.xs,
@@ -5801,7 +6163,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   detailHeroScrim: {
-    backgroundColor: 'rgba(24, 33, 47, 0.24)',
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
     bottom: 0,
     left: 0,
     position: 'absolute',
@@ -5828,7 +6190,7 @@ const styles = StyleSheet.create({
     lineHeight: 38,
   },
   heroSource: {
-    color: colors.surface,
+    color: colors.inverseText,
     fontSize: 18,
     fontWeight: '900',
     textShadowColor: 'rgba(31, 41, 51, 0.24)',
@@ -5837,14 +6199,11 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     marginTop: -spacing.xxl,
     padding: spacing.xl,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.05,
-    shadowRadius: 18,
+    ...shadows.card,
   },
   recommendationDetailContent: {
     padding: spacing.xl,
@@ -5880,11 +6239,9 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   recommendationDetailTitle: {
+    ...typography.title,
     color: colors.text,
     flexShrink: 0,
-    fontSize: 22,
-    fontWeight: '900',
-    lineHeight: 28,
   },
   recommendationDetailTime: {
     color: colors.muted,
@@ -5898,16 +6255,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   detailTitle: {
+    ...typography.title,
     color: colors.text,
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 31,
   },
   detailMeta: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 19,
     marginTop: spacing.sm,
   },
   factGrid: {
@@ -5917,10 +6270,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   fact: {
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
     borderWidth: 1,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     minHeight: 82,
     padding: spacing.md,
     width: '47.8%',
@@ -5938,10 +6291,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bodyText: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 14,
-    fontWeight: '500',
-    lineHeight: 22,
     marginBottom: spacing.xl,
     marginTop: spacing.sm,
   },
@@ -5963,7 +6314,7 @@ const styles = StyleSheet.create({
   primaryButton: {
     alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     height: 54,
     justifyContent: 'center',
   },
@@ -5971,15 +6322,15 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   primaryButtonText: {
-    color: colors.surface,
+    color: colors.inverseText,
     fontSize: 15,
     fontWeight: '900',
   },
   secondaryButton: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     flex: 1,
     height: 54,
@@ -6009,7 +6360,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   sheetDim: {
-    backgroundColor: colors.text,
+    backgroundColor: colors.foreground,
     bottom: 0,
     left: 0,
     opacity: 0.22,
@@ -6019,8 +6370,8 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: radius.xxl,
+    borderTopRightRadius: radius.xxl,
     bottom: 0,
     left: 0,
     maxHeight: '88%',
@@ -6038,9 +6389,8 @@ const styles = StyleSheet.create({
     width: 64,
   },
   sheetTitle: {
+    ...typography.title,
     color: colors.text,
-    fontSize: 22,
-    fontWeight: '900',
   },
   sheetHeader: {
     alignItems: 'flex-start',
@@ -6048,18 +6398,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sheetSubtitle: {
+    ...typography.body,
     color: colors.muted,
-    fontSize: 13,
-    fontWeight: '600',
     marginTop: spacing.xs,
   },
   sheetScroll: {
     marginTop: spacing.sm,
   },
   fieldLabel: {
+    ...typography.caption,
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '800',
     marginBottom: spacing.sm,
     marginTop: spacing.xxl,
   },
@@ -6096,9 +6444,9 @@ const styles = StyleSheet.create({
   },
   stepper: {
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: colors.cream,
     borderColor: colors.border,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     flexDirection: 'row',
     height: 54,
@@ -6106,7 +6454,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   stepperButton: {
-    color: colors.primaryStrong,
+    color: colors.primary,
     fontSize: 24,
     fontWeight: '900',
   },
@@ -6118,18 +6466,16 @@ const styles = StyleSheet.create({
   bottomTabs: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderTopWidth: 1,
+    borderRadius: radius.xxl,
+    borderWidth: 1,
     bottom: 0,
     flexDirection: 'row',
     height: TAB_BAR_HEIGHT,
-    left: 0,
+    left: spacing.lg,
     paddingTop: spacing.sm,
     position: 'absolute',
-    right: 0,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.06,
-    shadowRadius: 20,
+    right: spacing.lg,
+    ...shadows.card,
   },
   tabButton: {
     alignItems: 'center',
@@ -6142,7 +6488,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   tabMarkActive: {
-    color: colors.primaryStrong,
+    color: colors.primary,
   },
   tabLabel: {
     color: colors.muted,
@@ -6151,7 +6497,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   tabLabelActive: {
-    color: colors.primaryStrong,
+    color: colors.text,
   },
 });
 
