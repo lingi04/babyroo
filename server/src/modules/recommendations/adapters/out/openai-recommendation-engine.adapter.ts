@@ -32,7 +32,7 @@ export class OpenAiRecommendationEngineAdapter implements RecommendationEnginePo
 
   constructor(private readonly options: OpenAiRecommendationEngineOptions) {
     this.responsesUrl = options.responsesUrl ?? 'https://api.openai.com/v1/responses';
-    this.timeoutMs = options.timeoutMs ?? 60000;
+    this.timeoutMs = options.timeoutMs ?? 120000;
   }
 
   async recommend(input: RecommendationEngineInput): Promise<RecommendationResult[]> {
@@ -153,10 +153,25 @@ export class OpenAiRecommendationEngineAdapter implements RecommendationEnginePo
       }
 
       return extractOutputText(payload);
+    } catch (error) {
+      if (isAbortError(error)) {
+        throw new Error(
+          `OpenAI recommendation request timed out after ${this.timeoutMs}ms.`,
+        );
+      }
+
+      throw error;
     } finally {
       clearTimeout(timeout);
     }
   }
+}
+
+function isAbortError(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.name === 'AbortError' || error.message.includes('aborted'))
+  );
 }
 
 function extractOutputText(payload: OpenAiResponsePayload | null): string {

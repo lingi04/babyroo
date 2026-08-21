@@ -33,7 +33,7 @@ import { RecommendationSessionService } from './application/services/recommendat
             model: process.env.OPENAI_RECOMMENDATION_MODEL ?? 'gpt-5-mini',
             maxCandidates: Number(process.env.OPENAI_RECOMMENDATION_MAX_CANDIDATES ?? 20),
             maxResults: 3,
-            timeoutMs: Number(process.env.OPENAI_RECOMMENDATION_TIMEOUT_MS ?? 60000),
+            timeoutMs: Number(process.env.OPENAI_RECOMMENDATION_TIMEOUT_MS ?? 120000),
           });
         }
 

@@ -1,4 +1,7 @@
-import { NotFoundError } from '../../../../common/application-error';
+import {
+  ApplicationError,
+  NotFoundError,
+} from '../../../../common/application-error';
 import { debugLog } from '../../../../common/debug-log';
 import { createId } from '../../../../common/id';
 import {
@@ -85,10 +88,17 @@ export class RecommendationSessionService
         userHomeAddress: user.homeAddress,
       });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       debugLog('recommendations.engine.failed', {
         userId,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage,
       });
+
+      throw new ApplicationError(
+        'RECOMMENDATION_ENGINE_FAILED',
+        errorMessage,
+        errorMessage.includes('timed out') ? 504 : 502,
+      );
     }
 
     if (results.length > 0) {

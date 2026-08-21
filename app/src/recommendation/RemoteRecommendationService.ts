@@ -21,7 +21,7 @@ export type RemoteRecommendationServiceOptions = {
   timeoutMs?: number;
 };
 
-const DEFAULT_RECOMMENDATION_TIMEOUT_MS = 70000;
+const DEFAULT_RECOMMENDATION_TIMEOUT_MS = 130000;
 
 type RemoteRecommendationSession = {
   id: string;
@@ -36,7 +36,9 @@ type RemoteRecommendationSession = {
 };
 
 export class RemoteRecommendationService implements RecommendationService {
-  constructor(private readonly options: RemoteRecommendationServiceOptions = {}) {}
+  constructor(
+    private readonly options: RemoteRecommendationServiceOptions = {},
+  ) {}
 
   async listSessions(): Promise<RecommendationSession[]> {
     if (!this.options.accessToken) {
@@ -69,7 +71,8 @@ export class RemoteRecommendationService implements RecommendationService {
         accessToken: this.options.accessToken,
         body: {
           selectedChildIds: request.selectedChildIds,
-          selectedChildren: request.selectedChildren ?? this.options.selectedChildren,
+          selectedChildren:
+            request.selectedChildren ?? this.options.selectedChildren,
           answers: request.answers ?? {},
           preferences: request.preferences,
         },
@@ -110,7 +113,9 @@ export class RemoteRecommendationService implements RecommendationService {
 async function toRecommendationSession(
   session: RemoteRecommendationSession,
 ): Promise<RecommendationSession> {
-  const eventSnapshots = await loadRecommendationEventSnapshots(session.results);
+  const eventSnapshots = await loadRecommendationEventSnapshots(
+    session.results,
+  );
 
   return {
     id: session.id,

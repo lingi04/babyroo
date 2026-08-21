@@ -123,6 +123,31 @@ test('maps empty API recommendation results to no_results', async () => {
   });
 });
 
+test('maps timed out API recommendation requests to timeout', async () => {
+  jest
+    .spyOn(globalThis, 'fetch')
+    .mockRejectedValue(
+      new Error(
+        'Babyroo API request timed out after 130000ms: https://babyroo-api.vercel.app/api/recommendation-sessions',
+      ),
+    );
+
+  const service = new RemoteRecommendationService({
+    accessToken: 'dev.user-001',
+  });
+
+  const response = await service.recommend(baseRequest);
+
+  expect(response).toEqual({
+    status: 'failed',
+    provider: 'remote',
+    errorCode: 'timeout',
+    errorMessage:
+      'Babyroo API request timed out after 130000ms: https://babyroo-api.vercel.app/api/recommendation-sessions',
+    retryable: true,
+  });
+});
+
 test('loads recommendation session history from the Babyroo API', async () => {
   const fetchMock = jest
     .spyOn(globalThis, 'fetch')
