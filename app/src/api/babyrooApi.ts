@@ -1,12 +1,20 @@
-import { Platform } from 'react-native';
-
 import type { AuthSession } from '../auth/types';
 import type { BabyrooEvent, ReservationStatus } from '../data/events';
 import type { Child, User, UserHomeAddress } from '../data/user';
 
-export const BABYROO_API_BASE_URL = defaultApiBaseUrl();
+export const BABYROO_API_BASE_URL = 'https://babyroo-api.vercel.app/api';
 const DEFAULT_REQUEST_TIMEOUT_MS = 7000;
 const DEFAULT_EVENT_LIST_LIMIT = 300;
+
+export class BabyrooApiError extends Error {
+  constructor(
+    message: string,
+    readonly statusCode: number,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
 
 export type BabyrooApiAuthResponse = {
   accessToken: string;
@@ -106,7 +114,9 @@ export async function listEventsFromBabyrooApi(
   }));
 }
 
-export async function getEventFromBabyrooApi(id: string): Promise<BabyrooEvent> {
+export async function getEventFromBabyrooApi(
+  id: string,
+): Promise<BabyrooEvent> {
   const event = await getJson<BabyrooApiEvent>({
     path: `/events/${encodeURIComponent(id)}`,
   });
@@ -326,31 +336,31 @@ async function requestJson<T>({
   }
 
   const payload = (await response.json().catch(() => null)) as
-    | { message?: string }
+    | { code?: string; message?: string; statusCode?: number }
     | T
     | null;
 
   if (!response.ok) {
-    throw new Error(
+    throw new BabyrooApiError(
       isErrorPayload(payload) && payload.message
         ? payload.message
         : `Babyroo API request failed with ${response.status}`,
+      isErrorPayload(payload) && typeof payload.statusCode === 'number'
+        ? payload.statusCode
+        : response.status,
+      isErrorPayload(payload) ? payload.code : undefined,
     );
   }
 
   return payload as T;
 }
 
-function defaultApiBaseUrl() {
-  if (Platform.OS === 'android') {
-    return 'http://172.30.1.90:3000/api';
-  }
-
-  return 'http://127.0.0.1:3000/api';
-}
-
-function isErrorPayload(payload: unknown): payload is { message?: string } {
-  return typeof payload === 'object' && payload !== null && 'message' in payload;
+function isErrorPayload(
+  payload: unknown,
+): payload is { code?: string; message?: string; statusCode?: number } {
+  return (
+    typeof payload === 'object' && payload !== null && 'message' in payload
+  );
 }
 
 function isAbortError(error: unknown) {

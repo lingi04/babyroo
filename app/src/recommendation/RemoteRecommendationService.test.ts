@@ -124,13 +124,14 @@ test('maps empty API recommendation results to no_results', async () => {
 });
 
 test('maps timed out API recommendation requests to timeout', async () => {
-  jest
-    .spyOn(globalThis, 'fetch')
-    .mockRejectedValue(
-      new Error(
-        'Babyroo API request timed out after 130000ms: https://babyroo-api.vercel.app/api/recommendation-sessions',
-      ),
-    );
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: false,
+    json: async () => ({
+      statusCode: 504,
+      code: 'RECOMMENDATION_ENGINE_FAILED',
+      message: 'OpenAI recommendation request timed out after 120000ms.',
+    }),
+  } as Response);
 
   const service = new RemoteRecommendationService({
     accessToken: 'dev.user-001',
@@ -142,8 +143,32 @@ test('maps timed out API recommendation requests to timeout', async () => {
     status: 'failed',
     provider: 'remote',
     errorCode: 'timeout',
-    errorMessage:
-      'Babyroo API request timed out after 130000ms: https://babyroo-api.vercel.app/api/recommendation-sessions',
+    errorMessage: 'OpenAI recommendation request timed out after 120000ms.',
+    retryable: true,
+  });
+});
+
+test('maps recommendation engine API failures to llm_unavailable', async () => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: false,
+    json: async () => ({
+      statusCode: 502,
+      code: 'RECOMMENDATION_ENGINE_FAILED',
+      message: 'OpenAI recommendation request failed with 500.',
+    }),
+  } as Response);
+
+  const service = new RemoteRecommendationService({
+    accessToken: 'dev.user-001',
+  });
+
+  const response = await service.recommend(baseRequest);
+
+  expect(response).toEqual({
+    status: 'failed',
+    provider: 'remote',
+    errorCode: 'llm_unavailable',
+    errorMessage: 'OpenAI recommendation request failed with 500.',
     retryable: true,
   });
 });

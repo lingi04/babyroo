@@ -1,6 +1,7 @@
 import type { RecommendationService } from './RecommendationService';
 import {
   BABYROO_API_BASE_URL,
+  BabyrooApiError,
   getEventFromBabyrooApi,
   getJson,
   postJson,
@@ -158,6 +159,16 @@ async function loadRecommendationEventSnapshots(
 function remoteRecommendationErrorCode(
   error: unknown,
 ): RecommendationErrorCode {
+  if (error instanceof BabyrooApiError) {
+    if (error.statusCode === 504 || error.message.includes('timed out')) {
+      return 'timeout';
+    }
+
+    if (error.code === 'RECOMMENDATION_ENGINE_FAILED') {
+      return 'llm_unavailable';
+    }
+  }
+
   if (error instanceof Error && error.message.includes('timed out')) {
     return 'timeout';
   }

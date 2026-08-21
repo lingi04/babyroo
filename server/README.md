@@ -12,7 +12,7 @@ The current server exposes the first backend surface for:
 - recommendation credits
 - recommendation sessions
 
-Events, users, and children are stored in Neon Postgres when `DATABASE_URL` is set. Events can be imported from `data/events.json` under this server directory. Without `DATABASE_URL`, events fall back to the JSON file and users/children fall back to memory for local smoke testing. Saved event, credit, and recommendation data still use in-memory repositories for now.
+Events, users, children, and recommendation sessions are stored in Neon Postgres when `DATABASE_URL` is set. Events can be imported from `data/events.json` under this server directory. Without `DATABASE_URL`, events fall back to the JSON file and users, children, and recommendation sessions fall back to memory for local smoke testing. Saved event and credit data still use in-memory repositories for now.
 
 ## Architecture
 
@@ -124,7 +124,7 @@ DATABASE_URL=postgresql://...
 
 `EVENT_DATA_PATH` is useful if the server is started from a different working directory or if you want to test another event JSON file.
 
-`DATABASE_URL` is optional for local smoke testing. If it is not set, the server uses in-memory user storage and JSON-backed events. Set it to a Neon Postgres development branch URL to persist users, children, and events locally.
+`DATABASE_URL` is optional for local smoke testing. If it is not set, the server uses in-memory user and recommendation-session storage plus JSON-backed events. Set it to a Neon Postgres development branch URL to persist users, children, events, and recommendation sessions locally.
 
 Vercel Storage may prefix Neon variables with the connected project/store name. The server accepts these database URL names:
 
@@ -166,7 +166,7 @@ Replace `OPENAI_API_KEY` with a real key before expecting successful LLM respons
 
 ## Database
 
-The persistent DB slice stores events, users, and children in Neon Postgres through Prisma. Other data, such as saved events, credits, and recommendation sessions, still uses in-memory repositories for now.
+The persistent DB slice stores events, users, children, and recommendation sessions in Neon Postgres through Prisma. Other data, such as saved events and credits, still uses in-memory repositories for now.
 
 For local development, create a Neon development branch and pull the Vercel-managed environment variables into the server directory:
 

@@ -18,6 +18,7 @@ model User {
   updatedAt           DateTime @updatedAt
 
   children Child[]
+  recommendationSessions RecommendationSession[]
 
   @@map("users")
 }
@@ -78,4 +79,22 @@ model Event {
   @@index([reservationStatus])
   @@index([source])
   @@map("events")
+}
+
+model RecommendationSession {
+  id                       String   @id
+  userId                   String   @map("user_id")
+  selectedChildIds          String[] @default([]) @map("selected_child_ids")
+  selectedChildrenSnapshot Json     @map("selected_children_snapshot")
+  answers                  Json
+  preferences              Json
+  results                  Json
+  creditCost               Int      @default(0) @map("credit_cost")
+  status                   String
+  createdAt                DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("recommendation_sessions")
 }

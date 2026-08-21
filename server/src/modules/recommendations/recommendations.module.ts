@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { getDatabaseUrl } from '../../common/database-url';
 import { CONSUME_RECOMMENDATION_CREDIT_USE_CASE } from '../credits/application/ports/in/consume-recommendation-credit.use-case';
 import { CreditsModule } from '../credits/credits.module';
 import { LIST_EVENTS_USE_CASE } from '../events/application/ports/in/list-events.use-case';
@@ -8,6 +9,7 @@ import { UsersModule } from '../users/users.module';
 import { RecommendationsController } from './adapters/in/recommendations.controller';
 import { InMemoryRecommendationSessionRepository } from './adapters/out/in-memory-recommendation-session.repository';
 import { OpenAiRecommendationEngineAdapter } from './adapters/out/openai-recommendation-engine.adapter';
+import { PrismaRecommendationSessionRepository } from './adapters/out/prisma-recommendation-session.repository';
 import { RuleBasedRecommendationEngineAdapter } from './adapters/out/rule-based-recommendation-engine.adapter';
 import { CREATE_RECOMMENDATION_SESSION_USE_CASE } from './application/ports/in/create-recommendation-session.use-case';
 import { GET_RECOMMENDATION_SESSION_USE_CASE } from './application/ports/in/get-recommendation-session.use-case';
@@ -22,7 +24,9 @@ import { RecommendationSessionService } from './application/services/recommendat
   providers: [
     {
       provide: RECOMMENDATION_SESSION_REPOSITORY_PORT,
-      useClass: InMemoryRecommendationSessionRepository,
+      useClass: getDatabaseUrl()
+        ? PrismaRecommendationSessionRepository
+        : InMemoryRecommendationSessionRepository,
     },
     {
       provide: RECOMMENDATION_ENGINE_PORT,
