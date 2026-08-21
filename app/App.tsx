@@ -136,7 +136,7 @@ const exploreEventTypeOptions: Array<{
 
 const EXPLORE_HEADER_FULL_HEIGHT = 230;
 const EXPLORE_HEADER_EXPANDED_HEIGHT = 430;
-const EXPLORE_HEADER_COMPACT_HEIGHT = 76;
+const EXPLORE_HEADER_COMPACT_HEIGHT = 92;
 const EXPLORE_HEADER_COLLAPSE_DISTANCE =
   EXPLORE_HEADER_FULL_HEIGHT - EXPLORE_HEADER_COMPACT_HEIGHT;
 
@@ -1049,14 +1049,7 @@ function BabyrooBrandMark({ compact = false }: { compact?: boolean }) {
         ]}
         accessibilityIgnoresInvertColors
       />
-      <Text
-        style={[
-          styles.babyrooBrandText,
-          compact && styles.babyrooBrandTextCompact,
-        ]}
-      >
-        babyroo
-      </Text>
+      {compact ? null : <Text style={styles.babyrooBrandText}>babyroo</Text>}
     </View>
   );
 }
@@ -2177,12 +2170,13 @@ function ExploreScreen({
     [events, filters, searchQuery, selectedChildren],
   );
   const activeFilterLabels = getActiveExploreFilterLabels(filters);
+  const exploreEventTypeSummary = formatExploreEventTypeSummary(
+    filters.exploreEventTypes,
+  );
   const exploreIntentSummary = formatExploreIntentSummary(
     selectedChildren,
     activeFilterLabels,
-  );
-  const exploreEventTypeSummary = formatExploreEventTypeSummary(
-    filters.exploreEventTypes,
+    exploreEventTypeSummary,
   );
   const eventListQueryKey = useMemo(
     () =>
@@ -2244,6 +2238,8 @@ function ExploreScreen({
     const nextCompactTouchable = compactHeaderTouchable
       ? scrollOffsetY > 44
       : scrollOffsetY > 78;
+    const shouldCollapseOpenControls =
+      !exploreControlsCollapsed && scrollOffsetY > 12;
 
     if (nextVisible !== recommendationCtaVisible) {
       setRecommendationCtaVisible(nextVisible);
@@ -2251,6 +2247,10 @@ function ExploreScreen({
 
     if (nextCompactTouchable !== compactHeaderTouchable) {
       setCompactHeaderTouchable(nextCompactTouchable);
+    }
+
+    if (shouldCollapseOpenControls) {
+      setExploreControlsCollapsed(true);
     }
   };
   const animatedFixedHeaderHeight = exploreScrollY.interpolate({
@@ -2342,8 +2342,13 @@ function ExploreScreen({
             onPress={() => setExploreControlsCollapsed(false)}
             accessibilityLabel="Open exploration conditions"
           >
-            <Text style={styles.exploreCompactTitle} numberOfLines={1}>
-              {exploreEventTypeSummary} · {exploreIntentSummary.title}
+            <Text
+              style={styles.exploreCompactTitle}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.88}
+            >
+              {exploreIntentSummary.title}
             </Text>
             <Text style={styles.exploreCompactMeta} numberOfLines={1}>
               {exploreIntentSummary.meta}
@@ -2584,18 +2589,6 @@ function ExploreScreen({
           },
           tabScreenBottomPadding(bottomInset),
         ]}
-        ListHeaderComponent={
-          <>
-            <View style={styles.resultHeaderRow}>
-              <View>
-                <Text style={styles.sectionTitle}>행사 목록</Text>
-                <Text style={styles.sectionMeta}>
-                  {filteredEvents.length}개
-                </Text>
-              </View>
-            </View>
-          </>
-        }
         ListEmptyComponent={
           <View style={styles.noResultsCard}>
             <Text style={styles.noResultsTitle}>
@@ -3509,11 +3502,6 @@ function EventCard({
       onTouchEnd={tabSwipePress.onTouchEnd}
       accessibilityLabel={`Open ${event.title}`}
     >
-      {showSequence ? (
-        <View style={styles.sequenceBadge}>
-          <Text style={styles.sequenceText}>{event.csvSequence}</Text>
-        </View>
-      ) : null}
       <View
         style={[
           styles.thumbnail,
@@ -3561,9 +3549,11 @@ function EventCard({
           {event.indoor === undefined ? null : (
             <Chip label={event.indoor ? '실내' : '야외'} dense />
           )}
-          <Text style={compact ? styles.cardDate : styles.cardOpenHint}>
-            {compact ? formatShortDate(event.startsAt) : '자세히 보기'}
-          </Text>
+          {compact ? (
+            <Text style={styles.cardDate}>
+              {formatShortDate(event.startsAt)}
+            </Text>
+          ) : null}
         </View>
         {recommendationResult ? (
           <View style={styles.recommendationReasonBox}>
@@ -4476,12 +4466,12 @@ function getActiveExploreFilterLabels(filters: ExploreFilters) {
 function formatExploreIntentSummary(
   selectedChildren: Child[],
   activeFilterLabels: string[],
+  eventTypeSummary: string,
 ) {
   const childSubject = formatExploreIntentChildSubject(selectedChildren);
-  const filterPhrase = formatExploreIntentFilterPhrase(activeFilterLabels);
 
   return {
-    title: `${childSubject} 갈 ${filterPhrase}이벤트`,
+    title: `${childSubject} 갈 ${eventTypeSummary}`,
     meta:
       activeFilterLabels.length > 0
         ? activeFilterLabels.join(' · ')
@@ -4517,20 +4507,6 @@ function formatExploreIntentChildSubject(selectedChildren: Child[]) {
   return `${selectedChildren[0].nickname} 외 ${
     selectedChildren.length - 1
   }명과`;
-}
-
-function formatExploreIntentFilterPhrase(activeFilterLabels: string[]) {
-  if (activeFilterLabels.length === 0) {
-    return '';
-  }
-
-  const priorityLabels = activeFilterLabels.filter(label =>
-    ['무료', '유료', '서울', '경기', '실내', '야외'].includes(label),
-  );
-  const selectedLabels =
-    priorityLabels.length > 0 ? priorityLabels : activeFilterLabels;
-
-  return `${selectedLabels.slice(0, 2).join(' · ')} `;
 }
 
 function formatRecommendationCriteriaSummary(selectedChildren: Child[]) {
@@ -5019,7 +4995,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     gap: spacing.sm,
-    minHeight: 52,
+    minHeight: 68,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     position: 'absolute',
@@ -5165,10 +5141,6 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0,
     lineHeight: 22,
-  },
-  babyrooBrandTextCompact: {
-    fontSize: 14,
-    lineHeight: 18,
   },
   exploreMasthead: {
     backgroundColor: colors.primarySoft,
@@ -5823,12 +5795,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: spacing.md,
   },
-  resultHeaderRow: {
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 0,
-  },
   exploreControlsHeader: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -5972,10 +5938,12 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   eventCard: {
+    alignItems: 'stretch',
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
     borderRadius: radius.xl,
     borderWidth: 1,
+    flexDirection: 'row',
     marginTop: spacing.lg,
     overflow: 'hidden',
     padding: spacing.md,
@@ -5987,23 +5955,6 @@ const styles = StyleSheet.create({
     minHeight: 132,
     overflow: 'visible',
   },
-  sequenceBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    height: 28,
-    justifyContent: 'center',
-    left: spacing.sm,
-    position: 'absolute',
-    top: spacing.sm,
-    width: 28,
-    zIndex: 1,
-  },
-  sequenceText: {
-    color: colors.surface,
-    fontSize: 13,
-    fontWeight: '900',
-  },
   thumbnail: {
     alignItems: 'center',
     borderRadius: radius.lg,
@@ -6014,12 +5965,10 @@ const styles = StyleSheet.create({
     width: 84,
   },
   thumbnailFeature: {
-    aspectRatio: 1.65,
     borderRadius: radius.lg,
-    height: undefined,
-    marginBottom: spacing.lg,
-    marginRight: 0,
-    width: '100%',
+    height: 108,
+    marginRight: spacing.md,
+    width: 108,
   },
   thumbnailImage: {
     height: '100%',
@@ -6061,14 +6010,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cardBodyFeature: {
-    paddingHorizontal: spacing.xs,
+    justifyContent: 'center',
+    minWidth: 0,
     paddingBottom: spacing.xs,
   },
   cardKickerRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.xs,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   cardKickerText: {
     color: colors.primary,
@@ -6083,16 +6033,16 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     color: colors.text,
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '900',
-    lineHeight: 23,
+    lineHeight: 20,
   },
   cardMeta: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    lineHeight: 17,
-    marginTop: spacing.xs,
+    lineHeight: 15,
+    marginTop: 2,
   },
   cardTagRow: {
     flexDirection: 'row',
@@ -6104,18 +6054,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   cardDate: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: '800',
-  },
-  cardOpenHint: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '900',
-    marginLeft: 'auto',
   },
   recommendationReasonBox: {
     backgroundColor: colors.cream,
