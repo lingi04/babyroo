@@ -2466,16 +2466,18 @@ function ExploreScreen({
                     <Text style={styles.exploreIntentMeta} numberOfLines={1}>
                       {exploreIntentSummary.meta}
                     </Text>
-                    <Text
-                      style={[
-                        styles.exploreControlsToggle,
-                        styles.exploreControlsToggleInMasthead,
-                      ]}
-                    >
-                      {exploreControlsCollapsed ? '조건 바꾸기' : '조건 접기'}
-                    </Text>
                   </View>
                 </View>
+              </View>
+              <View style={styles.exploreControlsChevronButton}>
+                <View
+                  style={[
+                    styles.exploreControlsChevronGlyph,
+                    exploreControlsCollapsed
+                      ? styles.exploreControlsChevronGlyphDown
+                      : styles.exploreControlsChevronGlyphUp,
+                  ]}
+                />
               </View>
             </Pressable>
 
@@ -5850,14 +5852,32 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
-  exploreControlsToggle: {
-    ...typography.caption,
-    color: colors.primary,
+  exploreControlsChevronButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.56)',
+    borderColor: 'rgba(232, 94, 37, 0.16)',
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    flexShrink: 0,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
   },
-  exploreControlsToggleInMasthead: {
-    alignSelf: 'flex-start',
-    color: colors.primaryStrong,
-    marginTop: spacing.md,
+  exploreControlsChevronGlyph: {
+    borderBottomColor: colors.primaryStrong,
+    borderBottomWidth: 2,
+    borderRightColor: colors.primaryStrong,
+    borderRightWidth: 2,
+    height: 9,
+    width: 9,
+  },
+  exploreControlsChevronGlyphDown: {
+    marginTop: -3,
+    transform: [{ rotate: '45deg' }],
+  },
+  exploreControlsChevronGlyphUp: {
+    marginTop: 3,
+    transform: [{ rotate: '225deg' }],
   },
   exploreControlSection: {
     minHeight: 58,
