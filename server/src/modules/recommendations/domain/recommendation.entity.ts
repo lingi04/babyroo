@@ -22,6 +22,12 @@ export type RecommendationResult = {
   caution?: string;
 };
 
+export type RecommendationSessionError = {
+  code: 'timeout' | 'llm_unavailable' | 'no_results' | 'unknown';
+  message: string;
+  retryable: boolean;
+};
+
 export type RecommendationSession = {
   id: string;
   userId: string;
@@ -31,7 +37,8 @@ export type RecommendationSession = {
   preferences: RecommendationPreferences;
   results: RecommendationResult[];
   creditCost: number;
-  status: 'success' | 'failed';
+  status: 'running' | 'success' | 'failed' | 'timeout';
+  error?: RecommendationSessionError;
   createdAt: string;
 };
 

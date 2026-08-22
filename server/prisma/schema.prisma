@@ -91,6 +91,7 @@ model RecommendationSession {
   results                  Json
   creditCost               Int      @default(0) @map("credit_cost")
   status                   String
+  error                    Json?
   createdAt                DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

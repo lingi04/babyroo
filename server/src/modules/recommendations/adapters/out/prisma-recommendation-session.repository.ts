@@ -11,6 +11,7 @@ import {
   RecommendationAnswerMap,
   RecommendationPreferences,
   RecommendationResult,
+  RecommendationSessionError,
   RecommendationSession,
 } from '../../domain/recommendation.entity';
 import { Child } from '../../../users/domain/user.entity';
@@ -38,11 +39,23 @@ export class PrismaRecommendationSessionRepository
         results: session.results as unknown as Prisma.InputJsonValue,
         creditCost: session.creditCost,
         status: session.status,
+        error: session.error as unknown as Prisma.InputJsonValue,
         createdAt: new Date(session.createdAt),
       },
     });
 
     return this.toDomainSession(createdSession);
+  }
+
+  async update(session: RecommendationSession): Promise<RecommendationSession> {
+    const updatedSession = await this.prisma.recommendationSession.update({
+      where: {
+        id: session.id,
+      },
+      data: this.toPersistenceData(session),
+    });
+
+    return this.toDomainSession(updatedSession);
   }
 
   async listByUser(userId: string): Promise<RecommendationSession[]> {
@@ -81,11 +94,37 @@ export class PrismaRecommendationSessionRepository
       results: session.results as RecommendationResult[],
       creditCost: session.creditCost,
       status: this.toStatus(session.status),
+      error: session.error as RecommendationSessionError | undefined,
       createdAt: session.createdAt.toISOString(),
     };
   }
 
+  private toPersistenceData(session: RecommendationSession) {
+    return {
+      userId: session.userId,
+      selectedChildIds: session.selectedChildIds,
+      selectedChildrenSnapshot:
+        session.selectedChildrenSnapshot as unknown as Prisma.InputJsonValue,
+      answers: session.answers as unknown as Prisma.InputJsonValue,
+      preferences: session.preferences as unknown as Prisma.InputJsonValue,
+      results: session.results as unknown as Prisma.InputJsonValue,
+      creditCost: session.creditCost,
+      status: session.status,
+      error: session.error as unknown as Prisma.InputJsonValue,
+      createdAt: new Date(session.createdAt),
+    };
+  }
+
   private toStatus(value: string): RecommendationSession['status'] {
-    return value === 'success' ? 'success' : 'failed';
+    if (
+      value === 'running' ||
+      value === 'success' ||
+      value === 'failed' ||
+      value === 'timeout'
+    ) {
+      return value;
+    }
+
+    return 'failed';
   }
 }

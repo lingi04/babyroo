@@ -1360,6 +1360,10 @@ function HomeScreen({
   const storedRecommendationSessions = recommendationSessions.filter(
     session => session.status === 'success' && session.results.length > 0,
   );
+  const loadingRecommendationSessionIds = recommendationSessions
+    .filter(session => session.status === 'loading')
+    .map(session => session.id)
+    .join('|');
 
   useEffect(() => {
     if (
@@ -1388,6 +1392,61 @@ function HomeScreen({
         );
       });
   }, [authSession.apiAccessToken]);
+
+  useEffect(() => {
+    if (!authSession.apiAccessToken || loadingRecommendationSessionIds === '') {
+      return;
+    }
+
+    let cancelled = false;
+    const service = new RemoteRecommendationService({
+      accessToken: authSession.apiAccessToken,
+    });
+
+    const refreshLoadingSessions = async () => {
+      const loadingIds = loadingRecommendationSessionIds.split('|');
+      const settledSessions = await Promise.allSettled(
+        loadingIds.map(sessionId => service.getSession(sessionId)),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const refreshedSessions = settledSessions
+        .map(result => (result.status === 'fulfilled' ? result.value : null))
+        .filter(
+          (session): session is RecommendationSession => session !== null,
+        );
+
+      if (refreshedSessions.length === 0) {
+        return;
+      }
+
+      setRecommendationSessions(previousSessions =>
+        previousSessions.map(session => {
+          const refreshedSession = refreshedSessions.find(
+            candidate => candidate.id === session.id,
+          );
+
+          return refreshedSession ?? session;
+        }),
+      );
+    };
+
+    refreshLoadingSessions().catch(error => {
+      console.warn(
+        '[Babyroo API] failed to refresh recommendation session',
+        error,
+      );
+    });
+    const interval = setInterval(refreshLoadingSessions, 10000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [authSession.apiAccessToken, loadingRecommendationSessionIds]);
 
   const startRecommendationInterview = () => {
     setRecommendationAnswers({});

@@ -20,9 +20,13 @@ export type RemoteRecommendationServiceOptions = {
   accessToken?: string;
   selectedChildren?: Child[];
   timeoutMs?: number;
+  pollIntervalMs?: number;
+  pollTimeoutMs?: number;
 };
 
-const DEFAULT_RECOMMENDATION_TIMEOUT_MS = 130000;
+const DEFAULT_RECOMMENDATION_CREATE_TIMEOUT_MS = 7000;
+const DEFAULT_RECOMMENDATION_POLL_INTERVAL_MS = 10000;
+const DEFAULT_RECOMMENDATION_POLL_TIMEOUT_MS = 180000;
 
 type RemoteRecommendationSession = {
   id: string;
@@ -32,7 +36,12 @@ type RemoteRecommendationSession = {
   preferences: RecommendationRequest['preferences'];
   results: RecommendationResult[];
   creditCost: number;
-  status: 'success' | 'failed';
+  status: 'running' | 'success' | 'failed' | 'timeout';
+  error?: {
+    code: RecommendationErrorCode;
+    message: string;
+    retryable: boolean;
+  };
   createdAt: string;
 };
 
@@ -52,6 +61,19 @@ export class RemoteRecommendationService implements RecommendationService {
     });
 
     return Promise.all(sessions.map(toRecommendationSession));
+  }
+
+  async getSession(sessionId: string): Promise<RecommendationSession> {
+    if (!this.options.accessToken) {
+      throw new Error('Babyroo API access token is not configured.');
+    }
+
+    const session = await getJson<RemoteRecommendationSession>({
+      accessToken: this.options.accessToken,
+      path: recommendationSessionPath(this.options.endpointUrl, sessionId),
+    });
+
+    return toRecommendationSession(session);
   }
 
   async recommend(
@@ -78,15 +100,22 @@ export class RemoteRecommendationService implements RecommendationService {
           preferences: request.preferences,
         },
         path: this.options.endpointUrl ?? '/recommendation-sessions',
-        timeoutMs: this.options.timeoutMs ?? DEFAULT_RECOMMENDATION_TIMEOUT_MS,
+        timeoutMs:
+          this.options.timeoutMs ?? DEFAULT_RECOMMENDATION_CREATE_TIMEOUT_MS,
       });
+      const resolvedSession = await this.waitForFinalSession(session);
 
-      if (session.status === 'failed' || session.results.length === 0) {
+      if (
+        resolvedSession.status === 'failed' ||
+        resolvedSession.results.length === 0
+      ) {
         return {
           status: 'failed',
           provider: 'remote',
-          errorCode: 'no_results',
-          errorMessage: 'Babyroo API did not return recommendation results.',
+          errorCode: resolvedSession.error?.code ?? 'no_results',
+          errorMessage:
+            resolvedSession.error?.message ??
+            'Babyroo API did not return recommendation results.',
           retryable: true,
         };
       }
@@ -94,7 +123,7 @@ export class RemoteRecommendationService implements RecommendationService {
       return {
         status: 'success',
         provider: 'remote',
-        results: session.results,
+        results: resolvedSession.results,
       };
     } catch (error) {
       return {
@@ -108,6 +137,40 @@ export class RemoteRecommendationService implements RecommendationService {
         retryable: true,
       };
     }
+  }
+
+  private async waitForFinalSession(
+    initialSession: RemoteRecommendationSession,
+  ): Promise<RecommendationSession> {
+    let session = initialSession;
+    const deadline =
+      Date.now() +
+      (this.options.pollTimeoutMs ?? DEFAULT_RECOMMENDATION_POLL_TIMEOUT_MS);
+
+    while (session.status === 'running') {
+      if (Date.now() >= deadline) {
+        return {
+          ...(await toRecommendationSession(session)),
+          status: 'failed',
+          error: {
+            code: 'timeout',
+            message: '추천 시간이 조금 오래 걸리고 있어요.',
+            retryable: true,
+          },
+        };
+      }
+
+      await sleep(
+        this.options.pollIntervalMs ?? DEFAULT_RECOMMENDATION_POLL_INTERVAL_MS,
+      );
+
+      session = await getJson<RemoteRecommendationSession>({
+        accessToken: this.options.accessToken,
+        path: recommendationSessionPath(this.options.endpointUrl, session.id),
+      });
+    }
+
+    return toRecommendationSession(session);
   }
 }
 
@@ -125,7 +188,12 @@ async function toRecommendationSession(
     selectedChildIds: session.selectedChildIds,
     selectedChildrenSnapshot: session.selectedChildrenSnapshot,
     preferences: session.preferences,
-    status: session.status,
+    status:
+      session.status === 'running'
+        ? 'loading'
+        : session.status === 'timeout'
+          ? 'failed'
+          : session.status,
     results: session.results,
     eventSnapshots,
     credit: {
@@ -136,8 +204,16 @@ async function toRecommendationSession(
     error:
       session.status === 'failed'
         ? {
-            code: 'no_results',
-            message: 'Babyroo API did not return recommendation results.',
+            code: session.error?.code ?? 'no_results',
+            message:
+              session.error?.message ??
+              'Babyroo API did not return recommendation results.',
+            retryable: session.error?.retryable ?? true,
+          }
+        : session.status === 'timeout'
+        ? {
+            code: 'timeout',
+            message: '추천 시간이 조금 오래 걸리고 있어요.',
             retryable: true,
           }
         : undefined,
@@ -174,4 +250,16 @@ function remoteRecommendationErrorCode(
   }
 
   return 'network_error';
+}
+
+function sleep(ms: number): Promise<void> {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function recommendationSessionPath(endpointUrl: string | undefined, sessionId: string) {
+  return `${endpointUrl ?? '/recommendation-sessions'}/${encodeURIComponent(sessionId)}`;
 }

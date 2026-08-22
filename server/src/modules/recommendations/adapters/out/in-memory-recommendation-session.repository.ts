@@ -13,6 +13,11 @@ export class InMemoryRecommendationSessionRepository
     return session;
   }
 
+  async update(session: RecommendationSession): Promise<RecommendationSession> {
+    this.sessions.set(session.id, session);
+    return session;
+  }
+
   async listByUser(userId: string): Promise<RecommendationSession[]> {
     return [...this.sessions.values()]
       .filter(session => session.userId === userId)
