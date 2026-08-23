@@ -135,6 +135,37 @@ test('polls a running recommendation session until it has results', async () => 
   );
 });
 
+test('creates a loading recommendation session when the API accepts the request', async () => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      id: 'rec-running',
+      userId: 'user-001',
+      selectedChildIds: ['child-001'],
+      selectedChildrenSnapshot: baseRequest.selectedChildren,
+      preferences: baseRequest.preferences,
+      results: [],
+      creditCost: 0,
+      status: 'running',
+      createdAt: '2026-08-11T00:00:00.000Z',
+    }),
+  } as Response);
+
+  const service = new RemoteRecommendationService({
+    accessToken: 'dev.user-001',
+  });
+
+  const session = await service.createSession(baseRequest);
+
+  expect(session).toEqual(
+    expect.objectContaining({
+      id: 'rec-running',
+      status: 'loading',
+      results: [],
+    }),
+  );
+});
+
 test('maps failed polled recommendation sessions to their stored error', async () => {
   jest.spyOn(globalThis, 'fetch').mockImplementation(async input => {
     const url = String(input);
@@ -369,6 +400,39 @@ test('loads recommendation session history from the Babyroo API', async () => {
           title: 'Test Event',
         }),
       ],
+    }),
+  ]);
+});
+
+test('loads running recommendation sessions as loading history cards', async () => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: true,
+    json: async () => [
+      {
+        id: 'rec-running',
+        userId: 'user-001',
+        selectedChildIds: ['child-001'],
+        selectedChildrenSnapshot: baseRequest.selectedChildren,
+        preferences: baseRequest.preferences,
+        results: [],
+        creditCost: 0,
+        status: 'running',
+        createdAt: '2026-08-11T00:00:00.000Z',
+      },
+    ],
+  } as Response);
+
+  const service = new RemoteRecommendationService({
+    accessToken: 'dev.user-001',
+  });
+
+  const sessions = await service.listSessions();
+
+  expect(sessions).toEqual([
+    expect.objectContaining({
+      id: 'rec-running',
+      status: 'loading',
+      results: [],
     }),
   ]);
 });

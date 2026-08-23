@@ -76,6 +76,30 @@ export class RemoteRecommendationService implements RecommendationService {
     return toRecommendationSession(session);
   }
 
+  async createSession(
+    request: RecommendationRequest,
+  ): Promise<RecommendationSession> {
+    if (!this.options.accessToken) {
+      throw new Error('Babyroo API access token is not configured.');
+    }
+
+    const session = await postJson<RemoteRecommendationSession>({
+      accessToken: this.options.accessToken,
+      body: {
+        selectedChildIds: request.selectedChildIds,
+        selectedChildren:
+          request.selectedChildren ?? this.options.selectedChildren,
+        answers: request.answers ?? {},
+        preferences: request.preferences,
+      },
+      path: this.options.endpointUrl ?? '/recommendation-sessions',
+      timeoutMs:
+        this.options.timeoutMs ?? DEFAULT_RECOMMENDATION_CREATE_TIMEOUT_MS,
+    });
+
+    return toRecommendationSession(session);
+  }
+
   async recommend(
     request: RecommendationRequest,
   ): Promise<RecommendationResponse> {
@@ -90,19 +114,7 @@ export class RemoteRecommendationService implements RecommendationService {
     }
 
     try {
-      const session = await postJson<RemoteRecommendationSession>({
-        accessToken: this.options.accessToken,
-        body: {
-          selectedChildIds: request.selectedChildIds,
-          selectedChildren:
-            request.selectedChildren ?? this.options.selectedChildren,
-          answers: request.answers ?? {},
-          preferences: request.preferences,
-        },
-        path: this.options.endpointUrl ?? '/recommendation-sessions',
-        timeoutMs:
-          this.options.timeoutMs ?? DEFAULT_RECOMMENDATION_CREATE_TIMEOUT_MS,
-      });
+      const session = await this.createSession(request);
       const resolvedSession = await this.waitForFinalSession(session);
 
       if (
@@ -140,17 +152,17 @@ export class RemoteRecommendationService implements RecommendationService {
   }
 
   private async waitForFinalSession(
-    initialSession: RemoteRecommendationSession,
+    initialSession: RecommendationSession,
   ): Promise<RecommendationSession> {
     let session = initialSession;
     const deadline =
       Date.now() +
       (this.options.pollTimeoutMs ?? DEFAULT_RECOMMENDATION_POLL_TIMEOUT_MS);
 
-    while (session.status === 'running') {
+    while (session.status === 'loading') {
       if (Date.now() >= deadline) {
         return {
-          ...(await toRecommendationSession(session)),
+          ...session,
           status: 'failed',
           error: {
             code: 'timeout',
@@ -164,13 +176,10 @@ export class RemoteRecommendationService implements RecommendationService {
         this.options.pollIntervalMs ?? DEFAULT_RECOMMENDATION_POLL_INTERVAL_MS,
       );
 
-      session = await getJson<RemoteRecommendationSession>({
-        accessToken: this.options.accessToken,
-        path: recommendationSessionPath(this.options.endpointUrl, session.id),
-      });
+      session = await this.getSession(session.id);
     }
 
-    return toRecommendationSession(session);
+    return session;
   }
 }
 

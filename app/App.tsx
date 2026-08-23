@@ -64,7 +64,6 @@ import {
   BabyrooEventListQuery,
   createChildInBabyrooApi,
   deleteChildFromBabyrooApi,
-  getEventFromBabyrooApi,
   getCurrentUserFromBabyrooApi,
   listEventsFromBabyrooApi,
   loginWithBabyrooApi,
@@ -1324,6 +1323,8 @@ function HomeScreen({
   const [recommendationFlowStep, setRecommendationFlowStep] = useState<
     'idle' | 'interview' | 'confirming'
   >('idle');
+  const [creatingRecommendationSession, setCreatingRecommendationSession] =
+    useState(false);
   const [recommendationQuestionIndex, setRecommendationQuestionIndex] =
     useState(0);
   const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
@@ -1357,8 +1358,10 @@ function HomeScreen({
     recommendationSessions.find(
       session => session.id === selectedRecommendationSessionId,
     ) ?? latestRecommendationSession;
-  const storedRecommendationSessions = recommendationSessions.filter(
-    session => session.status === 'success' && session.results.length > 0,
+  const visibleRecommendationSessions = recommendationSessions.filter(
+    session =>
+      session.status === 'loading' ||
+      (session.status === 'success' && session.results.length > 0),
   );
   const loadingRecommendationSessionIds = recommendationSessions
     .filter(session => session.status === 'loading')
@@ -1457,6 +1460,11 @@ function HomeScreen({
   };
 
   const requestRecommendation = async (answers: RecommendationAnswerMap) => {
+    if (creatingRecommendationSession) {
+      return;
+    }
+
+    setCreatingRecommendationSession(true);
     let apiSession: AuthSession;
 
     try {
@@ -1475,95 +1483,49 @@ function HomeScreen({
           ? error.message
           : 'Babyroo 서버에 로그인하지 못했습니다.',
       );
+      setCreatingRecommendationSession(false);
       return;
     }
 
-    const sessionId = `recommendation-${Date.now()}`;
     const preferences = answersToPreferences(answers, departureAddress);
-    const loadingSession: RecommendationSession = {
-      id: sessionId,
-      createdAt: new Date().toISOString(),
-      userId: user.id,
-      selectedChildIds: selectedChildren.map(child => child.id),
-      selectedChildrenSnapshot: selectedChildren,
-      preferences,
-      status: 'loading',
-      results: [],
-      credit: {
-        policy: 'none',
-        cost: 0,
-        consumed: false,
-      },
-    };
-
-    setRecommendationFlowStep('idle');
-    setRecommendationSessions(previousSessions => [
-      loadingSession,
-      ...previousSessions,
-    ]);
-    setSelectedRecommendationSessionId(sessionId);
+    const requestedAt = new Date().toISOString();
 
     const recommendationService = new RemoteRecommendationService({
       accessToken: apiSession.apiAccessToken,
       selectedChildren,
     });
 
-    const response = await recommendationService.recommend({
-      sessionId,
-      userId: user.id,
-      selectedChildIds: selectedChildren.map(child => child.id),
-      selectedChildren,
-      answers,
-      preferences,
-      client: {
-        locale: 'ko-KR',
-        timezone: 'Asia/Seoul',
-        requestedAt: loadingSession.createdAt,
-      },
-      debug: __DEV__,
-    });
-    const eventSnapshots =
-      response.status === 'success'
-        ? await loadRecommendationEventSnapshots(response.results)
-        : [];
+    try {
+      const createdSession = await recommendationService.createSession({
+        sessionId: `recommendation-${Date.now()}`,
+        userId: user.id,
+        selectedChildIds: selectedChildren.map(child => child.id),
+        selectedChildren,
+        answers,
+        preferences,
+        client: {
+          locale: 'ko-KR',
+          timezone: 'Asia/Seoul',
+          requestedAt,
+        },
+        debug: __DEV__,
+      });
 
-    const resolvedSession: RecommendationSession =
-      response.status === 'success'
-        ? {
-            ...loadingSession,
-            status: 'success',
-            results: response.results,
-            selectedChildrenSnapshot: selectedChildren,
-            eventSnapshots,
-            debug: response.debug,
-          }
-        : {
-            ...loadingSession,
-            status: 'failed',
-            results: [],
-            debug: response.debug,
-            error: {
-              code: response.errorCode,
-              message: response.errorMessage,
-              retryable: response.retryable,
-            },
-          };
-
-    setRecommendationSessions(previousSessions =>
-      previousSessions.map(session => {
-        if (session.id !== sessionId) {
-          return session;
-        }
-
-        return resolvedSession;
-      }),
-    );
-
-    if (
-      resolvedSession.status === 'success' &&
-      resolvedSession.results.length > 0
-    ) {
-      onOpenRecommendationDetail(resolvedSession);
+      setRecommendationSessions(previousSessions => [
+        createdSession,
+        ...previousSessions.filter(session => session.id !== createdSession.id),
+      ]);
+      setSelectedRecommendationSessionId(createdSession.id);
+      setRecommendationFlowStep('idle');
+    } catch (error) {
+      Alert.alert(
+        '추천 요청 실패',
+        error instanceof Error
+          ? error.message
+          : '추천 요청을 서버에 저장하지 못했습니다.',
+      );
+    } finally {
+      setCreatingRecommendationSession(false);
     }
   };
 
@@ -1714,6 +1676,7 @@ function HomeScreen({
         {recommendationFlowStep === 'confirming' ? (
           <RecommendationConfirmationCard
             answers={recommendationAnswers}
+            creating={creatingRecommendationSession}
             questions={recommendationQuestions}
             onConfirm={() => requestRecommendation(recommendationAnswers)}
             onEditAnswer={editRecommendationAnswer}
@@ -1727,14 +1690,19 @@ function HomeScreen({
               추천받은 결과를 조건별로 다시 볼 수 있어요
             </Text>
           </View>
-          {storedRecommendationSessions.length > 0 ? (
-            storedRecommendationSessions.map(session => (
+          {visibleRecommendationSessions.length > 0 ? (
+            visibleRecommendationSessions.map(session => (
               <RecommendationSessionCard
                 key={session.id}
                 events={events}
                 questions={recommendationQuestions}
                 session={session}
                 onPress={() => {
+                  if (session.status === 'loading') {
+                    setSelectedRecommendationSessionId(session.id);
+                    return;
+                  }
+
                   setSelectedRecommendationSessionId(session.id);
                   onOpenRecommendationDetail(session);
                 }}
@@ -1752,16 +1720,7 @@ function HomeScreen({
           )}
         </View>
 
-        {selectedRecommendationSession?.status === 'loading' ? (
-          <View style={styles.recommendationEmptyState}>
-            <Text style={styles.emptyStateTitle}>
-              아이에게 맞는 후보를 고르고 있어요
-            </Text>
-            <Text style={styles.emptyStateText}>
-              조건과 행사 정보를 비교하는 중입니다.
-            </Text>
-          </View>
-        ) : selectedRecommendationSession?.status === 'failed' ? (
+        {selectedRecommendationSession?.status === 'failed' ? (
           <RecommendationFailureState
             errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
             retryable={selectedRecommendationSession.error?.retryable ?? true}
@@ -2021,11 +1980,13 @@ function RecommendationAnswerSummary({
 
 function RecommendationConfirmationCard({
   answers,
+  creating,
   onConfirm,
   onEditAnswer,
   questions,
 }: {
   answers: RecommendationAnswerMap;
+  creating: boolean;
   onConfirm: () => void;
   onEditAnswer: (questionId: RecommendationQuestionId) => void;
   questions: RecommendationQuestion[];
@@ -2050,11 +2011,14 @@ function RecommendationConfirmationCard({
         </View>
       ) : null}
       <Pressable
-        style={styles.primaryButton}
+        style={[styles.primaryButton, creating && styles.buttonDisabled]}
         onPress={onConfirm}
+        disabled={creating}
         accessibilityLabel="Confirm recommendation request"
       >
-        <Text style={styles.primaryButtonText}>추천 받기</Text>
+        <Text style={styles.primaryButtonText}>
+          {creating ? '추천 요청 생성중...' : '추천 받기'}
+        </Text>
       </Pressable>
     </View>
   );
@@ -2071,18 +2035,26 @@ function RecommendationSessionCard({
   questions: RecommendationQuestion[];
   session: RecommendationSession;
 }) {
+  const isLoading = session.status === 'loading';
+
   return (
     <Pressable
-      style={styles.recommendationHistoryItem}
+      style={[
+        styles.recommendationHistoryItem,
+        isLoading && styles.recommendationHistoryItemLoading,
+      ]}
       onPress={onPress}
       accessibilityLabel="Open stored recommendation"
+      disabled={isLoading}
     >
       <View style={styles.recommendationHistoryBody}>
         <View style={styles.recommendationHistoryHeader}>
           <Text style={styles.recommendationHistoryTitle}>
             {formatRecommendationSessionTime(session.createdAt)} 추천
           </Text>
-          <Text style={styles.recommendationHistoryBadge}>보기</Text>
+          <Text style={styles.recommendationHistoryBadge}>
+            {isLoading ? '진행중' : '보기'}
+          </Text>
         </View>
         <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
           {formatRecommendationSessionChildSummary(session)}
@@ -2091,7 +2063,9 @@ function RecommendationSessionCard({
           {formatRecommendationSessionAnswerSummary(session, questions)}
         </Text>
         <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
-          {formatRecommendationSessionEventPreview(session, events)}
+          {isLoading
+            ? '아이에게 맞는 후보를 고르고 있어요'
+            : formatRecommendationSessionEventPreview(session, events)}
         </Text>
       </View>
     </Pressable>
@@ -4059,18 +4033,6 @@ function formatRecommendationSessionEventPreview(
   return previewTitles.join(', ');
 }
 
-async function loadRecommendationEventSnapshots(
-  results: RecommendationResult[],
-): Promise<BabyrooEvent[]> {
-  const settledEvents = await Promise.allSettled(
-    results.map(result => getEventFromBabyrooApi(result.eventId)),
-  );
-
-  return settledEvents
-    .map(result => (result.status === 'fulfilled' ? result.value : null))
-    .filter((event): event is BabyrooEvent => Boolean(event));
-}
-
 function answersToPreferences(
   answers: RecommendationAnswerMap,
   departureAddress?: UserHomeAddress,
@@ -5471,6 +5433,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.04,
     shadowRadius: 16,
+  },
+  recommendationHistoryItemLoading: {
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.primarySoft,
   },
   recommendationHistoryBody: {
     gap: spacing.sm,
