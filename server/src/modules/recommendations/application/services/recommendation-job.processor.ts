@@ -1,4 +1,5 @@
 import { debugLog } from '../../../../common/debug-log';
+import { ApplicationError } from '../../../../common/application-error';
 import {
   CONSUME_RECOMMENDATION_CREDIT_USE_CASE,
   ConsumeRecommendationCreditUseCase,
@@ -11,7 +12,10 @@ import {
   GET_CURRENT_USER_USE_CASE,
   GetCurrentUserUseCase,
 } from '../../../users/application/ports/in/get-current-user.use-case';
-import { RecommendationSession } from '../../domain/recommendation.entity';
+import {
+  RecommendationSession,
+  RecommendationSessionError,
+} from '../../domain/recommendation.entity';
 import {
   RecommendationEnginePort,
 } from '../ports/out/recommendation-engine.port';
@@ -63,9 +67,7 @@ export class RecommendationJobProcessor {
         results: [],
         creditCost: 0,
         error: {
-          code: errorMessage.includes('timed out')
-            ? 'timeout'
-            : 'llm_unavailable',
+          code: recommendationJobErrorCode(error, errorMessage),
           message: errorMessage,
           retryable: true,
         },
@@ -119,4 +121,22 @@ export class RecommendationJobProcessor {
       resultCount: updatedSession.results.length,
     });
   }
+}
+
+function recommendationJobErrorCode(
+  error: unknown,
+  message: string,
+): RecommendationSessionError['code'] {
+  if (message.includes('timed out')) {
+    return 'timeout';
+  }
+
+  if (
+    error instanceof ApplicationError &&
+    error.code === 'INSUFFICIENT_CREDITS'
+  ) {
+    return 'insufficient_credits';
+  }
+
+  return 'llm_unavailable';
 }

@@ -19,8 +19,35 @@ model User {
 
   children Child[]
   recommendationSessions RecommendationSession[]
+  creditAccount CreditAccount?
+  creditLedgerEntries CreditLedgerEntry[]
 
   @@map("users")
+}
+
+model CreditAccount {
+  userId    String   @id @map("user_id")
+  available Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("credit_accounts")
+}
+
+model CreditLedgerEntry {
+  id        String   @id
+  userId    String   @map("user_id")
+  amount    Int
+  reason    String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("credit_ledger_entries")
 }
 
 model Child {

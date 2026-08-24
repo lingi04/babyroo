@@ -12,7 +12,7 @@ The current server exposes the first backend surface for:
 - recommendation credits
 - recommendation sessions
 
-Events, users, children, and recommendation sessions are stored in Neon Postgres when `DATABASE_URL` is set. Events can be imported from `data/events.json` under this server directory. Without `DATABASE_URL`, events fall back to the JSON file and users, children, and recommendation sessions fall back to memory for local smoke testing. Saved event and credit data still use in-memory repositories for now.
+Events, users, children, recommendation sessions, and recommendation credits are stored in Neon Postgres when `DATABASE_URL` is set. Events can be imported from `data/events.json` under this server directory. Without `DATABASE_URL`, events fall back to the JSON file and users, children, recommendation sessions, and credits fall back to memory for local smoke testing. Saved event data still uses in-memory repositories for now.
 
 ## Architecture
 
@@ -164,9 +164,48 @@ npm run start:dev
 
 Replace `OPENAI_API_KEY` with a real key before expecting successful LLM responses. `OPENAI_RECOMMENDATION_MODEL` defaults to `gpt-5-mini`.
 
+## Recommendation Credits
+
+Credits are modeled as a persisted account plus ledger:
+
+- `credit_accounts` stores the current available recommendation-credit balance per user.
+- `credit_ledger_entries` records grants and debits.
+- `DEFAULT_RECOMMENDATION_CREDITS` controls the first balance created for a user. It defaults to `3`.
+
+Recommendation flow:
+
+1. The app requests `POST /recommendation-sessions`.
+2. The server checks that the user has at least 1 credit.
+3. If credit is available, the server creates a `running` recommendation session and dispatches the recommendation job.
+4. If the recommendation completes successfully with at least one result, the server deducts 1 credit and records a ledger debit with reason `recommendation_session`.
+5. Failed, timed-out, or empty-result recommendations do not deduct credit.
+
+Credit APIs:
+
+```text
+GET /api/credits/status
+GET /api/credits/balance
+GET /api/credits/ledger
+POST /api/credits/purchases
+```
+
+`GET /api/credits/status` returns the balance, recent ledger entries, and available packages for the app's credit status screen.
+
+`POST /api/credits/purchases` currently creates a test/manual credit grant with reason `manual_credit_purchase`. It is intentionally not a real payment integration yet. A future payment provider should only grant credits from a verified payment webhook or app-store receipt validation path.
+
+If a user has no credits, `POST /api/recommendation-sessions` returns:
+
+```json
+{
+  "statusCode": 402,
+  "code": "INSUFFICIENT_CREDITS",
+  "message": "Not enough recommendation credits"
+}
+```
+
 ## Database
 
-The persistent DB slice stores events, users, children, and recommendation sessions in Neon Postgres through Prisma. Other data, such as saved events and credits, still uses in-memory repositories for now.
+The persistent DB slice stores events, users, children, recommendation sessions, and credits in Neon Postgres through Prisma. Other data, such as saved events, still uses in-memory repositories for now.
 
 For local development, create a Neon development branch and pull the Vercel-managed environment variables into the server directory:
 
@@ -255,11 +294,20 @@ curl -X POST 'http://127.0.0.1:3100/api/users/me/children' \
   -d '{"nickname":"Roo","birthDate":"2024-08-05","gender":"unknown"}'
 ```
 
-Check credit balance:
+Check credit status:
 
 ```sh
-curl 'http://127.0.0.1:3100/api/credits/balance' \
+curl 'http://127.0.0.1:3100/api/credits/status' \
   -H "Authorization: Bearer $TOKEN"
+```
+
+Create a test/manual credit purchase:
+
+```sh
+curl -X POST 'http://127.0.0.1:3100/api/credits/purchases' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"packageId":"starter_5"}'
 ```
 
 Save an event:
@@ -315,8 +363,10 @@ Authenticated:
 - `GET /api/saved-events`
 - `POST /api/saved-events/:eventId`
 - `DELETE /api/saved-events/:eventId`
+- `GET /api/credits/status`
 - `GET /api/credits/balance`
 - `GET /api/credits/ledger`
+- `POST /api/credits/purchases`
 - `POST /api/recommendation-sessions`
 - `GET /api/recommendation-sessions`
 - `GET /api/recommendation-sessions/:sessionId`
@@ -324,7 +374,7 @@ Authenticated:
 ## Current Limitations
 
 - Google auth is a development placeholder. Real Google token verification still needs to be added.
-- Persistence is in memory except event data.
-- Prisma/PostgreSQL has not been connected yet.
+- Saved events still use in-memory persistence.
+- Credit purchases are currently manual/test grants. Real payment verification still needs a provider-specific webhook or receipt-validation integration.
 - Recommendation ranking is rule-based by default. OpenAI-backed ranking is available behind `BABYROO_RECOMMENDATION_ENGINE=openai`.
 - `npm audit` reports NestJS transitive dependency warnings that need a separate dependency upgrade pass.

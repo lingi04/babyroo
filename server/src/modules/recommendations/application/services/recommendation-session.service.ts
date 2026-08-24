@@ -6,6 +6,9 @@ import {
   GetCurrentUserUseCase,
 } from '../../../users/application/ports/in/get-current-user.use-case';
 import {
+  CheckRecommendationCreditUseCase,
+} from '../../../credits/application/ports/in/check-recommendation-credit.use-case';
+import {
   CreateRecommendationSessionInput,
   RecommendationSession,
 } from '../../domain/recommendation.entity';
@@ -29,6 +32,7 @@ export class RecommendationSessionService
   constructor(
     private readonly sessions: RecommendationSessionRepositoryPort,
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
+    private readonly checkRecommendationCreditUseCase: CheckRecommendationCreditUseCase,
     private readonly recommendationJobDispatcher: RecommendationJobDispatcherPort,
   ) {}
 
@@ -42,6 +46,7 @@ export class RecommendationSessionService
       selectedChildSnapshotCount: input.selectedChildren?.length,
       answerCount: input.answers ? Object.keys(input.answers).length : 0,
     });
+    await this.checkRecommendationCreditUseCase.checkRecommendationCredit(userId);
     const user = await this.getCurrentUserUseCase.getRequiredUser(userId);
     const selectedChildIds =
       input.selectedChildIds && input.selectedChildIds.length > 0

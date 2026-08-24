@@ -23,7 +23,12 @@ export type RecommendationResult = {
 };
 
 export type RecommendationSessionError = {
-  code: 'timeout' | 'llm_unavailable' | 'no_results' | 'unknown';
+  code:
+    | 'timeout'
+    | 'llm_unavailable'
+    | 'insufficient_credits'
+    | 'no_results'
+    | 'unknown';
   message: string;
   retryable: boolean;
 };

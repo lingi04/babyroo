@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { getDatabaseUrl } from '../../common/database-url';
+import { CHECK_RECOMMENDATION_CREDIT_USE_CASE } from '../credits/application/ports/in/check-recommendation-credit.use-case';
 import { CONSUME_RECOMMENDATION_CREDIT_USE_CASE } from '../credits/application/ports/in/consume-recommendation-credit.use-case';
 import { CreditsModule } from '../credits/credits.module';
 import { LIST_EVENTS_USE_CASE } from '../events/application/ports/in/list-events.use-case';
@@ -85,16 +86,19 @@ import { RecommendationSessionService } from './application/services/recommendat
       useFactory: (
         repository,
         getCurrentUserUseCase,
+        checkRecommendationCreditUseCase,
         recommendationJobDispatcher,
       ) =>
         new RecommendationSessionService(
           repository,
           getCurrentUserUseCase,
+          checkRecommendationCreditUseCase,
           recommendationJobDispatcher,
         ),
       inject: [
         RECOMMENDATION_SESSION_REPOSITORY_PORT,
         GET_CURRENT_USER_USE_CASE,
+        CHECK_RECOMMENDATION_CREDIT_USE_CASE,
         RECOMMENDATION_JOB_DISPATCHER_PORT,
       ],
     },
