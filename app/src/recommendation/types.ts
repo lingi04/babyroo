@@ -7,6 +7,7 @@ export type RecommendationErrorCode =
   | 'network_error'
   | 'timeout'
   | 'llm_unavailable'
+  | 'insufficient_credits'
   | 'invalid_response'
   | 'no_candidates'
   | 'no_results'

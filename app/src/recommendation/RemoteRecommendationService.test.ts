@@ -321,6 +321,31 @@ test('maps recommendation engine API failures to llm_unavailable', async () => {
   });
 });
 
+test('maps insufficient credit API failures to insufficient_credits', async () => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: false,
+    json: async () => ({
+      statusCode: 402,
+      code: 'INSUFFICIENT_CREDITS',
+      message: 'Not enough recommendation credits',
+    }),
+  } as Response);
+
+  const service = new RemoteRecommendationService({
+    accessToken: 'dev.user-001',
+  });
+
+  const response = await service.recommend(baseRequest);
+
+  expect(response).toEqual({
+    status: 'failed',
+    provider: 'remote',
+    errorCode: 'insufficient_credits',
+    errorMessage: 'Not enough recommendation credits',
+    retryable: true,
+  });
+});
+
 test('loads recommendation session history from the Babyroo API', async () => {
   const fetchMock = jest
     .spyOn(globalThis, 'fetch')

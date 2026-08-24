@@ -61,6 +61,41 @@ type BabyrooApiUser = User & {
   updatedAt?: string;
 };
 
+export type BabyrooCreditBalance = {
+  userId: string;
+  available: number;
+};
+
+export type BabyrooCreditLedgerEntry = {
+  id: string;
+  userId: string;
+  amount: number;
+  reason: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type BabyrooCreditPackage = {
+  id: string;
+  credits: number;
+  priceKrw: number;
+  label: string;
+};
+
+export type BabyrooCreditStatus = {
+  balance: BabyrooCreditBalance;
+  ledger: BabyrooCreditLedgerEntry[];
+  packages: BabyrooCreditPackage[];
+};
+
+export type BabyrooCreditPurchase = {
+  id: string;
+  status: 'credited';
+  package: BabyrooCreditPackage;
+  balance: BabyrooCreditBalance;
+  ledgerEntry: BabyrooCreditLedgerEntry;
+};
+
 export type BabyrooEventListQuery = Partial<{
   q: string;
   region: string;
@@ -203,6 +238,31 @@ export async function deleteChildFromBabyrooApi({
   await deleteJson({
     accessToken,
     path: `/users/me/children/${encodeURIComponent(childId)}`,
+  });
+}
+
+export async function getCreditStatusFromBabyrooApi(
+  accessToken: string,
+): Promise<BabyrooCreditStatus> {
+  return getJson<BabyrooCreditStatus>({
+    accessToken,
+    path: '/credits/status',
+  });
+}
+
+export async function createCreditPurchaseInBabyrooApi({
+  accessToken,
+  packageId,
+}: {
+  accessToken: string;
+  packageId: string;
+}): Promise<BabyrooCreditPurchase> {
+  return postJson<BabyrooCreditPurchase>({
+    accessToken,
+    body: {
+      packageId,
+    },
+    path: '/credits/purchases',
   });
 }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
@@ -62,8 +62,12 @@ import {
 } from './src/auth/GoogleAuthService';
 import {
   BabyrooEventListQuery,
+  BabyrooCreditStatus,
+  BabyrooApiError,
   createChildInBabyrooApi,
+  createCreditPurchaseInBabyrooApi,
   deleteChildFromBabyrooApi,
+  getCreditStatusFromBabyrooApi,
   getCurrentUserFromBabyrooApi,
   listEventsFromBabyrooApi,
   loginWithBabyrooApi,
@@ -324,6 +328,7 @@ function BabyrooApp() {
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [creditStatusOpen, setCreditStatusOpen] = useState(false);
   const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(
     defaultExploreFilters,
   );
@@ -351,6 +356,7 @@ function BabyrooApp() {
           events={events}
           user={user}
           onChangeAuthSession={setAuthSession}
+          onOpenCredits={() => setCreditStatusOpen(true)}
           onOpenRecommendationDetail={openRecommendationDetail}
           onOpenSettings={openSettings}
           bottomInset={bottomInset}
@@ -868,6 +874,11 @@ function BabyrooApp() {
           onComplete={completeOnboarding}
           onSignOut={signOut}
         />
+      ) : creditStatusOpen && authSession ? (
+        <CreditStatusScreen
+          accessToken={authSession.apiAccessToken}
+          onBack={() => setCreditStatusOpen(false)}
+        />
       ) : settingsOpen ? (
         <SettingsScreen
           user={user}
@@ -1299,6 +1310,7 @@ function HomeScreen({
   events,
   user,
   onChangeAuthSession,
+  onOpenCredits,
   onOpenRecommendationDetail,
   onOpenSettings,
   bottomInset,
@@ -1307,6 +1319,7 @@ function HomeScreen({
   events: BabyrooEvent[];
   user: User;
   onChangeAuthSession: (session: AuthSession) => void;
+  onOpenCredits: () => void;
   onOpenRecommendationDetail: (session: RecommendationSession) => void;
   onOpenSettings: () => void;
   bottomInset: number;
@@ -1518,6 +1531,18 @@ function HomeScreen({
       setSelectedRecommendationSessionId(createdSession.id);
       setRecommendationFlowStep('idle');
     } catch (error) {
+      if (
+        error instanceof BabyrooApiError &&
+        error.code === 'INSUFFICIENT_CREDITS'
+      ) {
+        Alert.alert(
+          '추천권이 부족해요',
+          '추천권을 충전한 뒤 다시 추천을 받아보세요.',
+          [{ text: '확인', onPress: onOpenCredits }],
+        );
+        return;
+      }
+
       Alert.alert(
         '추천 요청 실패',
         error instanceof Error
@@ -1631,6 +1656,19 @@ function HomeScreen({
               </Text>
             </View>
             <Text style={styles.recommendationContextAction}>설정</Text>
+          </Pressable>
+          <Pressable
+            style={styles.recommendationContextRow}
+            onPress={onOpenCredits}
+            accessibilityLabel="Open recommendation credits"
+          >
+            <View>
+              <Text style={styles.recommendationContextLabel}>추천권</Text>
+              <Text style={styles.recommendationContextValue}>
+                잔여 추천권과 사용 내역 보기
+              </Text>
+            </View>
+            <Text style={styles.recommendationContextAction}>보기</Text>
           </Pressable>
 
           <Pressable
@@ -2097,6 +2135,176 @@ function RecommendationFailureState({
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+function CreditStatusScreen({
+  accessToken,
+  onBack,
+}: {
+  accessToken?: string;
+  onBack: () => void;
+}) {
+  const [status, setStatus] = useState<BabyrooCreditStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [purchasingPackageId, setPurchasingPackageId] = useState<string | null>(
+    null,
+  );
+
+  const loadStatus = useCallback(async () => {
+    if (!accessToken) {
+      setStatus(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      setStatus(await getCreditStatusFromBabyrooApi(accessToken));
+    } catch (error) {
+      Alert.alert(
+        '추천권 조회 실패',
+        error instanceof Error
+          ? error.message
+          : '추천권 정보를 불러오지 못했습니다.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    loadStatus().catch(() => undefined);
+  }, [loadStatus]);
+
+  const purchasePackage = async (packageId: string) => {
+    if (!accessToken || purchasingPackageId) {
+      return;
+    }
+
+    setPurchasingPackageId(packageId);
+
+    try {
+      const purchase = await createCreditPurchaseInBabyrooApi({
+        accessToken,
+        packageId,
+      });
+
+      setStatus(previousStatus =>
+        previousStatus
+          ? {
+              ...previousStatus,
+              balance: purchase.balance,
+              ledger: [purchase.ledgerEntry, ...previousStatus.ledger],
+            }
+          : previousStatus,
+      );
+    } catch (error) {
+      Alert.alert(
+        '추천권 충전 실패',
+        error instanceof Error
+          ? error.message
+          : '추천권 충전에 실패했습니다.',
+      );
+    } finally {
+      setPurchasingPackageId(null);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.settingsScreen}>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.eyebrow}>추천권</Text>
+          <Text style={styles.pageTitle}>크레딧 현황</Text>
+        </View>
+        <Pressable
+          style={styles.iconButton}
+          onPress={onBack}
+          accessibilityLabel="Close credit status"
+        >
+          <Text style={styles.iconButtonText}>×</Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.creditBalanceCard}>
+        <Text style={styles.settingsLabel}>잔여 추천권</Text>
+        <Text style={styles.creditBalanceValue}>
+          {loading ? '-' : status?.balance.available ?? 0}
+        </Text>
+        <Text style={styles.settingsMeta}>
+          추천 결과가 생성되고 후보가 있을 때 1회 차감돼요.
+        </Text>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>추천권 충전</Text>
+        <Text style={styles.sectionMeta}>
+          지금은 결제 연동 전이라 테스트용으로 즉시 충전됩니다.
+        </Text>
+        {status?.packages.map(creditPackage => (
+          <Pressable
+            key={creditPackage.id}
+            style={[
+              styles.creditPackageCard,
+              purchasingPackageId === creditPackage.id && styles.buttonDisabled,
+            ]}
+            onPress={() => purchasePackage(creditPackage.id)}
+            disabled={Boolean(purchasingPackageId)}
+            accessibilityLabel={`Purchase ${creditPackage.label}`}
+          >
+            <View>
+              <Text style={styles.creditPackageTitle}>
+                {creditPackage.label}
+              </Text>
+              <Text style={styles.creditPackageMeta}>
+                {formatKrw(creditPackage.priceKrw)}
+              </Text>
+            </View>
+            <Text style={styles.recommendationContextAction}>
+              {purchasingPackageId === creditPackage.id ? '처리중' : '충전'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>사용 내역</Text>
+        {status && status.ledger.length > 0 ? (
+          status.ledger.map(entry => (
+            <View key={entry.id} style={styles.creditLedgerItem}>
+              <View>
+                <Text style={styles.creditLedgerReason}>
+                  {formatCreditReason(entry.reason)}
+                </Text>
+                <Text style={styles.creditLedgerDate}>
+                  {formatRecommendationSessionTime(entry.createdAt)}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.creditLedgerAmount,
+                  entry.amount > 0 && styles.creditLedgerAmountPositive,
+                ]}
+              >
+                {entry.amount > 0 ? '+' : ''}
+                {entry.amount}
+              </Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.recommendationHistoryEmpty}>
+            <Text style={styles.emptyStateTitle}>
+              아직 사용 내역이 없어요
+            </Text>
+            <Text style={styles.emptyStateText}>
+              추천권을 충전하거나 추천을 완료하면 여기에 기록됩니다.
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
@@ -4228,6 +4436,10 @@ function recommendationErrorMessage(errorCode: RecommendationErrorCode) {
       title: '지금은 추천이 어려워요',
       body: '잠시 후 다시 시도해 주세요.',
     },
+    insufficient_credits: {
+      title: '추천권이 부족해요',
+      body: '추천권을 충전한 뒤 다시 추천을 받아보세요.',
+    },
     invalid_response: {
       title: '추천 결과를 정리하지 못했어요',
       body: '다시 시도하면 다른 결과를 받을 수 있어요.',
@@ -4645,6 +4857,26 @@ function formatRecommendationSessionTime(createdAt: string) {
   const minutes = String(createdDate.getMinutes()).padStart(2, '0');
 
   return `${month}/${day} ${hours}:${minutes}`;
+}
+
+function formatCreditReason(reason: string) {
+  if (reason === 'starting_credits') {
+    return '가입 추천권';
+  }
+
+  if (reason === 'manual_credit_purchase') {
+    return '추천권 충전';
+  }
+
+  if (reason === 'recommendation_session') {
+    return '추천 사용';
+  }
+
+  return reason;
+}
+
+function formatKrw(value: number) {
+  return `${value.toLocaleString('ko-KR')}원`;
 }
 
 function formatVisitWindowForWeatherQuestion(
@@ -5467,6 +5699,70 @@ const styles = StyleSheet.create({
     color: colors.primaryStrong,
     fontSize: 12,
     fontWeight: '900',
+  },
+  creditBalanceCard: {
+    backgroundColor: colors.foreground,
+    borderRadius: radius.lg,
+    marginTop: spacing.xxl,
+    padding: layout.cardPadding,
+  },
+  creditBalanceValue: {
+    color: colors.inverseText,
+    fontSize: 44,
+    fontWeight: '900',
+    marginTop: spacing.sm,
+  },
+  creditPackageCard: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    padding: spacing.lg,
+  },
+  creditPackageTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  creditPackageMeta: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  creditLedgerItem: {
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    padding: spacing.lg,
+  },
+  creditLedgerReason: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  creditLedgerDate: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: spacing.xs,
+  },
+  creditLedgerAmount: {
+    color: colors.danger,
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  creditLedgerAmountPositive: {
+    color: colors.mintText,
   },
   settingsScreen: {
     paddingHorizontal: layout.screenPadding,

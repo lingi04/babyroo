@@ -252,6 +252,10 @@ function remoteRecommendationErrorCode(
     if (error.code === 'RECOMMENDATION_ENGINE_FAILED') {
       return 'llm_unavailable';
     }
+
+    if (error.code === 'INSUFFICIENT_CREDITS') {
+      return 'insufficient_credits';
+    }
   }
 
   if (error instanceof Error && error.message.includes('timed out')) {
