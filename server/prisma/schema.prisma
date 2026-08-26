@@ -21,6 +21,7 @@ model User {
   recommendationSessions RecommendationSession[]
   creditAccount CreditAccount?
   creditLedgerEntries CreditLedgerEntry[]
+  googlePlayPurchases GooglePlayPurchase[]
 
   @@map("users")
 }
@@ -45,9 +46,33 @@ model CreditLedgerEntry {
   createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googlePlayPurchases GooglePlayPurchase[]
 
   @@index([userId, createdAt])
   @@map("credit_ledger_entries")
+}
+
+model GooglePlayPurchase {
+  id                    String   @id
+  userId                String   @map("user_id")
+  productId             String   @map("product_id")
+  packageName           String   @map("package_name")
+  purchaseToken         String   @unique @map("purchase_token")
+  orderId               String?  @map("order_id")
+  purchaseState         Int?     @map("purchase_state")
+  consumptionState      Int?     @map("consumption_state")
+  acknowledgementState  Int?     @map("acknowledgement_state")
+  credits               Int
+  creditedLedgerEntryId String   @map("credited_ledger_entry_id")
+  rawResponse           Json?    @map("raw_response")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creditedLedgerEntry CreditLedgerEntry @relation(fields: [creditedLedgerEntryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("google_play_purchases")
 }
 
 model Child {

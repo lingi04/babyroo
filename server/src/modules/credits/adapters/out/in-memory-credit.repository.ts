@@ -2,12 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { ApplicationError } from '../../../../common/application-error';
 import { createId } from '../../../../common/id';
 import { CreditRepositoryPort } from '../../application/ports/out/credit-repository.port';
-import { CreditBalance, CreditLedgerEntry } from '../../domain/credit.entity';
+import {
+  CreditBalance,
+  CreditLedgerEntry,
+  GooglePlayPurchaseRecord,
+  GooglePlayPurchaseRecordInput,
+} from '../../domain/credit.entity';
 
 @Injectable()
 export class InMemoryCreditRepository implements CreditRepositoryPort {
   private readonly balances = new Map<string, number>();
   private readonly ledger: CreditLedgerEntry[] = [];
+  private readonly googlePlayPurchases = new Map<string, GooglePlayPurchaseRecord>();
   private readonly defaultStartingCredits = Number(process.env.DEFAULT_RECOMMENDATION_CREDITS ?? 3);
 
   async getBalance(userId: string): Promise<CreditBalance> {
@@ -75,5 +81,63 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
     return this.ledger
       .filter(entry => entry.userId === userId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  async findGooglePlayPurchaseByToken(
+    purchaseToken: string,
+  ): Promise<GooglePlayPurchaseRecord | null> {
+    return this.googlePlayPurchases.get(purchaseToken) ?? null;
+  }
+
+  async recordGooglePlayPurchase(input: GooglePlayPurchaseRecordInput): Promise<{
+    balance: CreditBalance;
+    ledgerEntry: CreditLedgerEntry;
+    purchase: GooglePlayPurchaseRecord;
+  }> {
+    const existingPurchase = await this.findGooglePlayPurchaseByToken(
+      input.purchaseToken,
+    );
+
+    if (existingPurchase) {
+      const balance = await this.getBalance(existingPurchase.userId);
+      const ledgerEntry =
+        this.ledger.find(entry => entry.id === existingPurchase.creditedLedgerEntryId) ??
+        this.ledger[0];
+
+      return {
+        balance,
+        ledgerEntry,
+        purchase: existingPurchase,
+      };
+    }
+
+    const { balance, ledgerEntry } = await this.grant(
+      input.userId,
+      input.credits,
+      'google_play_credit_purchase',
+      input.ledgerMetadata,
+    );
+    const purchase: GooglePlayPurchaseRecord = {
+      id: createId('gplay'),
+      userId: input.userId,
+      productId: input.productId,
+      packageName: input.packageName,
+      purchaseToken: input.purchaseToken,
+      orderId: input.orderId,
+      purchaseState: input.purchaseState,
+      consumptionState: input.consumptionState,
+      acknowledgementState: input.acknowledgementState,
+      credits: input.credits,
+      creditedLedgerEntryId: ledgerEntry.id,
+      createdAt: new Date().toISOString(),
+    };
+
+    this.googlePlayPurchases.set(input.purchaseToken, purchase);
+
+    return {
+      balance,
+      ledgerEntry,
+      purchase,
+    };
   }
 }

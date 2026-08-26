@@ -4,12 +4,18 @@ import { ApplicationError } from '../../../../common/application-error';
 import { getDatabaseUrl } from '../../../../common/database-url';
 import { createId } from '../../../../common/id';
 import {
+  GooglePlayPurchase as PrismaGooglePlayPurchase,
   CreditLedgerEntry as PrismaCreditLedgerEntry,
   Prisma,
   PrismaClient,
 } from '../../../../generated/prisma/client';
 import { CreditRepositoryPort } from '../../application/ports/out/credit-repository.port';
-import { CreditBalance, CreditLedgerEntry } from '../../domain/credit.entity';
+import {
+  CreditBalance,
+  CreditLedgerEntry,
+  GooglePlayPurchaseRecord,
+  GooglePlayPurchaseRecordInput,
+} from '../../domain/credit.entity';
 
 @Injectable()
 export class PrismaCreditRepository implements CreditRepositoryPort {
@@ -120,6 +126,92 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
     return entries.map(entry => this.toDomainLedgerEntry(entry));
   }
 
+  async findGooglePlayPurchaseByToken(
+    purchaseToken: string,
+  ): Promise<GooglePlayPurchaseRecord | null> {
+    const purchase = await this.prisma.googlePlayPurchase.findUnique({
+      where: { purchaseToken },
+    });
+
+    return purchase ? this.toDomainGooglePlayPurchase(purchase) : null;
+  }
+
+  async recordGooglePlayPurchase(input: GooglePlayPurchaseRecordInput): Promise<{
+    balance: CreditBalance;
+    ledgerEntry: CreditLedgerEntry;
+    purchase: GooglePlayPurchaseRecord;
+  }> {
+    return this.prisma.$transaction(async tx => {
+      const existingPurchase = await tx.googlePlayPurchase.findUnique({
+        where: { purchaseToken: input.purchaseToken },
+      });
+
+      if (existingPurchase) {
+        const [account, ledgerEntry] = await Promise.all([
+          this.ensureAccount(existingPurchase.userId, tx),
+          tx.creditLedgerEntry.findUniqueOrThrow({
+            where: { id: existingPurchase.creditedLedgerEntryId },
+          }),
+        ]);
+
+        return {
+          balance: {
+            userId: existingPurchase.userId,
+            available: account.available,
+          },
+          ledgerEntry: this.toDomainLedgerEntry(ledgerEntry),
+          purchase: this.toDomainGooglePlayPurchase(existingPurchase),
+        };
+      }
+
+      await this.ensureAccount(input.userId, tx);
+      const ledgerEntry = await tx.creditLedgerEntry.create({
+        data: {
+          id: createId('credit'),
+          userId: input.userId,
+          amount: input.credits,
+          reason: 'google_play_credit_purchase',
+          metadata: input.ledgerMetadata as Prisma.InputJsonValue,
+        },
+      });
+      const [account, purchase] = await Promise.all([
+        tx.creditAccount.update({
+          where: { userId: input.userId },
+          data: {
+            available: {
+              increment: input.credits,
+            },
+          },
+        }),
+        tx.googlePlayPurchase.create({
+          data: {
+            id: createId('gplay'),
+            userId: input.userId,
+            productId: input.productId,
+            packageName: input.packageName,
+            purchaseToken: input.purchaseToken,
+            orderId: input.orderId,
+            purchaseState: input.purchaseState,
+            consumptionState: input.consumptionState,
+            acknowledgementState: input.acknowledgementState,
+            credits: input.credits,
+            creditedLedgerEntryId: ledgerEntry.id,
+            rawResponse: input.rawResponse as Prisma.InputJsonValue,
+          },
+        }),
+      ]);
+
+      return {
+        balance: {
+          userId: input.userId,
+          available: account.available,
+        },
+        ledgerEntry: this.toDomainLedgerEntry(ledgerEntry),
+        purchase: this.toDomainGooglePlayPurchase(purchase),
+      };
+    });
+  }
+
   private async ensureAccount(
     userId: string,
     tx: Prisma.TransactionClient = this.prisma,
@@ -163,6 +255,25 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
       reason: entry.reason,
       metadata: entry.metadata as Record<string, unknown> | undefined,
       createdAt: entry.createdAt.toISOString(),
+    };
+  }
+
+  private toDomainGooglePlayPurchase(
+    purchase: PrismaGooglePlayPurchase,
+  ): GooglePlayPurchaseRecord {
+    return {
+      id: purchase.id,
+      userId: purchase.userId,
+      productId: purchase.productId,
+      packageName: purchase.packageName,
+      purchaseToken: purchase.purchaseToken,
+      orderId: purchase.orderId ?? undefined,
+      purchaseState: purchase.purchaseState ?? undefined,
+      consumptionState: purchase.consumptionState ?? undefined,
+      acknowledgementState: purchase.acknowledgementState ?? undefined,
+      credits: purchase.credits,
+      creditedLedgerEntryId: purchase.creditedLedgerEntryId,
+      createdAt: purchase.createdAt.toISOString(),
     };
   }
 }

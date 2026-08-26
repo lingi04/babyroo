@@ -14,6 +14,7 @@ export type CreditLedgerEntry = {
 
 export type CreditPackage = {
   id: string;
+  googlePlayProductId: string;
   credits: number;
   priceKrw: number;
   label: string;
@@ -31,8 +32,43 @@ export type CreateCreditPurchaseInput = {
 
 export type CreditPurchase = {
   id: string;
-  status: 'credited';
+  status: 'credited' | 'already_credited';
   package: CreditPackage;
   balance: CreditBalance;
   ledgerEntry: CreditLedgerEntry;
+};
+
+export type VerifyGooglePlayPurchaseInput = {
+  productId: string;
+  purchaseToken: string;
+  packageName?: string;
+};
+
+export type GooglePlayPurchaseRecordInput = {
+  userId: string;
+  productId: string;
+  packageName: string;
+  purchaseToken: string;
+  orderId?: string;
+  purchaseState?: number;
+  consumptionState?: number;
+  acknowledgementState?: number;
+  credits: number;
+  rawResponse?: Record<string, unknown>;
+  ledgerMetadata?: Record<string, unknown>;
+};
+
+export type GooglePlayPurchaseRecord = {
+  id: string;
+  userId: string;
+  productId: string;
+  packageName: string;
+  purchaseToken: string;
+  orderId?: string;
+  purchaseState?: number;
+  consumptionState?: number;
+  acknowledgementState?: number;
+  credits: number;
+  creditedLedgerEntryId: string;
+  createdAt: string;
 };

@@ -17,7 +17,14 @@ import {
   LIST_CREDIT_LEDGER_USE_CASE,
   ListCreditLedgerUseCase,
 } from '../../application/ports/in/list-credit-ledger.use-case';
-import { CreateCreditPurchaseInput } from '../../domain/credit.entity';
+import {
+  VERIFY_GOOGLE_PLAY_PURCHASE_USE_CASE,
+  VerifyGooglePlayPurchaseUseCase,
+} from '../../application/ports/in/verify-google-play-purchase.use-case';
+import {
+  CreateCreditPurchaseInput,
+  VerifyGooglePlayPurchaseInput,
+} from '../../domain/credit.entity';
 
 @Controller('credits')
 @UseGuards(AuthGuard)
@@ -29,6 +36,8 @@ export class CreditsController {
     private readonly getCreditStatusUseCase: GetCreditStatusUseCase,
     @Inject(CREATE_CREDIT_PURCHASE_USE_CASE)
     private readonly createCreditPurchaseUseCase: CreateCreditPurchaseUseCase,
+    @Inject(VERIFY_GOOGLE_PLAY_PURCHASE_USE_CASE)
+    private readonly verifyGooglePlayPurchaseUseCase: VerifyGooglePlayPurchaseUseCase,
     @Inject(LIST_CREDIT_LEDGER_USE_CASE)
     private readonly listCreditLedgerUseCase: ListCreditLedgerUseCase,
   ) {}
@@ -54,5 +63,16 @@ export class CreditsController {
     @Body() body: CreateCreditPurchaseInput,
   ) {
     return this.createCreditPurchaseUseCase.createPurchase(user.id, body);
+  }
+
+  @Post('google-play/verify')
+  verifyGooglePlayPurchase(
+    @CurrentUser() user: RequestUser,
+    @Body() body: VerifyGooglePlayPurchaseInput,
+  ) {
+    return this.verifyGooglePlayPurchaseUseCase.verifyGooglePlayPurchase(
+      user.id,
+      body,
+    );
   }
 }

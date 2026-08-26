@@ -119,6 +119,11 @@ OPENAI_API_KEY=replace-me-openai-api-key
 OPENAI_RECOMMENDATION_MODEL=gpt-5-mini
 OPENAI_RECOMMENDATION_MAX_CANDIDATES=20
 OPENAI_RECOMMENDATION_TIMEOUT_MS=120000
+GOOGLE_PLAY_PACKAGE_NAME=com.babyroo
+GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL=android-publisher@project.iam.gserviceaccount.com
+GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+# Or, instead of email/private key:
+GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
 DATABASE_URL=postgresql://...
 ```
 
@@ -187,11 +192,20 @@ GET /api/credits/status
 GET /api/credits/balance
 GET /api/credits/ledger
 POST /api/credits/purchases
+POST /api/credits/google-play/verify
 ```
+
+`POST /api/credits/purchases` is kept for local/manual credit grants. Android
+production purchases should use `POST /api/credits/google-play/verify` after the
+app receives a Google Play purchase token. The endpoint verifies the token with
+the Android Publisher API, records the token once, grants the matching credit
+package, and returns the updated balance.
 
 `GET /api/credits/status` returns the balance, recent ledger entries, and available packages for the app's credit status screen.
 
-`POST /api/credits/purchases` currently creates a test/manual credit grant with reason `manual_credit_purchase`. It is intentionally not a real payment integration yet. A future payment provider should only grant credits from a verified payment webhook or app-store receipt validation path.
+`POST /api/credits/purchases` creates a test/manual credit grant with reason
+`manual_credit_purchase`. Keep it for development tools only; production Android
+credit grants should come from verified Google Play purchase tokens.
 
 If a user has no credits, `POST /api/recommendation-sessions` returns:
 
