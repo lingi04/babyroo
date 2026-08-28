@@ -2,7 +2,9 @@ import {
   UPSERT_USER_FROM_AUTH_USE_CASE,
   UpsertUserFromAuthUseCase,
 } from '../../../users/application/ports/in/upsert-user-from-auth.use-case';
+import { issueAuthToken } from '../../../../common/auth-token';
 import { debugLog } from '../../../../common/debug-log';
+import { verifyGoogleIdToken } from '../../../../common/google-id-token';
 import {
   GoogleLoginInput,
   LoginWithGoogleUseCase,
@@ -15,27 +17,36 @@ export class GoogleLoginService implements LoginWithGoogleUseCase {
   ) {}
 
   async loginWithGoogle(input: GoogleLoginInput): Promise<LoginWithGoogleResult> {
-    const userId = this.toDevelopmentUserId(input.idToken);
+    const googleIdentity = await verifyGoogleIdToken(input.idToken);
+    const userId = this.toUserId(googleIdentity.sub);
     debugLog('auth.google.login.start', {
       userId,
-      hasDisplayName: Boolean(input.displayName),
+      email: googleIdentity.email,
+      hasDisplayName: Boolean(input.displayName ?? googleIdentity.displayName),
     });
     const user = await this.upsertUserFromAuthUseCase.upsertFromAuth(
       userId,
-      input.displayName,
+      input.displayName ?? googleIdentity.displayName,
     );
     debugLog('auth.google.login.success', {
       userId: user.id,
     });
 
     return {
-      accessToken: `dev.${user.id}`,
+      accessToken: issueAuthToken({
+        sub: user.id,
+        kind: 'user',
+        email: googleIdentity.email,
+      }),
       tokenType: 'Bearer',
       user,
+      capabilities: {
+        admin: false,
+      },
     };
   }
 
-  private toDevelopmentUserId(idToken: string): string {
-    return `google_${Buffer.from(idToken).toString('base64url').slice(0, 24)}`;
+  private toUserId(googleSub: string): string {
+    return `google_${googleSub}`;
   }
 }

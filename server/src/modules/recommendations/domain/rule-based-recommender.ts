@@ -31,7 +31,7 @@ export class RuleBasedRecommender {
     return events
       .filter(event => this.isRecommendationCandidate(event, childAges, region))
       .map(event => this.scoreEvent(event, childAges, preferences))
-      .sort((a, b) => b.score - a.score || b.event.csvSequence - a.event.csvSequence)
+      .sort((a, b) => b.score - a.score || this.eventSequence(b.event) - this.eventSequence(a.event))
       .slice(0, 3)
       .map(scored => ({
         eventId: scored.event.id,
@@ -68,7 +68,7 @@ export class RuleBasedRecommender {
     childAges: number[],
     preferences: RecommendationPreferences,
   ): ScoredEvent {
-    let score = event.csvSequence;
+    let score = this.eventSequence(event);
     const reasons: string[] = [];
     let caution: string | undefined;
 
@@ -152,5 +152,8 @@ export class RuleBasedRecommender {
   private today(): string {
     return new Date().toISOString().slice(0, 10);
   }
-}
 
+  private eventSequence(event: BabyrooEvent): number {
+    return event.csvSequence ?? 0;
+  }
+}

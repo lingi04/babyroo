@@ -1,0 +1,9 @@
+ALTER TABLE "events"
+    ALTER COLUMN "venue_name" DROP NOT NULL,
+    ALTER COLUMN "locality" DROP NOT NULL,
+    ALTER COLUMN "region" DROP NOT NULL,
+    ALTER COLUMN "category" DROP NOT NULL,
+    ALTER COLUMN "source" SET DEFAULT 'manual',
+    ALTER COLUMN "starts_at" DROP NOT NULL,
+    ALTER COLUMN "ends_at" DROP NOT NULL,
+    ALTER COLUMN "summary" DROP NOT NULL;

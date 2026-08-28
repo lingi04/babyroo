@@ -28,8 +28,9 @@ export class EventsQueryService
     });
     const allEvents = await this.events.list();
     const filtered = allEvents
+      .filter(event => this.isPublished(event))
       .filter(event => this.matchesQuery(event, query))
-      .sort((a, b) => b.csvSequence - a.csvSequence);
+      .sort((a, b) => this.sortSequence(b) - this.sortSequence(a));
     const offset = Number(query.offset ?? 0);
     const limit = Math.min(Number(query.limit ?? 50), 300);
 
@@ -49,7 +50,7 @@ export class EventsQueryService
   async getById(id: string): Promise<BabyrooEvent> {
     debugLog('events.getById.start', { eventId: id });
     const event = await this.events.findById(id);
-    if (!event) {
+    if (!event || !this.isPublished(event)) {
       debugLog('events.getById.notFound', { eventId: id });
       throw new NotFoundError('Event not found');
     }
@@ -59,7 +60,9 @@ export class EventsQueryService
 
   async getManyByIds(ids: string[]): Promise<BabyrooEvent[]> {
     const events = await Promise.all(ids.map(id => this.events.findById(id)));
-    const foundEvents = events.filter((event): event is BabyrooEvent => event !== null);
+    const foundEvents = events.filter(
+      (event): event is BabyrooEvent => event !== null && this.isPublished(event),
+    );
     debugLog('events.getManyByIds.success', {
       requestedCount: ids.length,
       foundCount: foundEvents.length,
@@ -180,5 +183,13 @@ export class EventsQueryService
 
   private toBoolean(value: string): boolean {
     return value === 'true' || value === '1' || value === 'yes';
+  }
+
+  private sortSequence(event: BabyrooEvent): number {
+    return event.csvSequence ?? 0;
+  }
+
+  private isPublished(event: BabyrooEvent): boolean {
+    return event.publicationStatus === undefined || event.publicationStatus === 'published';
   }
 }

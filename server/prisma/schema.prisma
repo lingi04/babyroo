@@ -26,6 +26,20 @@ model User {
   @@map("users")
 }
 
+model AdminUser {
+  id          String   @id
+  googleSub   String?  @unique @map("google_sub")
+  email       String   @unique
+  displayName String?  @map("display_name")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  eventAuditLogs EventAuditLog[]
+
+  @@map("admin_users")
+}
+
 model CreditAccount {
   userId    String   @id @map("user_id")
   available Int      @default(0)
@@ -92,19 +106,19 @@ model Child {
 
 model Event {
   id                  String    @id
-  csvSequence         Int       @unique @map("csv_sequence")
+  csvSequence         Int?      @unique @map("csv_sequence")
   title               String
-  venueName           String    @map("venue_name")
+  venueName           String?   @map("venue_name")
   venueDetail         String?   @map("venue_detail")
   address             String?
   imageUrl            String?   @map("image_url")
-  locality            String
-  region              String
-  category            String
-  source              String
+  locality            String?
+  region              String?
+  category            String?
+  source              String    @default("manual")
   sourceEventId       String?   @map("source_event_id")
-  startsAt            DateTime  @map("starts_at") @db.Date
-  endsAt              DateTime  @map("ends_at") @db.Date
+  startsAt            DateTime? @map("starts_at") @db.Date
+  endsAt              DateTime? @map("ends_at") @db.Date
   ageMinMonths        Int?      @map("age_min_months")
   ageMaxMonths        Int?      @map("age_max_months")
   indoor              Boolean?
@@ -117,11 +131,15 @@ model Event {
   nursingRoom         Boolean?  @map("nursing_room")
   parking             Boolean?
   tags                String[]  @default([])
-  summary             String
+  summary             String?
   sourceUrl           String    @map("source_url")
   lastCheckedAt       DateTime? @map("last_checked_at") @db.Date
+  publicationStatus   String    @default("draft") @map("publication_status")
+  adminUpdatedAt      DateTime? @map("admin_updated_at")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  eventAuditLogs EventAuditLog[]
 
   @@unique([source, sourceEventId])
   @@index([region, locality])
@@ -129,8 +147,26 @@ model Event {
   @@index([startsAt, endsAt])
   @@index([priceType])
   @@index([reservationStatus])
+  @@index([publicationStatus])
   @@index([source])
   @@map("events")
+}
+
+model EventAuditLog {
+  id          String   @id
+  eventId     String   @map("event_id")
+  adminUserId String   @map("admin_user_id")
+  action      String
+  before      Json?
+  after       Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id])
+  event      Event     @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, createdAt])
+  @@index([adminUserId, createdAt])
+  @@map("event_audit_logs")
 }
 
 model RecommendationSession {

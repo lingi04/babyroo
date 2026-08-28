@@ -39,17 +39,17 @@ export class PrismaEventRepository implements EventRepositoryPort {
   private toDomainEvent(event: PrismaEvent): BabyrooEvent {
     return {
       id: event.id,
-      csvSequence: event.csvSequence,
+      csvSequence: event.csvSequence ?? undefined,
       title: event.title,
-      venueName: event.venueName,
+      venueName: event.venueName ?? '',
       venueDetail: event.venueDetail ?? undefined,
       imageUrl: event.imageUrl ?? undefined,
-      locality: event.locality,
-      region: event.region,
-      category: event.category,
+      locality: event.locality ?? '',
+      region: event.region ?? '',
+      category: event.category ?? '',
       source: event.source,
-      startsAt: this.toDateOnly(event.startsAt),
-      endsAt: this.toDateOnly(event.endsAt),
+      startsAt: event.startsAt ? this.toDateOnly(event.startsAt) : '',
+      endsAt: event.endsAt ? this.toDateOnly(event.endsAt) : '',
       ageMinMonths: event.ageMinMonths ?? undefined,
       ageMaxMonths: event.ageMaxMonths ?? undefined,
       indoor: event.indoor ?? undefined,
@@ -57,9 +57,10 @@ export class PrismaEventRepository implements EventRepositoryPort {
       priceType: this.toPriceType(event.priceType),
       reservationRequired: event.reservationRequired ?? undefined,
       reservationStatus: this.toReservationStatus(event.reservationStatus),
+      publicationStatus: this.toPublicationStatus(event.publicationStatus),
       guardianRequired: event.guardianRequired ?? undefined,
       tags: event.tags,
-      summary: event.summary,
+      summary: event.summary ?? '',
       sourceUrl: event.sourceUrl,
     };
   }
@@ -86,5 +87,18 @@ export class PrismaEventRepository implements EventRepositoryPort {
     }
 
     return 'unknown';
+  }
+
+  private toPublicationStatus(value: string): BabyrooEvent['publicationStatus'] {
+    if (
+      value === 'draft' ||
+      value === 'published' ||
+      value === 'hidden' ||
+      value === 'archived'
+    ) {
+      return value;
+    }
+
+    return 'draft';
   }
 }

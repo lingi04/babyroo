@@ -24,6 +24,7 @@ type PublishedEvent = {
   price_type?: 'free' | 'paid' | 'unknown' | null;
   reservation_required?: boolean | null;
   reservation_status?: 'unknown' | 'available' | 'limited' | 'closed' | null;
+  publication_status?: 'draft' | 'published' | 'hidden' | 'archived' | null;
   guardian_required?: boolean | null;
   tags?: string[] | null;
   summary?: string | null;
@@ -73,6 +74,7 @@ export class JsonEventRepository implements EventRepositoryPort {
       priceType: event.price_type ?? 'unknown',
       reservationRequired: event.reservation_required ?? undefined,
       reservationStatus: event.reservation_status ?? 'unknown',
+      publicationStatus: event.publication_status ?? 'published',
       guardianRequired: event.guardian_required ?? undefined,
       tags: event.tags ?? [],
       summary: event.summary ?? '',

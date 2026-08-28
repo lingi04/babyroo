@@ -1,8 +1,9 @@
 export type ReservationStatus = 'unknown' | 'available' | 'limited' | 'closed';
+export type PublicationStatus = 'draft' | 'published' | 'hidden' | 'archived';
 
 export type BabyrooEvent = {
   id: string;
-  csvSequence: number;
+  csvSequence?: number;
   title: string;
   venueName: string;
   venueDetail?: string;
@@ -20,6 +21,7 @@ export type BabyrooEvent = {
   priceType: 'free' | 'paid' | 'unknown';
   reservationRequired?: boolean;
   reservationStatus: ReservationStatus;
+  publicationStatus?: PublicationStatus;
   guardianRequired?: boolean;
   tags: string[];
   summary: string;

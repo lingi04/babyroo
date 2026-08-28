@@ -1,82 +1,75 @@
 # Babyroo Admin
 
-Static review/admin page for Instagram hashtag discovery and managed event review.
+Authenticated event-management web app for Babyroo operators.
 
-Design guidance lives in [`../docs/design_system.md`](../docs/design_system.md). The admin stylesheet mirrors those tokens so new UI should reuse the same color, radius, shadow, card, tag, and status patterns.
-
-Recent UI direction: the admin should feel closer to Product Hunt's launch lists than a plain table. The primary pattern is a scannable ranked list with thumbnails, concise titles, metadata pills, tags, facts, and one clear action.
-
-Target review URL:
-
-```text
-https://babyroo.vercel.app/
-```
+The admin app is a Vite + React + TypeScript frontend. It talks to the Babyroo API and requires Google social login with an active `AdminUser` row in the database.
 
 ## Features
 
-### Instagram Event Discovery
+- Google admin login
+- Draft-first event table
+- Event create and edit pages
+- Publish, hide, and archive actions
+- Field-level validation display
+- Image URL editing
+- Event image upload
 
-- Connect Instagram / Facebook button
-- Connected Instagram Business or Creator account display
-- Hashtag input
-- Search button
-- Instagram Graph API result list
-- Save as event candidate button
-- Candidate JSON download
+## Local Use
 
-### Managed Events
-
-- Reads the CSV embedded in `admin/index.html`
-- Shows the normalized event list managed by Babyroo
-- Displays events by added order, newest first
-- Supports search by title, venue, address, region, source, and tags
-- Filters by category and reservation status
-- Links back to each source URL
-
-## Display Order
-
-The embedded CSV is treated as append-only review data:
-
-- Top CSV records are older.
-- Bottom CSV records are newer.
-- The Managed Events screen renders newer records first.
-- Card sequence badges preserve the original CSV row order, so five records render as `5, 4, 3, 2, 1`.
-
-This is intentional. If a new event is appended to the bottom of the CSV, it should appear at the top of the Managed Events list after reload.
-
-## Visual Notes
-
-The current UI applies the Product Hunt-inspired design system directly in `admin/styles.css`:
-
-- Warm page band and stronger top navigation
-- Panel-based workflow sections
-- Ranked card rows for search results and managed events
-- Thumbnail-first cards with title, summary, tags, key facts, and source action
-- Pill treatments for media type, category, source, and status metadata
-- Hover/focus states for clickable rows and controls
-
-Changes made locally will not appear at `https://babyroo.vercel.app/` until the site is deployed. For local review, open `admin/index.html` directly or run the static server command below.
-
-## Local use
-
-Open `admin/index.html` directly in a browser, or serve the repository root with any static server and open `/admin/`.
-
-For example:
+Install dependencies:
 
 ```text
-python3 -m http.server 8000
+npm install
 ```
 
-Then open:
+Create a local env file:
 
 ```text
-http://localhost:8000/admin/
+VITE_BABYROO_API_BASE_URL=http://localhost:3000/api
+VITE_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 ```
 
-The Managed Events page embeds its CSV payload directly in `admin/index.html`, so it can run from a direct browser file open without a static server.
+Run the admin app:
 
-The page never stores an app secret. It only uses a browser-side Graph API access token during review/testing. For production, token exchange and long-lived token handling should move to a backend.
+```text
+npm run dev
+```
 
-## Meta setup notes
+Open:
 
-The connected Facebook account must have access to a Facebook Page linked to an Instagram Business or Creator account. Hashtag search also requires the appropriate Instagram Graph API permissions and App Review before production use.
+```text
+http://localhost:5173
+```
+
+The API server should be running at:
+
+```text
+http://localhost:3000/api
+```
+
+Google OAuth / Google Identity Services must allow `http://localhost:5173` as a JavaScript origin.
+
+## Backend Requirements
+
+The API must have:
+
+```text
+AUTH_JWT_SECRET=...
+GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+BLOB_READ_WRITE_TOKEN=...
+```
+
+An admin user must be inserted manually before login. The first insert can use email only; the server fills `google_sub` on first successful Google login.
+
+Example shape:
+
+```sql
+INSERT INTO admin_users (id, email, active, created_at, updated_at)
+VALUES ('admin_your_name', 'you@example.com', true, now(), now());
+```
+
+## Build
+
+```text
+npm run build
+```
