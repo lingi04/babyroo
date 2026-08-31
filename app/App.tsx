@@ -1658,6 +1658,22 @@ function HomeScreen({
     commitRecommendationAnswer('startRegion', 'departure_input');
   };
 
+  const goToNextRecommendationQuestion = () => {
+    const question = currentRecommendationQuestion;
+
+    if (!question) {
+      return;
+    }
+
+    const selectedAnswer = recommendationAnswers[question.id];
+
+    if (!selectedAnswer) {
+      return;
+    }
+
+    commitRecommendationAnswer(question.id, selectedAnswer);
+  };
+
   const editRecommendationAnswer = (questionId: RecommendationQuestionId) => {
     const nextQuestionIndex = recommendationQuestions.findIndex(
       question => question.id === questionId,
@@ -1694,89 +1710,98 @@ function HomeScreen({
         </View>
 
         <View style={styles.recommendationSetupCard}>
-          <View>
-            <Text style={styles.recommendationSetupLabel}>추천 시작</Text>
-            <Text style={styles.recommendationSetupTitle}>
-              아이랑 어디 갈까요?
-            </Text>
-            <Text style={styles.recommendationSetupMeta}>
-              조건을 입력해 보세요.
-            </Text>
-          </View>
+          {recommendationFlowStep === 'interview' &&
+          currentRecommendationQuestion ? (
+            <RecommendationQuestionCard
+              answers={recommendationAnswers}
+              question={currentRecommendationQuestion}
+              questionIndex={recommendationQuestionIndex}
+              questionCount={recommendationQuestions.length}
+              tone="dark"
+              onAnswer={answerRecommendationQuestion}
+              onBack={() =>
+                setRecommendationQuestionIndex(previousIndex =>
+                  Math.max(previousIndex - 1, 0),
+                )
+              }
+              onClose={() => setRecommendationFlowStep('idle')}
+              onNext={goToNextRecommendationQuestion}
+              nextLabel={
+                returnToConfirmationAfterAnswer ||
+                recommendationQuestionIndex >= recommendationQuestions.length - 1
+                  ? '확인하기'
+                  : '다음 질문'
+              }
+            />
+          ) : recommendationFlowStep === 'confirming' ? (
+            <RecommendationConfirmationCard
+              answers={recommendationAnswers}
+              creating={creatingRecommendationSession}
+              questions={recommendationQuestions}
+              tone="dark"
+              onConfirm={() => requestRecommendation(recommendationAnswers)}
+              onEditAnswer={editRecommendationAnswer}
+            />
+          ) : (
+            <>
+              <View>
+                <Text style={styles.recommendationSetupTitle}>
+                  아이랑 어디 갈까요?
+                </Text>
+                <Text style={styles.recommendationSetupMeta}>
+                  조건을 입력해 보세요.
+                </Text>
+              </View>
 
-          <Pressable
-            style={styles.recommendationContextRow}
-            onPress={onOpenSettings}
-            accessibilityLabel="Edit recommendation children"
-          >
-            <View>
-              <Text style={styles.recommendationContextLabel}>추천 기준</Text>
-              <Text style={styles.recommendationContextValue}>
-                {formatRecommendationCriteriaSummary(selectedChildren)}
-              </Text>
-            </View>
-            <Text style={styles.recommendationContextAction}>설정</Text>
-          </Pressable>
+              <Pressable
+                style={styles.recommendationContextRow}
+                onPress={onOpenSettings}
+                accessibilityLabel="Edit recommendation children"
+              >
+                <View>
+                  <Text style={styles.recommendationContextLabel}>추천 기준</Text>
+                  <Text style={styles.recommendationContextValue}>
+                    {formatRecommendationCriteriaSummary(selectedChildren)}
+                  </Text>
+                </View>
+                <Text style={styles.recommendationContextAction}>설정</Text>
+              </Pressable>
 
-          <Pressable
-            style={[
-              styles.primaryButton,
-              styles.recommendationPrimaryButton,
-              creditStatusLoading && styles.buttonDisabled,
-            ]}
-            onPress={startRecommendationInterview}
-            disabled={creditStatusLoading}
-            accessibilityLabel="Request recommendation"
-          >
-            <Text style={styles.primaryButtonText}>{recommendationCtaLabel}</Text>
-          </Pressable>
-          <Pressable
-            style={styles.creditStatusTextLink}
-            onPress={onOpenCredits}
-            accessibilityLabel="Open recommendation credit purchases and history"
-          >
-            <Text style={styles.creditStatusTextLinkText}>
-              추천권 구매 및 사용 기록 보기
-            </Text>
-          </Pressable>
-          {latestRecommendationSession ? (
-            <Text style={styles.recommendationSetupFootnote}>
-              최근 추천{' '}
-              {formatRecommendationSessionTime(
-                latestRecommendationSession.createdAt,
-              )}{' '}
-              · 총 {recommendationSessions.length}회 사용
-            </Text>
-          ) : null}
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  styles.recommendationPrimaryButton,
+                  creditStatusLoading && styles.buttonDisabled,
+                ]}
+                onPress={startRecommendationInterview}
+                disabled={creditStatusLoading}
+                accessibilityLabel="Request recommendation"
+              >
+                <Text style={styles.primaryButtonText}>
+                  {recommendationCtaLabel}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.creditStatusTextLink}
+                onPress={onOpenCredits}
+                accessibilityLabel="Open recommendation credit purchases and history"
+              >
+                <Text style={styles.creditStatusTextLinkText}>
+                  추천권 구매 및 사용 기록 보기
+                </Text>
+              </Pressable>
+              {latestRecommendationSession ? (
+                <Text style={styles.recommendationSetupFootnote}>
+                  최근 추천{' '}
+                  {formatRecommendationSessionTime(
+                    latestRecommendationSession.createdAt,
+                  )}{' '}
+                  · 총 {recommendationSessions.length}회 사용
+                </Text>
+              ) : null}
+            </>
+          )}
         </View>
-
-        {recommendationFlowStep === 'interview' &&
-        currentRecommendationQuestion ? (
-          <RecommendationQuestionCard
-            answers={recommendationAnswers}
-            question={currentRecommendationQuestion}
-            questionIndex={recommendationQuestionIndex}
-            questionCount={recommendationQuestions.length}
-            questions={recommendationQuestions}
-            onAnswer={answerRecommendationQuestion}
-            onBack={() =>
-              setRecommendationQuestionIndex(previousIndex =>
-                Math.max(previousIndex - 1, 0),
-              )
-            }
-            onClose={() => setRecommendationFlowStep('idle')}
-          />
-        ) : null}
-
-        {recommendationFlowStep === 'confirming' ? (
-          <RecommendationConfirmationCard
-            answers={recommendationAnswers}
-            creating={creatingRecommendationSession}
-            questions={recommendationQuestions}
-            onConfirm={() => requestRecommendation(recommendationAnswers)}
-            onEditAnswer={editRecommendationAnswer}
-          />
-        ) : null}
 
         <View style={styles.recommendationHistorySection}>
           <View style={styles.sectionHeaderCompact}>
@@ -1848,64 +1873,108 @@ function RecommendationQuestionCard({
   question,
   questionIndex,
   questionCount,
-  questions,
+  tone = 'light',
   onAnswer,
   onBack,
   onClose,
+  onNext,
+  nextLabel = '다음 질문',
 }: {
   answers: RecommendationAnswerMap;
   question: RecommendationQuestion;
   questionIndex: number;
   questionCount: number;
-  questions: RecommendationQuestion[];
+  tone?: 'light' | 'dark';
   onAnswer: (
     questionId: RecommendationQuestionId,
     value: RecommendationAnswerValue,
   ) => void;
   onBack: () => void;
   onClose: () => void;
+  onNext?: () => void;
+  nextLabel?: string;
 }) {
+  const isDark = tone === 'dark';
+  const selectedValue = answers[question.id];
+
   return (
-    <View style={styles.recommendationQuestionCard}>
+    <View
+      style={[
+        styles.recommendationQuestionCard,
+        isDark && styles.recommendationQuestionCardInSetup,
+      ]}
+    >
       <View style={styles.recommendationQuestionHeader}>
         <View>
-          <Text style={styles.settingsLabel}>
+          <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
             질문 {questionIndex + 1}/{questionCount}
           </Text>
-          <Text style={styles.settingsTitle}>{question.prompt}</Text>
+          <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
+            {question.prompt}
+          </Text>
         </View>
         <Pressable
           onPress={onClose}
           accessibilityLabel="Close recommendation questions"
         >
-          <Text style={styles.linkText}>닫기</Text>
+          <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
+            닫기
+          </Text>
         </Pressable>
       </View>
 
       <View style={styles.recommendationOptionList}>
-        {question.options.map(option => (
-          <Pressable
-            key={option.value}
-            style={styles.recommendationOption}
-            onPress={() => onAnswer(question.id, option.value)}
-            accessibilityLabel={`Answer recommendation ${option.label}`}
-          >
-            <Text style={styles.recommendationOptionText}>{option.label}</Text>
-          </Pressable>
-        ))}
+        {question.options.map(option => {
+          const selected = option.value === selectedValue;
+
+          return (
+            <Pressable
+              key={option.value}
+              style={[
+                styles.recommendationOption,
+                selected && styles.recommendationOptionSelected,
+              ]}
+              onPress={() => onAnswer(question.id, option.value)}
+              accessibilityLabel={`Answer recommendation ${option.label}`}
+            >
+              <Text
+                style={[
+                  styles.recommendationOptionText,
+                  selected && styles.recommendationOptionTextSelected,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
-      <RecommendationAnswerSummary answers={answers} questions={questions} />
+      <View style={styles.recommendationQuestionActions}>
+        {questionIndex > 0 ? (
+          <Pressable
+            style={styles.recommendationBackButton}
+            onPress={onBack}
+            accessibilityLabel="Previous recommendation question"
+          >
+            <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
+              이전 질문
+            </Text>
+          </Pressable>
+        ) : (
+          <View />
+        )}
 
-      {questionIndex > 0 ? (
-        <Pressable
-          style={styles.recommendationBackButton}
-          onPress={onBack}
-          accessibilityLabel="Previous recommendation question"
-        >
-          <Text style={styles.linkText}>이전 질문</Text>
-        </Pressable>
-      ) : null}
+        {selectedValue && onNext ? (
+          <Pressable
+            style={styles.recommendationNextButton}
+            onPress={onNext}
+            accessibilityLabel="Go to next recommendation question"
+          >
+            <Text style={styles.recommendationNextButtonText}>{nextLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -2033,12 +2102,15 @@ function DepartureAddressModal({
 function RecommendationAnswerSummary({
   answers,
   questions,
+  tone = 'light',
   onEditAnswer,
 }: {
   answers: RecommendationAnswerMap;
   questions: RecommendationQuestion[];
+  tone?: 'light' | 'dark';
   onEditAnswer?: (questionId: RecommendationQuestionId) => void;
 }) {
+  const isDark = tone === 'dark';
   const answeredQuestions = questions.filter(question =>
     Boolean(answers[question.id]),
   );
@@ -2048,8 +2120,15 @@ function RecommendationAnswerSummary({
   }
 
   return (
-    <View style={styles.recommendationAnswerSummary}>
-      <Text style={styles.fieldLabel}>선택한 답변</Text>
+    <View
+      style={[
+        styles.recommendationAnswerSummary,
+        isDark && styles.recommendationAnswerSummaryDark,
+      ]}
+    >
+      <Text style={[styles.fieldLabel, isDark && styles.darkCardLabel]}>
+        선택한 답변
+      </Text>
       <View style={styles.recommendationAnswerList}>
         {answeredQuestions.map(question => (
           <Pressable
@@ -2060,12 +2139,32 @@ function RecommendationAnswerSummary({
               question,
             )}`}
           >
-            <Text style={styles.recommendationAnswerQuestion}>
+            <Text
+              style={[
+                styles.recommendationAnswerQuestion,
+                isDark && styles.recommendationAnswerQuestionDark,
+              ]}
+            >
               {recommendationQuestionLabel(question)}
             </Text>
-            <Text style={styles.recommendationAnswerValue}>
+            <Text
+              style={[
+                styles.recommendationAnswerValue,
+                isDark && styles.recommendationAnswerValueDark,
+              ]}
+            >
               {recommendationAnswerLabel(question, answers[question.id])}
             </Text>
+            {onEditAnswer ? (
+              <Text
+                style={[
+                  styles.recommendationAnswerEdit,
+                  isDark && styles.recommendationAnswerEditDark,
+                ]}
+              >
+                수정
+              </Text>
+            ) : null}
           </Pressable>
         ))}
       </View>
@@ -2076,26 +2175,40 @@ function RecommendationAnswerSummary({
 function RecommendationConfirmationCard({
   answers,
   creating,
+  tone = 'light',
   onConfirm,
   onEditAnswer,
   questions,
 }: {
   answers: RecommendationAnswerMap;
   creating: boolean;
+  tone?: 'light' | 'dark';
   onConfirm: () => void;
   onEditAnswer: (questionId: RecommendationQuestionId) => void;
   questions: RecommendationQuestion[];
 }) {
+  const isDark = tone === 'dark';
+
   return (
-    <View style={styles.recommendationQuestionCard}>
-      <Text style={styles.settingsLabel}>추천 확인</Text>
-      <Text style={styles.settingsTitle}>이 조건으로 추천 받을까요?</Text>
-      <Text style={styles.settingsMeta}>
+    <View
+      style={[
+        styles.recommendationQuestionCard,
+        isDark && styles.recommendationQuestionCardInSetup,
+      ]}
+    >
+      <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
+        추천 확인
+      </Text>
+      <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
+        이 조건으로 추천 받을까요?
+      </Text>
+      <Text style={[styles.settingsMeta, isDark && styles.darkCardMeta]}>
         추천 결과가 생성되면 추천권 1회가 사용돼요.
       </Text>
       <RecommendationAnswerSummary
         answers={answers}
         questions={questions}
+        tone={tone}
         onEditAnswer={onEditAnswer}
       />
       {__DEV__ ? (
@@ -5700,37 +5813,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   recommendationSetupCard: {
-    backgroundColor: colors.foreground,
-    borderColor: colors.borderSubtle,
+    backgroundColor: colors.primarySoft,
+    borderColor: 'rgba(232, 94, 37, 0.12)',
     borderRadius: radius.xxl,
     borderWidth: 1,
     marginTop: spacing.lg,
     padding: layout.cardPadding,
     ...shadows.elevated,
   },
-  recommendationSetupLabel: {
-    ...typography.caption,
-    color: colors.primarySoft,
-  },
   recommendationSetupTitle: {
     ...typography.title,
-    color: colors.inverseText,
+    color: colors.text,
     marginTop: spacing.xs,
   },
   recommendationSetupMeta: {
     ...typography.body,
-    color: colors.inverseMuted,
+    color: colors.muted,
     marginTop: spacing.sm,
   },
   recommendationSetupFootnote: {
     ...typography.caption,
-    color: colors.inverseMuted,
+    color: colors.muted,
     marginTop: spacing.md,
   },
   recommendationContextRow: {
     alignItems: 'center',
-    backgroundColor: colors.foregroundSoft,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: colors.surface,
+    borderColor: 'rgba(232, 94, 37, 0.16)',
     borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
@@ -5742,10 +5851,10 @@ const styles = StyleSheet.create({
   },
   recommendationContextLabel: {
     ...typography.caption,
-    color: colors.inverseMuted,
+    color: colors.primaryStrong,
   },
   recommendationContextValue: {
-    color: colors.inverseText,
+    color: colors.text,
     fontSize: 14,
     fontWeight: '900',
     marginTop: 2,
@@ -5758,11 +5867,11 @@ const styles = StyleSheet.create({
   },
   creditStatusTextLinkText: {
     ...typography.caption,
-    color: colors.inverseMuted,
+    color: colors.primaryStrong,
   },
   recommendationContextAction: {
     ...typography.caption,
-    color: colors.primarySoft,
+    color: colors.primaryStrong,
   },
   recommendationPrimaryButton: {
     marginTop: spacing.lg,
@@ -5775,6 +5884,14 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     padding: layout.cardPadding,
     ...shadows.card,
+  },
+  recommendationQuestionCardInSetup: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    marginTop: 0,
+    padding: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   recommendationQuestionHeader: {
     alignItems: 'flex-start',
@@ -5796,14 +5913,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
+  recommendationOptionSelected: {
+    backgroundColor: colors.surface,
+    borderColor: colors.primary,
+  },
   recommendationOptionText: {
     color: colors.text,
     fontSize: 14,
     fontWeight: '900',
   },
+  recommendationOptionTextSelected: {
+    color: colors.primaryStrong,
+  },
+  darkCardLabel: {
+    color: colors.primaryStrong,
+  },
+  darkCardTitle: {
+    color: colors.text,
+  },
+  darkCardMeta: {
+    color: colors.muted,
+  },
+  darkCardLinkText: {
+    color: colors.primaryStrong,
+  },
+  recommendationQuestionActions: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+  },
   recommendationBackButton: {
     alignSelf: 'flex-start',
-    marginTop: spacing.md,
+  },
+  recommendationNextButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.pill,
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  recommendationNextButtonText: {
+    color: colors.inverseText,
+    fontSize: 13,
+    fontWeight: '900',
   },
   recommendationAnswerSummary: {
     backgroundColor: colors.surfaceRaised,
@@ -5813,6 +5967,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     padding: spacing.md,
   },
+  recommendationAnswerSummaryDark: {
+    backgroundColor: colors.surface,
+    borderColor: 'rgba(232, 94, 37, 0.16)',
+  },
   recommendationAnswerList: {
     gap: spacing.sm,
     marginTop: spacing.sm,
@@ -5820,13 +5978,16 @@ const styles = StyleSheet.create({
   recommendationAnswerItem: {
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     gap: spacing.md,
+    justifyContent: 'space-between',
   },
   recommendationAnswerQuestion: {
     color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
+  },
+  recommendationAnswerQuestionDark: {
+    color: colors.muted,
   },
   recommendationAnswerValue: {
     color: colors.text,
@@ -5834,6 +5995,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'right',
+  },
+  recommendationAnswerValueDark: {
+    color: colors.text,
+  },
+  recommendationAnswerEdit: {
+    color: colors.primary,
+    flexShrink: 0,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  recommendationAnswerEditDark: {
+    color: colors.primaryStrong,
   },
   recommendationDebugPrompt: {
     backgroundColor: colors.text,
