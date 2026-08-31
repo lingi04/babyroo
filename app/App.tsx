@@ -1342,6 +1342,10 @@ function HomeScreen({
     useState(0);
   const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
     useState(false);
+  const [creditStatus, setCreditStatus] = useState<BabyrooCreditStatus | null>(
+    null,
+  );
+  const [creditStatusLoading, setCreditStatusLoading] = useState(true);
   const [departureAddress, setDepartureAddress] = useState<
     UserHomeAddress | undefined
   >();
@@ -1376,10 +1380,56 @@ function HomeScreen({
       session.status === 'loading' ||
       (session.status === 'success' && session.results.length > 0),
   );
+  const availableCredits = creditStatus?.balance.available ?? 0;
+  const hasLoadedCreditStatus = !creditStatusLoading && creditStatus !== null;
+  const shouldTopUpBeforeRecommendation =
+    hasLoadedCreditStatus && availableCredits <= 0;
+  let recommendationCtaLabel = latestRecommendationSession
+    ? '다시 추천 받기'
+    : '추천 받기';
+
+  if (creditStatusLoading) {
+    recommendationCtaLabel = '추천권 확인 중...';
+  } else if (shouldTopUpBeforeRecommendation) {
+    recommendationCtaLabel = '추천권 구매하고 추천 받기';
+  }
   const loadingRecommendationSessionIds = recommendationSessions
     .filter(session => session.status === 'loading')
     .map(session => session.id)
     .join('|');
+
+  useEffect(() => {
+    if (!authSession.apiAccessToken) {
+      setCreditStatus(null);
+      setCreditStatusLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCreditStatusLoading(true);
+
+    getCreditStatusFromBabyrooApi(authSession.apiAccessToken)
+      .then(nextCreditStatus => {
+        if (!cancelled) {
+          setCreditStatus(nextCreditStatus);
+        }
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setCreditStatus(null);
+          console.warn('[Babyroo API] failed to load credit status', error);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCreditStatusLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authSession.apiAccessToken]);
 
   useEffect(() => {
     if (
@@ -1465,6 +1515,11 @@ function HomeScreen({
   }, [authSession.apiAccessToken, loadingRecommendationSessionIds]);
 
   const startRecommendationInterview = () => {
+    if (shouldTopUpBeforeRecommendation) {
+      onOpenCredits();
+      return;
+    }
+
     setRecommendationAnswers({});
     setDepartureAddress(undefined);
     setRecommendationQuestionIndex(0);
@@ -1641,9 +1696,13 @@ function HomeScreen({
           <View>
             <Text style={styles.recommendationSetupLabel}>추천 시작</Text>
             <Text style={styles.recommendationSetupTitle}>
-              조건 몇 개만 고르면 끝
+              아이랑 어디 갈까요?
+            </Text>
+            <Text style={styles.recommendationSetupMeta}>
+              조건을 입력해 보세요.
             </Text>
           </View>
+
           <Pressable
             style={styles.recommendationContextRow}
             onPress={onOpenSettings}
@@ -1657,29 +1716,28 @@ function HomeScreen({
             </View>
             <Text style={styles.recommendationContextAction}>설정</Text>
           </Pressable>
-          <Pressable
-            style={styles.recommendationContextRow}
-            onPress={onOpenCredits}
-            accessibilityLabel="Open recommendation credits"
-          >
-            <View>
-              <Text style={styles.recommendationContextLabel}>추천권</Text>
-              <Text style={styles.recommendationContextValue}>
-                잔여 추천권과 사용 내역 보기
-              </Text>
-            </View>
-            <Text style={styles.recommendationContextAction}>보기</Text>
-          </Pressable>
 
           <Pressable
-            style={[styles.primaryButton, styles.recommendationPrimaryButton]}
+            style={[
+              styles.primaryButton,
+              styles.recommendationPrimaryButton,
+              creditStatusLoading && styles.buttonDisabled,
+            ]}
             onPress={startRecommendationInterview}
+            disabled={creditStatusLoading}
             accessibilityLabel="Request recommendation"
           >
-            <Text style={styles.primaryButtonText}>
-              {latestRecommendationSession
-                ? '추천 조건 다시 선택'
-                : '추천 조건 선택'}
+            <Text style={styles.primaryButtonText}>{recommendationCtaLabel}</Text>
+          </Pressable>
+          <Pressable
+            style={styles.creditStatusTextLink}
+            onPress={onOpenCredits}
+            accessibilityLabel="Open recommendation credit purchases and history"
+          >
+            <Text style={styles.creditStatusTextLinkText}>
+              {hasLoadedCreditStatus
+                ? `추천권 ${availableCredits}회 · 구매 및 사용 기록 보기`
+                : '추천권 구매 및 사용 기록 보기'}
             </Text>
           </Pressable>
           {latestRecommendationSession ? (
@@ -5485,6 +5543,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
     marginTop: 2,
+  },
+  creditStatusTextLink: {
+    alignSelf: 'center',
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  creditStatusTextLinkText: {
+    ...typography.caption,
+    color: colors.inverseMuted,
   },
   recommendationContextAction: {
     ...typography.caption,
