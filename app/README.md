@@ -20,7 +20,15 @@ yarn start
 
 ## Babyroo API server
 
-The app calls the local Babyroo API server for login exchange and remote recommendations.
+The app calls the deployed Babyroo API server for login exchange, events, users, and recommendations.
+
+Default API URL used by the app:
+
+```text
+https://babyroo-api.vercel.app/api
+```
+
+For local API development, temporarily replace `BABYROO_API_BASE_URL` in `src/api/babyrooApi.ts` with your local server URL.
 
 Start the server in another terminal:
 
@@ -34,15 +42,6 @@ OPENAI_API_KEY=replace-me-openai-api-key \
 npm run start:dev
 ```
 
-Default API URLs used by the app:
-
-```text
-iOS simulator: http://127.0.0.1:3000/api
-Android emulator: http://10.0.2.2:3000/api
-```
-
-For a physical device, replace the API base URL in `src/api/babyrooApi.ts` with your machine's LAN address.
-
 For Android physical-device testing:
 
 ```sh
@@ -53,7 +52,7 @@ HOST=0.0.0.0 npm run start:dev
 Then use your Mac LAN IP in `src/api/babyrooApi.ts`, for example:
 
 ```ts
-return 'http://172.30.1.90:3000/api';
+export const BABYROO_API_BASE_URL = 'http://172.30.1.90:3000/api';
 ```
 
 Debug Android builds allow local HTTP traffic. Release builds should use HTTPS.

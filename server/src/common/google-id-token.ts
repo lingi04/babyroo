@@ -2,7 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
 
 const DEFAULT_GOOGLE_WEB_CLIENT_ID =
-  '95021198008-jac42r8vpe99sk0ed5dnlr3e40fj5hna.apps.googleusercontent.com';
+  '384711875273-t4j7j84mogouapmqkicp4ucqdvcv0pau.apps.googleusercontent.com';
 
 export type VerifiedGoogleIdentity = {
   sub: string;

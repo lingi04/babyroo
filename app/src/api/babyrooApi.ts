@@ -77,6 +77,7 @@ export type BabyrooCreditLedgerEntry = {
 
 export type BabyrooCreditPackage = {
   id: string;
+  googlePlayProductId?: string;
   credits: number;
   priceKrw: number;
   label: string;
@@ -90,10 +91,16 @@ export type BabyrooCreditStatus = {
 
 export type BabyrooCreditPurchase = {
   id: string;
-  status: 'credited';
+  status: 'credited' | 'already_credited';
   package: BabyrooCreditPackage;
   balance: BabyrooCreditBalance;
   ledgerEntry: BabyrooCreditLedgerEntry;
+};
+
+export type BabyrooGooglePlayPurchaseInput = {
+  productId: string;
+  purchaseToken: string;
+  packageName?: string;
 };
 
 export type BabyrooEventListQuery = Partial<{
@@ -263,6 +270,20 @@ export async function createCreditPurchaseInBabyrooApi({
       packageId,
     },
     path: '/credits/purchases',
+  });
+}
+
+export async function verifyGooglePlayPurchaseInBabyrooApi({
+  accessToken,
+  purchase,
+}: {
+  accessToken: string;
+  purchase: BabyrooGooglePlayPurchaseInput;
+}): Promise<BabyrooCreditPurchase> {
+  return postJson<BabyrooCreditPurchase>({
+    accessToken,
+    body: purchase,
+    path: '/credits/google-play/verify',
   });
 }
 

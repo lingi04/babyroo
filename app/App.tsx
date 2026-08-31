@@ -21,6 +21,7 @@ import DateTimePicker, {
   DateTimePickerAndroid,
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
+import { type Purchase, useIAP } from 'react-native-iap';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import {
   SafeAreaView,
@@ -65,7 +66,6 @@ import {
   BabyrooCreditStatus,
   BabyrooApiError,
   createChildInBabyrooApi,
-  createCreditPurchaseInBabyrooApi,
   deleteChildFromBabyrooApi,
   getCreditStatusFromBabyrooApi,
   getCurrentUserFromBabyrooApi,
@@ -73,6 +73,7 @@ import {
   loginWithBabyrooApi,
   updateChildInBabyrooApi,
   updateCurrentUserInBabyrooApi,
+  verifyGooglePlayPurchaseInBabyrooApi,
 } from './src/api/babyrooApi';
 import {
   Child,
@@ -1735,9 +1736,7 @@ function HomeScreen({
             accessibilityLabel="Open recommendation credit purchases and history"
           >
             <Text style={styles.creditStatusTextLinkText}>
-              {hasLoadedCreditStatus
-                ? `추천권 ${availableCredits}회 · 구매 및 사용 기록 보기`
-                : '추천권 구매 및 사용 기록 보기'}
+              추천권 구매 및 사용 기록 보기
             </Text>
           </Pressable>
           {latestRecommendationSession ? (
@@ -2208,6 +2207,128 @@ function CreditStatusScreen({
   const [purchasingPackageId, setPurchasingPackageId] = useState<string | null>(
     null,
   );
+  const processingPurchaseTokensRef = useRef(new Set<string>());
+  const finishTransactionRef = useRef<
+    ((args: { purchase: Purchase; isConsumable?: boolean }) => Promise<void>) | null
+  >(null);
+
+  const applyCreditPurchase = useCallback(
+    (purchase: {
+      balance: BabyrooCreditStatus['balance'];
+      ledgerEntry: BabyrooCreditStatus['ledger'][number];
+    }) => {
+      setStatus(previousStatus =>
+        previousStatus
+          ? {
+              ...previousStatus,
+              balance: purchase.balance,
+              ledger: previousStatus.ledger.some(
+                entry => entry.id === purchase.ledgerEntry.id,
+              )
+                ? previousStatus.ledger
+                : [purchase.ledgerEntry, ...previousStatus.ledger],
+            }
+          : previousStatus,
+      );
+    },
+    [],
+  );
+
+  const handlePurchaseSuccess = useCallback(
+    async (purchase: Purchase) => {
+      if (!accessToken) {
+        return;
+      }
+
+      const purchaseToken = purchase.purchaseToken;
+      const productId = purchase.productId;
+
+      if (!purchaseToken || !productId) {
+        setPurchasingPackageId(null);
+        Alert.alert(
+          '추천권 충전 실패',
+          '구매 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.',
+        );
+        return;
+      }
+
+      if (processingPurchaseTokensRef.current.has(purchaseToken)) {
+        return;
+      }
+
+      processingPurchaseTokensRef.current.add(purchaseToken);
+
+      const matchedPackage = status?.packages.find(
+        creditPackage => googlePlayProductId(creditPackage) === productId,
+      );
+
+      setPurchasingPackageId(matchedPackage?.id ?? productId);
+
+      try {
+        const verifiedPurchase = await verifyGooglePlayPurchaseInBabyrooApi({
+          accessToken,
+          purchase: {
+            productId,
+            purchaseToken,
+            packageName:
+              'packageNameAndroid' in purchase
+                ? purchase.packageNameAndroid ?? undefined
+                : undefined,
+          },
+        });
+
+        applyCreditPurchase(verifiedPurchase);
+        await finishTransactionRef.current?.({
+          purchase,
+          isConsumable: true,
+        });
+      } catch (error) {
+        Alert.alert(
+          '추천권 충전 실패',
+          error instanceof Error
+            ? error.message
+          : '추천권 충전에 실패했습니다.',
+        );
+      } finally {
+        processingPurchaseTokensRef.current.delete(purchaseToken);
+        setPurchasingPackageId(null);
+      }
+    },
+    [accessToken, applyCreditPurchase, status?.packages],
+  );
+
+  const handlePurchaseError = useCallback((error: unknown) => {
+    setPurchasingPackageId(null);
+
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? String(error.code)
+        : '';
+
+    if (code === 'user-cancelled' || code === 'E_USER_CANCELED') {
+      return;
+    }
+
+    Alert.alert(
+      '추천권 충전 실패',
+      error instanceof Error ? error.message : '구매를 완료하지 못했습니다.',
+    );
+  }, []);
+
+  const {
+    connected: billingConnected,
+    products: billingProducts,
+    availablePurchases,
+    fetchProducts,
+    getAvailablePurchases,
+    requestPurchase,
+    finishTransaction,
+  } = useIAP({
+    onPurchaseSuccess: handlePurchaseSuccess,
+    onPurchaseError: handlePurchaseError,
+  });
+
+  finishTransactionRef.current = finishTransaction;
 
   const loadStatus = useCallback(async () => {
     if (!accessToken) {
@@ -2236,37 +2357,104 @@ function CreditStatusScreen({
     loadStatus().catch(() => undefined);
   }, [loadStatus]);
 
+  useEffect(() => {
+    if (
+      Platform.OS !== 'android' ||
+      !billingConnected ||
+      !status?.packages.length
+    ) {
+      return;
+    }
+
+    fetchProducts({
+      skus: status.packages.map(
+        creditPackage => googlePlayProductId(creditPackage),
+      ),
+      type: 'in-app',
+    }).catch(() => undefined);
+    getAvailablePurchases().catch(() => undefined);
+  }, [billingConnected, fetchProducts, getAvailablePurchases, status?.packages]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !accessToken || !status?.packages.length) {
+      return;
+    }
+
+    const googlePlayProductIds = new Set(
+      status.packages.map(creditPackage => googlePlayProductId(creditPackage)),
+    );
+
+    availablePurchases
+      .filter(purchase => googlePlayProductIds.has(purchase.productId))
+      .forEach(purchase => {
+        handlePurchaseSuccess(purchase).catch(() => undefined);
+      });
+  }, [
+    accessToken,
+    availablePurchases,
+    handlePurchaseSuccess,
+    status?.packages,
+  ]);
+
+  const billingProductById = useMemo(
+    () =>
+      new Map(
+        billingProducts.map(product => [
+          product.id,
+          {
+            price: product.displayPrice,
+          },
+        ]),
+      ),
+    [billingProducts],
+  );
+
   const purchasePackage = async (packageId: string) => {
     if (!accessToken || purchasingPackageId) {
+      return;
+    }
+
+    const creditPackage = status?.packages.find(
+      candidate => candidate.id === packageId,
+    );
+
+    if (!creditPackage) {
+      return;
+    }
+
+    if (Platform.OS !== 'android') {
+      Alert.alert(
+        '추천권 충전 안내',
+        '현재 추천권 결제는 Android Google Play에서 사용할 수 있습니다.',
+      );
+      return;
+    }
+
+    if (!billingConnected) {
+      Alert.alert(
+        '추천권 충전 준비 중',
+        'Google Play 결제 연결을 준비하고 있습니다. 잠시 후 다시 시도해주세요.',
+      );
       return;
     }
 
     setPurchasingPackageId(packageId);
 
     try {
-      const purchase = await createCreditPurchaseInBabyrooApi({
-        accessToken,
-        packageId,
+      await requestPurchase({
+        request: {
+          google: {
+            skus: [googlePlayProductId(creditPackage)],
+          },
+        },
+        type: 'in-app',
       });
-
-      setStatus(previousStatus =>
-        previousStatus
-          ? {
-              ...previousStatus,
-              balance: purchase.balance,
-              ledger: [purchase.ledgerEntry, ...previousStatus.ledger],
-            }
-          : previousStatus,
-      );
     } catch (error) {
+      setPurchasingPackageId(null);
       Alert.alert(
         '추천권 충전 실패',
-        error instanceof Error
-          ? error.message
-          : '추천권 충전에 실패했습니다.',
+        error instanceof Error ? error.message : '구매를 시작하지 못했습니다.',
       );
-    } finally {
-      setPurchasingPackageId(null);
     }
   };
 
@@ -2299,32 +2487,41 @@ function CreditStatusScreen({
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>추천권 충전</Text>
         <Text style={styles.sectionMeta}>
-          지금은 결제 연동 전이라 테스트용으로 즉시 충전됩니다.
+          Google Play 결제로 추천권을 충전합니다.
         </Text>
-        {status?.packages.map(creditPackage => (
-          <Pressable
-            key={creditPackage.id}
-            style={[
-              styles.creditPackageCard,
-              purchasingPackageId === creditPackage.id && styles.buttonDisabled,
-            ]}
-            onPress={() => purchasePackage(creditPackage.id)}
-            disabled={Boolean(purchasingPackageId)}
-            accessibilityLabel={`Purchase ${creditPackage.label}`}
-          >
-            <View>
-              <Text style={styles.creditPackageTitle}>
-                {creditPackage.label}
+        {status?.packages
+          .filter(creditPackage => creditPackage.credits !== 12)
+          .map(creditPackage => {
+          const billingProduct = billingProductById.get(
+            googlePlayProductId(creditPackage),
+          );
+
+          return (
+            <Pressable
+              key={creditPackage.id}
+              style={[
+                styles.creditPackageCard,
+                purchasingPackageId === creditPackage.id &&
+                  styles.buttonDisabled,
+              ]}
+              onPress={() => purchasePackage(creditPackage.id)}
+              disabled={Boolean(purchasingPackageId)}
+              accessibilityLabel={`Purchase ${creditPackage.label}`}
+            >
+              <View>
+                <Text style={styles.creditPackageTitle}>
+                  {creditPackage.label}
+                </Text>
+                <Text style={styles.creditPackageMeta}>
+                  {billingProduct?.price ?? formatKrw(creditPackage.priceKrw)}
+                </Text>
+              </View>
+              <Text style={styles.recommendationContextAction}>
+                {purchasingPackageId === creditPackage.id ? '처리중' : '구매'}
               </Text>
-              <Text style={styles.creditPackageMeta}>
-                {formatKrw(creditPackage.priceKrw)}
-              </Text>
-            </View>
-            <Text style={styles.recommendationContextAction}>
-              {purchasingPackageId === creditPackage.id ? '처리중' : '충전'}
-            </Text>
-          </Pressable>
-        ))}
+            </Pressable>
+          );
+        })}
       </View>
 
       <View style={styles.settingsSection}>
@@ -4922,7 +5119,10 @@ function formatCreditReason(reason: string) {
     return '가입 추천권';
   }
 
-  if (reason === 'manual_credit_purchase') {
+  if (
+    reason === 'manual_credit_purchase' ||
+    reason === 'google_play_credit_purchase'
+  ) {
     return '추천권 충전';
   }
 
@@ -4931,6 +5131,12 @@ function formatCreditReason(reason: string) {
   }
 
   return reason;
+}
+
+function googlePlayProductId(
+  creditPackage: BabyrooCreditStatus['packages'][number],
+) {
+  return creditPackage.googlePlayProductId ?? creditPackage.id;
 }
 
 function formatKrw(value: number) {
