@@ -2208,9 +2208,6 @@ function RecommendationConfirmationCard({
     >
       <View style={styles.recommendationQuestionHeader}>
         <View style={styles.recommendationQuestionTitleGroup}>
-          <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
-            추천 확인
-          </Text>
           <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
             이 조건으로 추천 받을까요?
           </Text>
@@ -2607,7 +2604,7 @@ function CreditStatusScreen({
     <ScrollView contentContainerStyle={styles.settingsScreen}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.pageTitle}>크레딧 현황</Text>
+          <Text style={styles.pageTitle}>추천권 현황</Text>
         </View>
         <Pressable
           style={styles.iconButton}
@@ -2624,7 +2621,7 @@ function CreditStatusScreen({
           {loading ? '-' : status?.balance.available ?? 0}
         </Text>
         <Text style={styles.settingsMeta}>
-          추천 결과가 생성되고 후보가 있을 때 1회 차감돼요.
+          추천 결과가 생성되면 1회 차감돼요.
         </Text>
       </View>
 
@@ -6192,16 +6189,18 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   creditBalanceCard: {
-    backgroundColor: colors.foreground,
+    backgroundColor: colors.primarySoft,
+    borderColor: 'rgba(232, 94, 37, 0.16)',
+    borderWidth: 1,
     borderRadius: radius.lg,
     marginTop: spacing.xxl,
-    padding: layout.cardPadding,
+    padding: spacing.lg,
   },
   creditBalanceValue: {
-    color: colors.inverseText,
-    fontSize: 44,
+    color: colors.text,
+    fontSize: 36,
     fontWeight: '900',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   creditPackageCard: {
     alignItems: 'center',
