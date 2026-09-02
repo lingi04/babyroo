@@ -1740,6 +1740,7 @@ function HomeScreen({
               questions={recommendationQuestions}
               tone="dark"
               onConfirm={() => requestRecommendation(recommendationAnswers)}
+              onClose={() => setRecommendationFlowStep('idle')}
               onEditAnswer={editRecommendationAnswer}
             />
           ) : (
@@ -1905,7 +1906,7 @@ function RecommendationQuestionCard({
       ]}
     >
       <View style={styles.recommendationQuestionHeader}>
-        <View>
+        <View style={styles.recommendationQuestionTitleGroup}>
           <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
             질문 {questionIndex + 1}/{questionCount}
           </Text>
@@ -1914,6 +1915,7 @@ function RecommendationQuestionCard({
           </Text>
         </View>
         <Pressable
+          style={styles.recommendationQuestionCloseButton}
           onPress={onClose}
           accessibilityLabel="Close recommendation questions"
         >
@@ -2126,7 +2128,13 @@ function RecommendationAnswerSummary({
         isDark && styles.recommendationAnswerSummaryDark,
       ]}
     >
-      <Text style={[styles.fieldLabel, isDark && styles.darkCardLabel]}>
+      <Text
+        style={[
+          styles.fieldLabel,
+          styles.recommendationAnswerSummaryLabel,
+          isDark && styles.darkCardLabel,
+        ]}
+      >
         선택한 답변
       </Text>
       <View style={styles.recommendationAnswerList}>
@@ -2177,6 +2185,7 @@ function RecommendationConfirmationCard({
   creating,
   tone = 'light',
   onConfirm,
+  onClose,
   onEditAnswer,
   questions,
 }: {
@@ -2184,6 +2193,7 @@ function RecommendationConfirmationCard({
   creating: boolean;
   tone?: 'light' | 'dark';
   onConfirm: () => void;
+  onClose: () => void;
   onEditAnswer: (questionId: RecommendationQuestionId) => void;
   questions: RecommendationQuestion[];
 }) {
@@ -2196,12 +2206,25 @@ function RecommendationConfirmationCard({
         isDark && styles.recommendationQuestionCardInSetup,
       ]}
     >
-      <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
-        추천 확인
-      </Text>
-      <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
-        이 조건으로 추천 받을까요?
-      </Text>
+      <View style={styles.recommendationQuestionHeader}>
+        <View style={styles.recommendationQuestionTitleGroup}>
+          <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
+            추천 확인
+          </Text>
+          <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
+            이 조건으로 추천 받을까요?
+          </Text>
+        </View>
+        <Pressable
+          style={styles.recommendationQuestionCloseButton}
+          onPress={onClose}
+          accessibilityLabel="Close recommendation confirmation"
+        >
+          <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
+            닫기
+          </Text>
+        </Pressable>
+      </View>
       <Text style={[styles.settingsMeta, isDark && styles.darkCardMeta]}>
         추천 결과가 생성되면 추천권 1회가 사용돼요.
       </Text>
@@ -2211,15 +2234,12 @@ function RecommendationConfirmationCard({
         tone={tone}
         onEditAnswer={onEditAnswer}
       />
-      {__DEV__ ? (
-        <View style={styles.recommendationDebugInline}>
-          <Text style={styles.recommendationDebugInlineText}>
-            DEBUG · maxPromptCandidates=20 · maxInitialResults=3
-          </Text>
-        </View>
-      ) : null}
       <Pressable
-        style={[styles.primaryButton, creating && styles.buttonDisabled]}
+        style={[
+          styles.primaryButton,
+          styles.recommendationConfirmButton,
+          creating && styles.buttonDisabled,
+        ]}
         onPress={onConfirm}
         disabled={creating}
         accessibilityLabel="Confirm recommendation request"
@@ -2443,6 +2463,18 @@ function CreditStatusScreen({
 
   finishTransactionRef.current = finishTransaction;
 
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener(
+      'hardwareBackPress',
+      () => {
+        onBack();
+        return true;
+      },
+    );
+
+    return () => subscription.remove();
+  }, [onBack]);
+
   const loadStatus = useCallback(async () => {
     if (!accessToken) {
       setStatus(null);
@@ -2575,7 +2607,6 @@ function CreditStatusScreen({
     <ScrollView contentContainerStyle={styles.settingsScreen}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.eyebrow}>추천권</Text>
           <Text style={styles.pageTitle}>크레딧 현황</Text>
         </View>
         <Pressable
@@ -2599,9 +2630,6 @@ function CreditStatusScreen({
 
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>추천권 충전</Text>
-        <Text style={styles.sectionMeta}>
-          Google Play 결제로 추천권을 충전합니다.
-        </Text>
         {status?.packages
           .filter(creditPackage => creditPackage.credits !== 12)
           .map(creditPackage => {
@@ -3553,7 +3581,6 @@ function SettingsScreen({
     <ScrollView contentContainerStyle={styles.settingsScreen}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.eyebrow}>추천 기준 관리</Text>
           <Text style={styles.pageTitle}>설정</Text>
         </View>
         <Pressable
@@ -3746,7 +3773,7 @@ function SettingsScreen({
             textContentType="fullStreetAddress"
           />
         ) : null}
-        <View style={styles.wrapRow}>
+        <View style={[styles.wrapRow, styles.settingsRegionRow]}>
           {regions.map(region => (
             <Pressable key={region} onPress={() => onSelectRegion(region)}>
               <Chip label={region} selected={region === user.homeRegion} />
@@ -5876,6 +5903,9 @@ const styles = StyleSheet.create({
   recommendationPrimaryButton: {
     marginTop: spacing.lg,
   },
+  recommendationConfirmButton: {
+    marginTop: spacing.lg,
+  },
   recommendationQuestionCard: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
@@ -5898,6 +5928,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.md,
+  },
+  recommendationQuestionTitleGroup: {
+    flex: 1,
+    minWidth: 0,
+  },
+  recommendationQuestionCloseButton: {
+    flexShrink: 0,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
   },
   recommendationOptionList: {
     gap: spacing.sm,
@@ -5965,15 +6004,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     marginTop: spacing.lg,
-    padding: spacing.md,
+    padding: spacing.sm,
   },
   recommendationAnswerSummaryDark: {
     backgroundColor: colors.surface,
     borderColor: 'rgba(232, 94, 37, 0.16)',
+    marginTop: spacing.xs,
+  },
+  recommendationAnswerSummaryLabel: {
+    marginBottom: spacing.xs,
+    marginTop: 0,
   },
   recommendationAnswerList: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   recommendationAnswerItem: {
     alignItems: 'center',
@@ -5983,7 +6027,7 @@ const styles = StyleSheet.create({
   },
   recommendationAnswerQuestion: {
     color: colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
   recommendationAnswerQuestionDark: {
@@ -5992,7 +6036,7 @@ const styles = StyleSheet.create({
   recommendationAnswerValue: {
     color: colors.text,
     flexShrink: 1,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     textAlign: 'right',
   },
@@ -6002,7 +6046,7 @@ const styles = StyleSheet.create({
   recommendationAnswerEdit: {
     color: colors.primary,
     flexShrink: 0,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
   },
   recommendationAnswerEditDark: {
@@ -6214,7 +6258,7 @@ const styles = StyleSheet.create({
   settingsScreen: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xxxl,
+    paddingBottom: spacing.xxxl + 72,
   },
   settingsCard: {
     backgroundColor: colors.surface,
@@ -6241,6 +6285,9 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.muted,
     marginTop: spacing.xs,
+  },
+  settingsRegionRow: {
+    marginTop: spacing.lg,
   },
   addressCard: {
     alignItems: 'center',
