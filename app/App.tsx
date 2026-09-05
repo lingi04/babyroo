@@ -122,7 +122,7 @@ const defaultExploreFilters: ExploreFilters = {
   ageFit: false,
   date: 'active',
   region: 'all',
-  exploreEventTypes: ['limitedEvent'],
+  exploreEventTypes: ['limitedEvent', 'permanentVenue'],
   place: 'all',
   price: 'all',
   reservation: 'all',
@@ -4127,6 +4127,7 @@ function EventCard({
     tone % 4
   ];
   const tabSwipePress = useTabSwipePressGuard(onPress);
+  const chipLabels = eventCardChipLabels(event).slice(0, compact ? 3 : 4);
 
   return (
     <Pressable
@@ -4173,23 +4174,20 @@ function EventCard({
         <Text style={styles.cardMeta} numberOfLines={2}>
           {event.venueName} · {formatAge(event)}
         </Text>
-        {showSequence && event.tags.length > 0 ? (
+        {(showSequence || compact) && chipLabels.length > 0 ? (
           <View style={styles.cardTagRow}>
-            {event.tags.slice(0, 3).map(tag => (
-              <Chip key={tag} label={tag} dense />
+            {chipLabels.map(label => (
+              <Chip key={label} label={label} dense />
             ))}
           </View>
         ) : null}
-        <View style={styles.cardFooter}>
-          {event.indoor === undefined ? null : (
-            <Chip label={event.indoor ? '실내' : '야외'} dense />
-          )}
-          {compact ? (
+        {compact ? (
+          <View style={styles.cardFooter}>
             <Text style={styles.cardDate}>
               {formatShortDate(event.startsAt)}
             </Text>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
         {recommendationResult ? (
           <View style={styles.recommendationReasonBox}>
             <Text style={styles.recommendationReasonTitle}>추천 이유</Text>
@@ -4211,6 +4209,16 @@ function EventCard({
       </View>
     </Pressable>
   );
+}
+
+function eventCardChipLabels(event: BabyrooEvent) {
+  const labels = [...event.tags];
+
+  if (event.indoor !== undefined) {
+    labels.push(event.indoor ? '실내' : '야외');
+  }
+
+  return [...new Set(labels)];
 }
 
 function EventThumbnailFallback({

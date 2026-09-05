@@ -142,7 +142,6 @@ export async function listEventsFromBabyrooApi(
   console.warn(
     `[Babyroo API] listEventsFromBabyrooApi called: ${BABYROO_API_BASE_URL}/events?${queryString}`,
   );
-  debugger;
   const response = await getJson<BabyrooApiEventListResponse>({
     path: `/events?${queryString}`,
   });
