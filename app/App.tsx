@@ -131,11 +131,22 @@ const defaultExploreFilters: ExploreFilters = {
 const exploreEventTypeOptions: Array<{
   value: ExploreEventType;
   label: string;
+  summaryLabel: string;
   icon: string;
 }> = [
-  { value: 'limitedEvent', label: '이벤트', icon: 'E' },
-  { value: 'permanentVenue', label: '상설 전시', icon: '상' },
-  { value: 'seoulKidsCafe', label: '서울형 키즈카페', icon: '키' },
+  { value: 'limitedEvent', label: '이벤트', summaryLabel: '이벤트', icon: 'E' },
+  {
+    value: 'permanentVenue',
+    label: '상설 전시',
+    summaryLabel: '상설 전시',
+    icon: '상',
+  },
+  {
+    value: 'seoulKidsCafe',
+    label: '서울형 키즈카페',
+    summaryLabel: '키즈카페',
+    icon: '키',
+  },
 ];
 
 const EXPLORE_HEADER_FULL_HEIGHT = 230;
@@ -3101,7 +3112,12 @@ function ExploreScreen({
               <View style={styles.exploreControlsSummaryArea}>
                 <View style={styles.exploreControlsTitleRow}>
                   <View style={styles.exploreCriteriaSummaryBlock}>
-                    <Text style={styles.exploreIntentTitle} numberOfLines={2}>
+                    <Text
+                      style={styles.exploreIntentTitle}
+                      numberOfLines={2}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.88}
+                    >
                       {exploreIntentSummary.title}
                     </Text>
                     <Text style={styles.exploreIntentMeta} numberOfLines={1}>
@@ -5124,7 +5140,7 @@ function formatExploreIntentSummary(
 function formatExploreEventTypeSummary(selectedEventTypes: ExploreEventType[]) {
   const selectedLabels = exploreEventTypeOptions
     .filter(option => selectedEventTypes.includes(option.value))
-    .map(option => option.label);
+    .map(option => option.summaryLabel);
 
   if (selectedLabels.length === 0) {
     return '행사 유형 없음';
