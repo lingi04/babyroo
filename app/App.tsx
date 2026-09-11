@@ -154,6 +154,7 @@ const EXPLORE_HEADER_EXPANDED_HEIGHT = 430;
 const EXPLORE_HEADER_COMPACT_HEIGHT = 92;
 const EXPLORE_HEADER_COLLAPSE_DISTANCE =
   EXPLORE_HEADER_FULL_HEIGHT - EXPLORE_HEADER_COMPACT_HEIGHT;
+const AGE_YEAR_DISPLAY_THRESHOLD_MONTHS = 48;
 
 const postcodeSearchHtml = `
 <!doctype html>
@@ -5194,6 +5195,10 @@ function formatAge(event: BabyrooEvent) {
     return formatAgeRange(minAge, maxAge);
   }
   if (minAge != null) {
+    if (minAge === 0) {
+      return '월령제한 없음';
+    }
+
     return `${formatAgePoint(minAge)} 이상`;
   }
 
@@ -5201,23 +5206,22 @@ function formatAge(event: BabyrooEvent) {
 }
 
 function formatAgeRange(minMonths: number, maxMonths: number) {
-  if (minMonths < 48 || maxMonths < 48) {
+  if (
+    minMonths < AGE_YEAR_DISPLAY_THRESHOLD_MONTHS &&
+    maxMonths < AGE_YEAR_DISPLAY_THRESHOLD_MONTHS
+  ) {
     return `${minMonths}-${maxMonths}개월`;
   }
 
   if (minMonths === 0) {
-    return `${formatAgePoint(maxMonths)} 이하`;
+    return `${formatAgeYearPoint(maxMonths)} 이하`;
   }
 
-  const minLabel = formatAgePoint(minMonths);
-  const maxLabel = formatAgePoint(maxMonths);
+  const minLabel = formatAgeYearPoint(minMonths);
+  const maxLabel = formatAgeYearPoint(maxMonths);
 
   if (minLabel === maxLabel) {
     return minLabel;
-  }
-
-  if (isExactYear(minMonths) && isYearRangeEnd(maxMonths)) {
-    return `${monthToYear(minMonths)}-${monthToYear(maxMonths)}세`;
   }
 
   return `${minLabel}-${maxLabel}`;
@@ -5228,23 +5232,15 @@ function formatAgePoint(months: number | undefined) {
     return '월령 확인필요';
   }
 
-  if (months < 48 || !isExactYear(months)) {
+  if (months < AGE_YEAR_DISPLAY_THRESHOLD_MONTHS) {
     return `${months}개월`;
   }
 
-  return `${months / 12}세`;
+  return formatAgeYearPoint(months);
 }
 
-function isExactYear(months: number) {
-  return months % 12 === 0;
-}
-
-function isYearRangeEnd(months: number) {
-  return isExactYear(months) || months % 12 === 11;
-}
-
-function monthToYear(months: number) {
-  return Math.floor(months / 12);
+function formatAgeYearPoint(months: number) {
+  return `${Math.floor(months / 12)}세`;
 }
 
 function formatChildAge(child: Child) {
