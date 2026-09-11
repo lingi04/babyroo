@@ -937,9 +937,11 @@ function BabyrooApp() {
               events={events}
               questions={buildRecommendationQuestions(
                 events,
-                sortChildrenByAge(getSelectedChildren(user)),
+                recommendationSessionChildren(selectedRecommendationSession),
                 preferencesToAnswers(selectedRecommendationSession.preferences),
                 user.homeAddress,
+                undefined,
+                new Date(selectedRecommendationSession.createdAt),
               )}
               session={selectedRecommendationSession}
               topInset={topInset}
@@ -1828,7 +1830,14 @@ function HomeScreen({
               <RecommendationSessionCard
                 key={session.id}
                 events={events}
-                questions={recommendationQuestions}
+                questions={buildRecommendationQuestions(
+                  events,
+                  recommendationSessionChildren(session),
+                  preferencesToAnswers(session.preferences),
+                  user.homeAddress,
+                  undefined,
+                  new Date(session.createdAt),
+                )}
                 session={session}
                 onPress={() => {
                   if (session.status === 'loading') {
@@ -4501,20 +4510,22 @@ function buildRecommendationQuestions(
   answers: RecommendationAnswerMap,
   userHomeAddress?: UserHomeAddress,
   departureAddress?: UserHomeAddress,
+  asOfDate = new Date(),
 ) {
   return [
     ...coreRecommendationQuestions(answers, userHomeAddress, departureAddress),
-    selectAdaptiveRecommendationQuestion(events, selectedChildren),
+    selectAdaptiveRecommendationQuestion(events, selectedChildren, asOfDate),
   ];
 }
 
 function selectAdaptiveRecommendationQuestion(
   events: BabyrooEvent[],
   selectedChildren: Child[],
+  asOfDate = new Date(),
 ): RecommendationQuestion {
   const youngestChildAge = selectedChildren.reduce<number | null>(
     (youngestAge, child) => {
-      const childAge = calculateAgeMonths(child.birthDate);
+      const childAge = calculateAgeMonths(child.birthDate, asOfDate);
 
       return youngestAge == null ? childAge : Math.min(youngestAge, childAge);
     },
@@ -4620,10 +4631,14 @@ function formatRecommendationSessionAnswerSummary(
 function formatRecommendationSessionChildSummary(
   session: RecommendationSession,
 ) {
-  const children = session.selectedChildrenSnapshot ?? [];
+  const children = recommendationSessionChildren(session);
+  const sessionCreatedAt = new Date(session.createdAt);
 
   if (children.length === 1) {
-    return `${children[0].nickname} · ${formatChildAge(children[0])}`;
+    return `${children[0].nickname} · ${formatChildAge(
+      children[0],
+      sessionCreatedAt,
+    )}`;
   }
 
   if (children.length > 1) {
@@ -4635,6 +4650,10 @@ function formatRecommendationSessionChildSummary(
   }
 
   return '아이 정보 없음';
+}
+
+function recommendationSessionChildren(session: RecommendationSession) {
+  return session.selectedChildrenSnapshot ?? [];
 }
 
 function formatRecommendationSessionEventPreview(
@@ -5243,8 +5262,8 @@ function formatAgeYearPoint(months: number) {
   return `${Math.floor(months / 12)}세`;
 }
 
-function formatChildAge(child: Child) {
-  return `${calculateAgeMonths(child.birthDate)}개월`;
+function formatChildAge(child: Child, asOfDate = new Date()) {
+  return `${calculateAgeMonths(child.birthDate, asOfDate)}개월`;
 }
 
 function sortChildrenByAge(children: Child[]) {
@@ -5498,14 +5517,13 @@ function defaultBirthDate() {
   return new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
 }
 
-function calculateAgeMonths(birthDateValue: string) {
+function calculateAgeMonths(birthDateValue: string, asOfDate = new Date()) {
   const birthDate = parseDateInput(birthDateValue);
-  const today = new Date();
   let ageMonths =
-    (today.getFullYear() - birthDate.getFullYear()) * 12 +
-    (today.getMonth() - birthDate.getMonth());
+    (asOfDate.getFullYear() - birthDate.getFullYear()) * 12 +
+    (asOfDate.getMonth() - birthDate.getMonth());
 
-  if (today.getDate() < birthDate.getDate()) {
+  if (asOfDate.getDate() < birthDate.getDate()) {
     ageMonths -= 1;
   }
 
