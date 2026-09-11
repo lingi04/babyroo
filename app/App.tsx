@@ -2792,6 +2792,7 @@ function ExploreScreen({
   const childrenByAge = sortChildrenByAge(user.children);
   const searchQuery = '';
   const exploreScrollY = useRef(new Animated.Value(0)).current;
+  const previousExploreScrollOffsetYRef = useRef(0);
   const [eventsLoaded, setEventsLoaded] = useState(false);
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
@@ -2868,16 +2869,22 @@ function ExploreScreen({
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffsetY = event.nativeEvent.contentOffset.y;
-    const nextVisible = scrollOffsetY > 420;
+    const previousScrollOffsetY = previousExploreScrollOffsetYRef.current;
+    const scrollingDown = scrollOffsetY > previousScrollOffsetY;
+    const scrollingUp = scrollOffsetY < previousScrollOffsetY;
     const nextCompactTouchable = compactHeaderTouchable
       ? scrollOffsetY > 44
       : scrollOffsetY > 78;
     const shouldCollapseOpenControls =
       !exploreControlsCollapsed && scrollOffsetY > 12;
 
-    if (nextVisible !== recommendationCtaVisible) {
-      setRecommendationCtaVisible(nextVisible);
+    if (scrollingDown && scrollOffsetY > 420 && !recommendationCtaVisible) {
+      setRecommendationCtaVisible(true);
+    } else if (scrollingUp && recommendationCtaVisible) {
+      setRecommendationCtaVisible(false);
     }
+
+    previousExploreScrollOffsetYRef.current = scrollOffsetY;
 
     if (nextCompactTouchable !== compactHeaderTouchable) {
       setCompactHeaderTouchable(nextCompactTouchable);
