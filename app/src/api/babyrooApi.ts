@@ -56,6 +56,10 @@ type BabyrooApiEventListResponse = {
   events: BabyrooApiEvent[];
 };
 
+type BabyrooApiEventCountResponse = {
+  count: number;
+};
+
 type BabyrooApiUser = User & {
   createdAt?: string;
   updatedAt?: string;
@@ -153,6 +157,17 @@ export async function listEventsFromBabyrooApi(
     ...event,
     tags: event.tags ?? [],
   }));
+}
+
+export async function countEventsFromBabyrooApi(
+  query: BabyrooEventListQuery = {},
+): Promise<number> {
+  const queryString = eventListQueryString(query);
+  const response = await getJson<BabyrooApiEventCountResponse>({
+    path: `/events/count${queryString ? `?${queryString}` : ''}`,
+  });
+
+  return response.count;
 }
 
 export async function getEventFromBabyrooApi(

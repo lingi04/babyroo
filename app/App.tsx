@@ -65,6 +65,7 @@ import {
   BabyrooEventListQuery,
   BabyrooCreditStatus,
   BabyrooApiError,
+  countEventsFromBabyrooApi,
   createChildInBabyrooApi,
   deleteChildFromBabyrooApi,
   getCreditStatusFromBabyrooApi,
@@ -338,6 +339,9 @@ function BabyrooApp() {
   const [tab, setTab] = useState<Tab>('explore');
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [events, setEvents] = useState<BabyrooEvent[]>(eventsNewestFirst);
+  const [publicEventCount, setPublicEventCount] = useState<number | null>(
+    eventsNewestFirst.length > 0 ? eventsNewestFirst.length : null,
+  );
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -428,6 +432,27 @@ function BabyrooApp() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    countEventsFromBabyrooApi()
+      .then(count => {
+        if (mounted) {
+          setPublicEventCount(count);
+        }
+      })
+      .catch(error => {
+        console.warn('[Babyroo API] failed to load public event count', error);
+        if (mounted && events.length > 0) {
+          setPublicEventCount(events.length);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [events.length]);
 
   useEffect(() => {
     if (userLoaded && authSession) {
@@ -876,7 +901,7 @@ function BabyrooApp() {
         </View>
       ) : !authSession && !browsingAsGuest ? (
         <AuthScreen
-          eventCount={events.length}
+          eventCount={publicEventCount}
           onBrowse={() => setBrowsingAsGuest(true)}
           onSignIn={handleGoogleSignIn}
         />
@@ -967,7 +992,7 @@ function AuthScreen({
   onBrowse,
   onSignIn,
 }: {
-  eventCount: number;
+  eventCount: number | null;
   onBrowse?: () => void;
   onSignIn: () => Promise<void>;
 }) {
@@ -992,7 +1017,7 @@ function AuthScreen({
       <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
       <View style={styles.authValuePanel}>
         <View style={styles.authValueItem}>
-          <Text style={styles.authValueNumber}>{eventCount}</Text>
+          <Text style={styles.authValueNumber}>{eventCount ?? '...'}</Text>
           <Text style={styles.authValueLabel}>둘러볼 곳</Text>
         </View>
       </View>
