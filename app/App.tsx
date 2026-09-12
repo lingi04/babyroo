@@ -990,18 +990,10 @@ function AuthScreen({
         <Text style={styles.authEyebrow}>Babyroo</Text>
       </View>
       <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
-      <Text style={styles.authSubtitle}>
-        Google 계정으로 시작하고, 추천에 필요한 가족 정보를 이어서 설정합니다.
-      </Text>
       <View style={styles.authValuePanel}>
         <View style={styles.authValueItem}>
           <Text style={styles.authValueNumber}>{eventCount}</Text>
-          <Text style={styles.authValueLabel}>검토할 행사</Text>
-        </View>
-        <View style={styles.authValueDivider} />
-        <View style={styles.authValueItem}>
-          <Text style={styles.authValueNumber}>맞춤</Text>
-          <Text style={styles.authValueLabel}>월령/지역 기준</Text>
+          <Text style={styles.authValueLabel}>둘러볼 곳</Text>
         </View>
       </View>
       <Pressable
@@ -5616,10 +5608,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: 'row',
     marginBottom: spacing.xl,
-    padding: layout.cardPadding,
+    marginTop: spacing.xl,
+    paddingHorizontal: layout.cardPadding,
+    paddingVertical: spacing.lg,
     ...shadows.card,
   },
   authValueItem: {
+    alignItems: 'center',
     flex: 1,
   },
   authValueNumber: {
@@ -5632,12 +5627,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     marginTop: 2,
-  },
-  authValueDivider: {
-    backgroundColor: colors.borderSubtle,
-    height: 34,
-    marginHorizontal: spacing.lg,
-    width: 1,
   },
   browseButton: {
     alignItems: 'center',
