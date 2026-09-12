@@ -386,6 +386,7 @@ function BabyrooApp() {
           events={events}
           onChangeEvents={setEvents}
           user={user}
+          isSignedIn={Boolean(authSession)}
           canUseChildFilters={Boolean(authSession) && user.children.length > 0}
           filters={exploreFilters}
           onOpenEvent={openDetail}
@@ -2811,6 +2812,7 @@ function ExploreScreen({
   events,
   onChangeEvents,
   user,
+  isSignedIn,
   canUseChildFilters,
   filters,
   onOpenEvent,
@@ -2825,6 +2827,7 @@ function ExploreScreen({
   events: BabyrooEvent[];
   onChangeEvents: (events: BabyrooEvent[]) => void;
   user: User;
+  isSignedIn: boolean;
   canUseChildFilters: boolean;
   filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
@@ -3230,6 +3233,7 @@ function ExploreScreen({
                       horizontal
                       showsHorizontalScrollIndicator={false}
                       style={styles.childChipRow}
+                      contentContainerStyle={styles.childChipRowContent}
                     >
                       {childrenByAge.map(child => {
                         const selected = user.activeChildIds.includes(child.id);
@@ -3247,12 +3251,29 @@ function ExploreScreen({
                           </Pressable>
                         );
                       })}
+                      <Pressable
+                        style={styles.childContextAddButton}
+                        onPress={onOpenSettings}
+                        accessibilityLabel="Add child from settings"
+                      >
+                        <Text style={styles.childContextAddIcon}>＋</Text>
+                      </Pressable>
                     </ScrollView>
                   ) : (
                     <Pressable
                       style={styles.exploreChildFilterAddBox}
-                      onPress={() => setChildFilterSignInPromptOpen(true)}
-                      accessibilityLabel="Open child age filter sign in prompt"
+                      onPress={() => {
+                        if (isSignedIn) {
+                          onOpenSettings();
+                        } else {
+                          setChildFilterSignInPromptOpen(true);
+                        }
+                      }}
+                      accessibilityLabel={
+                        isSignedIn
+                          ? 'Add child from settings'
+                          : 'Open child age filter sign in prompt'
+                      }
                     >
                       <Text style={styles.exploreChildFilterAddIcon}>＋</Text>
                       <Text style={styles.exploreChildFilterAddText}>
@@ -3669,8 +3690,17 @@ function SettingsScreen({
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<string | null>(null);
   const [editingChildId, setEditingChildId] = useState<string | null>(null);
+  const [newChildDraft, setNewChildDraft] = useState<Omit<
+    Child,
+    'id'
+  > | null>(null);
   const [postcodeOpen, setPostcodeOpen] = useState(false);
   const displayNameInputRef = useRef<TextInput>(null);
+  const newChildDraftDatePickerTarget = 'new-child-draft';
+  const canSaveNewChild =
+    newChildDraft != null &&
+    newChildDraft.nickname.trim().length > 0 &&
+    isValidDateInput(newChildDraft.birthDate);
 
   const commitDisplayName = () => {
     const nextDisplayName = displayNameDraft.trim();
@@ -3687,18 +3717,38 @@ function SettingsScreen({
     onBack();
   };
 
-  const handleAddChild = async () => {
-    const newChildId = await onAddChild({
-      nickname: '새 아이',
+  const handleAddChild = () => {
+    setNewChildDraft({
+      nickname: '',
       birthDate: formatDateInput(defaultBirthDate()),
       gender: 'unknown',
     });
+    setEditingChildId(null);
+  };
 
+  const handleSaveNewChild = async () => {
+    if (!canSaveNewChild || !newChildDraft) {
+      return;
+    }
+
+    const newChildId = await onAddChild({
+      ...newChildDraft,
+      nickname: newChildDraft.nickname.trim(),
+    });
+
+    setNewChildDraft(null);
     setEditingChildId(newChildId);
   };
 
   const setBirthDate = (target: string, selectedDate: Date) => {
     const birthDate = formatDateInput(selectedDate);
+
+    if (target === newChildDraftDatePickerTarget) {
+      setNewChildDraft(previousDraft =>
+        previousDraft ? { ...previousDraft, birthDate } : previousDraft,
+      );
+      return;
+    }
 
     onUpdateChild(target, { birthDate });
   };
@@ -3891,17 +3941,101 @@ function SettingsScreen({
           );
         })}
 
-        <Pressable
-          style={styles.addChildButton}
-          onPress={handleAddChild}
-          accessibilityLabel="Add child"
-        >
-          <Text style={styles.addChildPlus}>＋</Text>
-          <Text style={styles.addChildText}>아이 추가</Text>
-        </Pressable>
+        {newChildDraft ? (
+          <View style={styles.childCard}>
+            <Text style={styles.childName}>새 아이</Text>
+            <TextInput
+              style={styles.textInput}
+              value={newChildDraft.nickname}
+              onChangeText={nickname =>
+                setNewChildDraft(previousDraft =>
+                  previousDraft ? { ...previousDraft, nickname } : previousDraft,
+                )
+              }
+              placeholder="아이 이름 또는 별명"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="default"
+              returnKeyType="done"
+              textContentType="none"
+            />
+
+            <Pressable
+              style={styles.datePickerButton}
+              onPress={() =>
+                openBirthDatePicker(
+                  newChildDraftDatePickerTarget,
+                  newChildDraft.birthDate,
+                )
+              }
+            >
+              <Text style={styles.datePickerText}>
+                {newChildDraft.birthDate}
+              </Text>
+              <Text style={styles.childMeta}>{formatChildAge(newChildDraft)}</Text>
+            </Pressable>
+
+            <View style={styles.wrapRow}>
+              {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
+                <Pressable
+                  key={gender}
+                  onPress={() =>
+                    setNewChildDraft(previousDraft =>
+                      previousDraft
+                        ? { ...previousDraft, gender }
+                        : previousDraft,
+                    )
+                  }
+                >
+                  <Chip
+                    label={formatGender(gender)}
+                    selected={gender === newChildDraft.gender}
+                  />
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.childDraftActions}>
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={() => setNewChildDraft(null)}
+                accessibilityLabel="Cancel adding child"
+              >
+                <Text style={styles.secondaryButtonText}>취소</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  styles.childDraftActionButton,
+                  !canSaveNewChild && styles.buttonDisabled,
+                ]}
+                onPress={handleSaveNewChild}
+                disabled={!canSaveNewChild}
+                accessibilityLabel="Save child"
+              >
+                <Text style={styles.primaryButtonText}>저장</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : (
+          <Pressable
+            style={styles.addChildButton}
+            onPress={handleAddChild}
+            accessibilityLabel="Add child"
+          >
+            <Text style={styles.addChildPlus}>＋</Text>
+            <Text style={styles.addChildText}>아이 추가</Text>
+          </Pressable>
+        )}
         {datePickerOpen && Platform.OS === 'ios' && datePickerTarget ? (
           <DateTimePicker
-            value={datePickerValue(datePickerTarget, user.children)}
+            value={datePickerValue(
+              datePickerTarget,
+              user.children,
+              newChildDraft,
+              newChildDraftDatePickerTarget,
+            )}
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             maximumDate={new Date()}
@@ -5396,7 +5530,7 @@ function formatAgeYearPoint(months: number) {
   return `${Math.floor(months / 12)}세`;
 }
 
-function formatChildAge(child: Child, asOfDate = new Date()) {
+function formatChildAge(child: Pick<Child, 'birthDate'>, asOfDate = new Date()) {
   return `${calculateAgeMonths(child.birthDate, asOfDate)}개월`;
 }
 
@@ -5511,7 +5645,16 @@ function formatMonthDay(date: Date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-function datePickerValue(target: string, children: Child[]) {
+function datePickerValue(
+  target: string,
+  children: Child[],
+  newChildDraft?: Omit<Child, 'id'> | null,
+  newChildDraftTarget?: string,
+) {
+  if (target === newChildDraftTarget && newChildDraft) {
+    return parseDateInput(newChildDraft.birthDate);
+  }
+
   const child = children.find(candidate => candidate.id === target);
 
   return child ? parseDateInput(child.birthDate) : defaultBirthDate();
@@ -6631,6 +6774,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
   },
+  childDraftActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  childDraftActionButton: {
+    flex: 1,
+  },
   resetUserButton: {
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -6893,7 +7044,10 @@ const styles = StyleSheet.create({
   childChipRow: {
     marginHorizontal: -spacing.md,
     marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
+  },
+  childChipRowContent: {
+    paddingLeft: spacing.md,
+    paddingRight: spacing.md + spacing.sm,
   },
   exploreChildFilterAddBox: {
     alignItems: 'center',
@@ -6972,6 +7126,24 @@ const styles = StyleSheet.create({
   childContextChipSelected: {
     backgroundColor: colors.foreground,
     borderColor: colors.foreground,
+  },
+  childContextAddButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    borderColor: 'rgba(232, 94, 37, 0.34)',
+    borderRadius: radius.lg,
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+    minHeight: 56,
+    width: 56,
+  },
+  childContextAddIcon: {
+    color: colors.primaryStrong,
+    fontSize: 24,
+    fontWeight: '900',
+    lineHeight: 28,
   },
   childContextName: {
     color: colors.text,
