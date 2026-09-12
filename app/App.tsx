@@ -5,6 +5,7 @@ import {
   BackHandler,
   Image,
   Linking,
+  LayoutChangeEvent,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -151,10 +152,8 @@ const exploreEventTypeOptions: Array<{
 ];
 
 const EXPLORE_HEADER_FULL_HEIGHT = 230;
-const EXPLORE_HEADER_EXPANDED_HEIGHT = 430;
+const EXPLORE_HEADER_EXPANDED_FALLBACK_HEIGHT = 430;
 const EXPLORE_HEADER_COMPACT_HEIGHT = 92;
-const EXPLORE_HEADER_COLLAPSE_DISTANCE =
-  EXPLORE_HEADER_FULL_HEIGHT - EXPLORE_HEADER_COMPACT_HEIGHT;
 const AGE_YEAR_DISPLAY_THRESHOLD_MONTHS = 48;
 
 const postcodeSearchHtml = `
@@ -387,6 +386,7 @@ function BabyrooApp() {
           events={events}
           onChangeEvents={setEvents}
           user={user}
+          canUseChildFilters={Boolean(authSession) && user.children.length > 0}
           filters={exploreFilters}
           onOpenEvent={openDetail}
           onOpenFilter={() => setFilterOpen(true)}
@@ -394,6 +394,7 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
+          onSignIn={handleGoogleSignIn}
           onToggleEventType={eventType =>
             setExploreFilters(previousFilters => ({
               ...previousFilters,
@@ -653,7 +654,12 @@ function BabyrooApp() {
   const signOut = async () => {
     await signOutFromGoogle().catch(() => undefined);
     await clearAuthSession().catch(() => undefined);
+    await clearSavedUser().catch(() => undefined);
+    skipNextUserSaveRef.current = true;
+    apiLoginAttemptedRef.current = false;
+    apiUserHydrationAttemptedRef.current = false;
     setAuthSession(null);
+    setUser(cloneUser(currentUser));
     setBrowsingAsGuest(false);
     setSettingsOpen(false);
     setFilterOpen(false);
@@ -2805,11 +2811,13 @@ function ExploreScreen({
   events,
   onChangeEvents,
   user,
+  canUseChildFilters,
   filters,
   onOpenEvent,
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
+  onSignIn,
   onToggleEventType,
   onToggleChild,
   bottomInset,
@@ -2817,11 +2825,13 @@ function ExploreScreen({
   events: BabyrooEvent[];
   onChangeEvents: (events: BabyrooEvent[]) => void;
   user: User;
+  canUseChildFilters: boolean;
   filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
+  onSignIn: () => Promise<void>;
   onToggleEventType: (eventType: ExploreEventType) => void;
   onToggleChild: (childId: string) => void;
   bottomInset: number;
@@ -2837,6 +2847,13 @@ function ExploreScreen({
   const [compactHeaderTouchable, setCompactHeaderTouchable] = useState(false);
   const [exploreControlsCollapsed, setExploreControlsCollapsed] =
     useState(true);
+  const [exploreCollapsedHeaderHeight, setExploreCollapsedHeaderHeight] =
+    useState(EXPLORE_HEADER_FULL_HEIGHT);
+  const [exploreExpandedHeaderHeight, setExploreExpandedHeaderHeight] =
+    useState(EXPLORE_HEADER_EXPANDED_FALLBACK_HEIGHT);
+  const [signingInFromExplore, setSigningInFromExplore] = useState(false);
+  const [childFilterSignInPromptOpen, setChildFilterSignInPromptOpen] =
+    useState(false);
   const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
     () => filterEvents(events, searchQuery, filters, selectedChildren),
@@ -2932,10 +2949,34 @@ function ExploreScreen({
       setExploreControlsCollapsed(true);
     }
   };
+  const handleExploreSignIn = async () => {
+    setSigningInFromExplore(true);
+    await onSignIn().finally(() => {
+      setSigningInFromExplore(false);
+      setChildFilterSignInPromptOpen(false);
+    });
+  };
+  const handleExploreFullHeaderLayout = (event: LayoutChangeEvent) => {
+    const nextHeight = event.nativeEvent.layout.height + spacing.xl;
+
+    if (exploreControlsCollapsed) {
+      setExploreCollapsedHeaderHeight(previousHeight =>
+        Math.abs(previousHeight - nextHeight) > 1 ? nextHeight : previousHeight,
+      );
+    } else {
+      setExploreExpandedHeaderHeight(previousHeight =>
+        Math.abs(previousHeight - nextHeight) > 1 ? nextHeight : previousHeight,
+      );
+    }
+  };
+  const exploreHeaderCollapseDistance = Math.max(
+    exploreCollapsedHeaderHeight - EXPLORE_HEADER_COMPACT_HEIGHT,
+    1,
+  );
   const animatedFixedHeaderHeight = exploreScrollY.interpolate({
-    inputRange: [0, 40, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [0, 40, exploreHeaderCollapseDistance],
     outputRange: [
-      EXPLORE_HEADER_FULL_HEIGHT,
+      exploreCollapsedHeaderHeight,
       176,
       EXPLORE_HEADER_COMPACT_HEIGHT,
     ],
@@ -2962,27 +3003,27 @@ function ExploreScreen({
     extrapolate: 'clamp',
   });
   const mastheadOpacity = exploreScrollY.interpolate({
-    inputRange: [36, 72, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [36, 72, exploreHeaderCollapseDistance],
     outputRange: [1, 0.5, 0],
     extrapolate: 'clamp',
   });
   const mastheadTranslateY = exploreScrollY.interpolate({
-    inputRange: [36, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [36, exploreHeaderCollapseDistance],
     outputRange: [0, -14],
     extrapolate: 'clamp',
   });
   const compactHeaderOpacity = exploreScrollY.interpolate({
-    inputRange: [48, 76, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [48, 76, exploreHeaderCollapseDistance],
     outputRange: [0, 0.45, 1],
     extrapolate: 'clamp',
   });
   const compactHeaderTranslateY = exploreScrollY.interpolate({
-    inputRange: [48, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [48, exploreHeaderCollapseDistance],
     outputRange: [8, 0],
     extrapolate: 'clamp',
   });
   const compactHeaderScale = exploreScrollY.interpolate({
-    inputRange: [48, EXPLORE_HEADER_COLLAPSE_DISTANCE],
+    inputRange: [48, exploreHeaderCollapseDistance],
     outputRange: [0.98, 1],
     extrapolate: 'clamp',
   });
@@ -2995,7 +3036,7 @@ function ExploreScreen({
           {
             height: exploreControlsCollapsed
               ? animatedFixedHeaderHeight
-              : EXPLORE_HEADER_EXPANDED_HEIGHT,
+              : exploreExpandedHeaderHeight,
           },
         ]}
       >
@@ -3047,6 +3088,7 @@ function ExploreScreen({
             exploreControlsCollapsed && compactHeaderTouchable ? 'none' : 'auto'
           }
           style={styles.exploreFullHeader}
+          onLayout={handleExploreFullHeaderLayout}
         >
           <Animated.View
             style={[
@@ -3183,26 +3225,49 @@ function ExploreScreen({
                   >
                     아이 월령 기준
                   </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.childChipRow}
-                  >
-                    {childrenByAge.map(child => {
-                      const selected = user.activeChildIds.includes(child.id);
+                  {canUseChildFilters ? (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      style={styles.childChipRow}
+                    >
+                      {childrenByAge.map(child => {
+                        const selected = user.activeChildIds.includes(child.id);
 
-                      return (
-                        <Pressable
-                          key={child.id}
-                          onPress={() => onToggleChild(child.id)}
-                          accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
-                        >
-                          <ChildContextChip child={child} selected={selected} />
-                        </Pressable>
-                      );
-                    })}
-                  </ScrollView>
+                        return (
+                          <Pressable
+                            key={child.id}
+                            onPress={() => onToggleChild(child.id)}
+                            accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                          >
+                            <ChildContextChip
+                              child={child}
+                              selected={selected}
+                            />
+                          </Pressable>
+                        );
+                      })}
+                    </ScrollView>
+                  ) : (
+                    <Pressable
+                      style={styles.exploreChildFilterAddBox}
+                      onPress={() => setChildFilterSignInPromptOpen(true)}
+                      accessibilityLabel="Open child age filter sign in prompt"
+                    >
+                      <Text style={styles.exploreChildFilterAddIcon}>＋</Text>
+                      <Text style={styles.exploreChildFilterAddText}>
+                        아이 정보 추가
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
+
+                <ChildFilterSignInPrompt
+                  signingIn={signingInFromExplore}
+                  visible={childFilterSignInPromptOpen}
+                  onClose={() => setChildFilterSignInPromptOpen(false)}
+                  onSignIn={handleExploreSignIn}
+                />
 
                 <View
                   style={[
@@ -3233,18 +3298,18 @@ function ExploreScreen({
                     {activeFilterLabels.map(chip => (
                       <Chip key={chip} label={chip} selected />
                     ))}
-                    <Pressable
-                      onPress={onOpenFilter}
-                      accessibilityLabel="Open filters"
-                    >
-                      <Chip
-                        label={
-                          activeFilterCount > 0
-                            ? `필터 ${activeFilterCount}`
-                            : '필터'
-                        }
-                      />
-                    </Pressable>
+                      <Pressable
+                        onPress={onOpenFilter}
+                        accessibilityLabel="Open filters"
+                      >
+                        <Chip
+                          label={
+                            activeFilterCount > 0
+                              ? `필터 ${activeFilterCount}`
+                              : '필터'
+                          }
+                        />
+                      </Pressable>
                   </ScrollView>
                 </View>
               </>
@@ -3270,8 +3335,8 @@ function ExploreScreen({
           {
             paddingTop:
               (exploreControlsCollapsed
-                ? EXPLORE_HEADER_FULL_HEIGHT
-                : EXPLORE_HEADER_EXPANDED_HEIGHT) + spacing.lg,
+                ? exploreCollapsedHeaderHeight
+                : exploreExpandedHeaderHeight) + spacing.lg,
           },
           tabScreenBottomPadding(bottomInset),
         ]}
@@ -3322,6 +3387,58 @@ function ExploreScreen({
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+function ChildFilterSignInPrompt({
+  signingIn,
+  visible,
+  onClose,
+  onSignIn,
+}: {
+  signingIn: boolean;
+  visible: boolean;
+  onClose: () => void;
+  onSignIn: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.signInPromptOverlay}>
+        <Pressable
+          style={styles.signInPromptDim}
+          onPress={onClose}
+          accessibilityLabel="Close child filter sign in prompt"
+        />
+        <View style={styles.signInPromptCard}>
+          <Text style={styles.signInPromptTitle}>아이 정보 추가</Text>
+          <Text style={styles.signInPromptBody}>
+            월령에 맞는 곳만 골라보려면 로그인이 필요해요.
+          </Text>
+          <Pressable
+            style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
+            onPress={onSignIn}
+            disabled={signingIn}
+            accessibilityLabel="Continue with Google for child filter"
+          >
+            <Text style={styles.primaryButtonText}>
+              {signingIn ? '진행 중...' : 'Google로 계속하기'}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={styles.signInPromptLaterButton}
+            onPress={onClose}
+            accessibilityLabel="Close child filter sign in prompt"
+          >
+            <Text style={styles.linkText}>나중에</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -6777,6 +6894,70 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.md,
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
+  },
+  exploreChildFilterAddBox: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.34)',
+    borderColor: 'rgba(232, 94, 37, 0.34)',
+    borderRadius: radius.lg,
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+    minHeight: 72,
+    padding: spacing.md,
+  },
+  exploreChildFilterAddIcon: {
+    color: colors.primaryStrong,
+    fontSize: 26,
+    fontWeight: '900',
+    lineHeight: 30,
+  },
+  exploreChildFilterAddText: {
+    color: colors.primaryStrong,
+    fontSize: 12,
+    fontWeight: '900',
+    lineHeight: 16,
+    marginTop: spacing.xs,
+  },
+  signInPromptOverlay: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.xl,
+  },
+  signInPromptDim: {
+    backgroundColor: 'rgba(0, 0, 0, 0.34)',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  signInPromptCard: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    padding: layout.cardPadding,
+    width: '100%',
+    ...shadows.elevated,
+  },
+  signInPromptTitle: {
+    ...typography.section,
+    color: colors.text,
+  },
+  signInPromptBody: {
+    ...typography.body,
+    color: colors.muted,
+    marginBottom: spacing.xl,
+    marginTop: spacing.sm,
+  },
+  signInPromptLaterButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+    marginTop: spacing.sm,
   },
   childContextChip: {
     backgroundColor: colors.cream,
