@@ -49,3 +49,7 @@ export type EventListResult = {
   count: number;
   events: BabyrooEvent[];
 };
+
+export type EventCountResult = {
+  count: number;
+};

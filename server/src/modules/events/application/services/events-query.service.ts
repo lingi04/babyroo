@@ -1,6 +1,12 @@
 import { NotFoundError } from '../../../../common/application-error';
 import { debugLog } from '../../../../common/debug-log';
-import { BabyrooEvent, EventListQuery, EventListResult } from '../../domain/event.entity';
+import {
+  BabyrooEvent,
+  EventCountResult,
+  EventListQuery,
+  EventListResult,
+} from '../../domain/event.entity';
+import { CountEventsUseCase } from '../ports/in/count-events.use-case';
 import { GetEventDetailUseCase } from '../ports/in/get-event-detail.use-case';
 import { GetEventsByIdsUseCase } from '../ports/in/get-events-by-ids.use-case';
 import { ListEventsUseCase } from '../ports/in/list-events.use-case';
@@ -10,7 +16,11 @@ import {
 } from '../ports/out/event-repository.port';
 
 export class EventsQueryService
-  implements ListEventsUseCase, GetEventDetailUseCase, GetEventsByIdsUseCase
+  implements
+    ListEventsUseCase,
+    CountEventsUseCase,
+    GetEventDetailUseCase,
+    GetEventsByIdsUseCase
 {
   constructor(
     private readonly events: EventRepositoryPort,
@@ -26,11 +36,7 @@ export class EventsQueryService
       limit: query.limit,
       offset: query.offset,
     });
-    const allEvents = await this.events.list();
-    const filtered = allEvents
-      .filter(event => this.isPublished(event))
-      .filter(event => this.matchesQuery(event, query))
-      .sort((a, b) => this.sortSequence(b) - this.sortSequence(a));
+    const { allEvents, filtered } = await this.filteredEvents(query);
     const offset = Number(query.offset ?? 0);
     const limit = Math.min(Number(query.limit ?? 50), 300);
 
@@ -42,6 +48,25 @@ export class EventsQueryService
       totalCount: allEvents.length,
       filteredCount: result.count,
       returnedCount: result.events.length,
+    });
+
+    return result;
+  }
+
+  async count(query: EventListQuery): Promise<EventCountResult> {
+    debugLog('events.count.start', {
+      q: query.q,
+      region: query.region,
+      locality: query.locality,
+      category: query.category,
+      eventType: query.eventType,
+    });
+    const { allEvents, filtered } = await this.filteredEvents(query);
+    const result = { count: filtered.length };
+
+    debugLog('events.count.success', {
+      totalCount: allEvents.length,
+      filteredCount: result.count,
     });
 
     return result;
@@ -68,6 +93,16 @@ export class EventsQueryService
       foundCount: foundEvents.length,
     });
     return foundEvents;
+  }
+
+  private async filteredEvents(query: EventListQuery) {
+    const allEvents = await this.events.list();
+    const filtered = allEvents
+      .filter(event => this.isPublished(event))
+      .filter(event => this.matchesQuery(event, query))
+      .sort((a, b) => this.sortSequence(b) - this.sortSequence(a));
+
+    return { allEvents, filtered };
   }
 
   private matchesQuery(event: BabyrooEvent, query: EventListQuery): boolean {
