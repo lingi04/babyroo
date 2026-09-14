@@ -3495,7 +3495,11 @@ function EventDetail({
               accessibilityIgnoresInvertColors
             />
           ) : (
-            <EventThumbnailFallback event={event} tone={event.csvSequence} />
+            <EventThumbnailFallback
+              event={event}
+              tone={event.csvSequence}
+              showSourceLabel={false}
+            />
           )}
           <View style={styles.detailHeroScrim} />
           <Pressable
@@ -3505,12 +3509,11 @@ function EventDetail({
           >
             <Text style={styles.backButtonText}>‹</Text>
           </Pressable>
-          <Text style={styles.heroSource}>{event.source}</Text>
         </View>
 
         <View style={styles.detailPanel}>
           <View style={styles.detailPills}>
-            <Chip label={`${event.source} · ${event.category}`} selected />
+            <Chip label={thumbnailCategoryLabel(event)} selected />
           </View>
           <Text style={styles.detailTitle}>{event.title}</Text>
           <Text style={styles.detailMeta}>
@@ -4524,9 +4527,11 @@ function eventCardChipLabels(event: BabyrooEvent) {
 
 function EventThumbnailFallback({
   event,
+  showSourceLabel = true,
   tone,
 }: {
   event: BabyrooEvent;
+  showSourceLabel?: boolean;
   tone: number;
 }) {
   const palette = [
@@ -4544,9 +4549,11 @@ function EventThumbnailFallback({
       <View
         style={[styles.thumbnailTopLine, { backgroundColor: palette[0] }]}
       />
-      <Text style={styles.thumbnailSourceText} numberOfLines={1}>
-        {thumbnailSourceLabel(event)}
-      </Text>
+      {showSourceLabel ? (
+        <Text style={styles.thumbnailSourceText} numberOfLines={1}>
+          {thumbnailSourceLabel(event)}
+        </Text>
+      ) : null}
       <Text style={styles.thumbnailCategoryText} numberOfLines={1}>
         {thumbnailCategoryLabel(event)}
       </Text>
