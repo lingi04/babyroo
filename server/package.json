@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate && nest build && cp -R src/generated dist/generated",
+    "build": "prisma generate && nest build && cp -R src/generated dist/generated && cp -R static dist/static",
     "db:deploy": "prisma migrate deploy && prisma generate",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev && prisma generate",
