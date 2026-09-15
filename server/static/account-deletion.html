@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BabyRoo Account and Data Deletion</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.6;
+        color: #1f2933;
+        background: #ffffff;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.25;
+        color: #111827;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 2rem;
+      }
+
+      h2 {
+        margin-top: 32px;
+        font-size: 1.25rem;
+      }
+
+      p,
+      li {
+        font-size: 1rem;
+      }
+
+      code {
+        border-radius: 4px;
+        padding: 2px 4px;
+        background: #f3f4f6;
+      }
+
+      .updated {
+        margin-top: 0;
+        color: #52616f;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Account and Data Deletion</h1>
+      <p class="updated">Last updated: September 15, 2026</p>
+
+      <p>
+        BabyRoo supports deletion of Google-linked BabyRoo accounts and related
+        user data. This page explains how users can delete their account and
+        what data is removed.
+      </p>
+
+      <h2>How to Delete Your Account</h2>
+      <p>
+        To delete your BabyRoo account, sign in to BabyRoo with the Google
+        account you used for BabyRoo and use the account deletion option in the
+        app when available.
+      </p>
+      <p>
+        BabyRoo also provides an authenticated deletion API for the signed-in
+        user:
+      </p>
+      <ul>
+        <li><code>DELETE /api/users/me</code></li>
+      </ul>
+      <p>
+        This API requires the BabyRoo access token for the account being
+        deleted. It cannot be used to delete another user's account.
+      </p>
+
+      <h2>Data Deleted</h2>
+      <p>When your BabyRoo account is deleted, BabyRoo deletes:</p>
+      <ul>
+        <li>Your BabyRoo user profile linked to Google Sign-In.</li>
+        <li>Your display name and BabyRoo account identifier.</li>
+        <li>Your home region, selected localities, and home address data.</li>
+        <li>Your child profiles saved in BabyRoo.</li>
+        <li>Your saved events and recommendation sessions.</li>
+        <li>Your recommendation-credit account and credit ledger records.</li>
+        <li>Your Google Play purchase records stored by BabyRoo.</li>
+      </ul>
+
+      <h2>Data That May Be Retained</h2>
+      <p>
+        Some information may be retained when required for legal, security,
+        fraud prevention, dispute resolution, tax, accounting, or platform
+        compliance reasons. This may include limited server logs, aggregate
+        service records, or records required to verify past Google Play
+        purchases.
+      </p>
+
+      <h2>Google Account Data</h2>
+      <p>
+        Deleting your BabyRoo account deletes the BabyRoo data linked to your
+        Google Sign-In account. It does not delete your Google account or data
+        held directly by Google. You can manage your Google account data through
+        Google's own account settings.
+      </p>
+
+      <h2>Need Help?</h2>
+      <p>
+        If you cannot access the app or need help deleting your account, please
+        contact us at the developer support email listed on BabyRoo's Google
+        Play Store listing.
+      </p>
+    </main>
+  </body>
+</html>
