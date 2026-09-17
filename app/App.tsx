@@ -58,6 +58,7 @@ import {
   RemoteRecommendationService,
 } from './src/recommendation';
 import { AuthSession } from './src/auth/types';
+import { useRecommendationNotifications } from './src/notifications/useRecommendationNotifications';
 import {
   signInWithGoogle,
   signOutFromGoogle,
@@ -352,6 +353,21 @@ function BabyrooApp() {
   const skipNextUserSaveRef = useRef(false);
   const apiLoginAttemptedRef = useRef(false);
   const apiUserHydrationAttemptedRef = useRef(false);
+  const notificationAuthRef = useRef(authSession);
+  notificationAuthRef.current = authSession;
+  const unregisterNotifications = useRecommendationNotifications(authSession, async sessionId => {
+    const accessToken = authSession?.apiAccessToken;
+    if (!accessToken) return;
+    const session = await new RemoteRecommendationService({ accessToken }).getSession(sessionId);
+    if (notificationAuthRef.current?.apiAccessToken !== accessToken) return;
+    if (!session) throw new Error('Recommendation not found');
+    setSelectedEvent(null);
+    setSettingsOpen(false);
+    setFilterOpen(false);
+    setCreditStatusOpen(false);
+    setTab('home');
+    setSelectedRecommendationSession(session);
+  });
   const renderTabScreen = (
     screenTab: Tab,
     navigateToTab: (tab: Tab) => void,
@@ -653,6 +669,8 @@ function BabyrooApp() {
   };
 
   const signOut = async () => {
+    notificationAuthRef.current = null;
+    await unregisterNotifications().catch(() => undefined);
     await signOutFromGoogle().catch(() => undefined);
     await clearAuthSession().catch(() => undefined);
     await clearSavedUser().catch(() => undefined);
@@ -1417,6 +1435,7 @@ function HomeScreen({
   const visibleRecommendationSessions = recommendationSessions.filter(
     session =>
       session.status === 'loading' ||
+      session.status === 'failed' ||
       (session.status === 'success' && session.results.length > 0),
   );
   const availableCredits = creditStatus?.balance.available ?? 0;
@@ -2335,6 +2354,8 @@ function RecommendationSessionCard({
         <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
           {isLoading
             ? '아이에게 맞는 후보를 고르고 있어요'
+            : session.status === 'failed'
+            ? recommendationErrorMessage(session.error?.code ?? 'unknown').title
             : formatRecommendationSessionEventPreview(session, events)}
         </Text>
       </View>
@@ -3630,7 +3651,16 @@ function RecommendationSessionDetail({
           </Text>
         </View>
 
-        {recommendedEvents.length > 0 ? (
+        {session.status === 'failed' ? (
+          <View style={styles.recommendationEmptyState}>
+            <Text style={styles.emptyStateTitle}>
+              {recommendationErrorMessage(session.error?.code ?? 'unknown').title}
+            </Text>
+            <Text style={styles.emptyStateText}>
+              {recommendationErrorMessage(session.error?.code ?? 'unknown').body}
+            </Text>
+          </View>
+        ) : recommendedEvents.length > 0 ? (
           recommendedEvents.map((event, index) => (
             <EventCard
               key={event.id}

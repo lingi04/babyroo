@@ -22,8 +22,24 @@ model User {
   creditAccount CreditAccount?
   creditLedgerEntries CreditLedgerEntry[]
   googlePlayPurchases GooglePlayPurchase[]
+  pushDevices PushDevice[]
 
   @@map("users")
+}
+
+model PushDevice {
+  installationId String @id @map("installation_id")
+  userId String @map("user_id")
+  token String
+  provider String @default("fcm")
+  platform String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_devices")
+  @@unique([provider, token])
 }
 
 model AdminUser {

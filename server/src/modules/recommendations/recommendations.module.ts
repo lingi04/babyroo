@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { PUSH_NOTIFICATION_PORT } from '../notifications/application/push-notification.port';
 import { getDatabaseUrl } from '../../common/database-url';
 import { CHECK_RECOMMENDATION_CREDIT_USE_CASE } from '../credits/application/ports/in/check-recommendation-credit.use-case';
 import { CONSUME_RECOMMENDATION_CREDIT_USE_CASE } from '../credits/application/ports/in/consume-recommendation-credit.use-case';
@@ -24,7 +26,7 @@ import { RecommendationJobProcessor } from './application/services/recommendatio
 import { RecommendationSessionService } from './application/services/recommendation-session.service';
 
 @Module({
-  imports: [UsersModule, EventsModule, CreditsModule],
+  imports: [UsersModule, EventsModule, CreditsModule, NotificationsModule],
   controllers: [RecommendationsController],
   providers: [
     {
@@ -57,6 +59,7 @@ import { RecommendationSessionService } from './application/services/recommendat
         listEventsUseCase,
         consumeRecommendationCreditUseCase,
         recommendationEngine,
+        notifications,
       ) =>
         new RecommendationJobProcessor(
           repository,
@@ -64,6 +67,7 @@ import { RecommendationSessionService } from './application/services/recommendat
           listEventsUseCase,
           consumeRecommendationCreditUseCase,
           recommendationEngine,
+          notifications,
         ),
       inject: [
         RECOMMENDATION_SESSION_REPOSITORY_PORT,
@@ -71,6 +75,7 @@ import { RecommendationSessionService } from './application/services/recommendat
         LIST_EVENTS_USE_CASE,
         CONSUME_RECOMMENDATION_CREDIT_USE_CASE,
         RECOMMENDATION_ENGINE_PORT,
+        PUSH_NOTIFICATION_PORT,
       ],
     },
     {

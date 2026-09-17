@@ -1,5 +1,7 @@
 import { debugLog } from '../../../../common/debug-log';
 import { ApplicationError } from '../../../../common/application-error';
+import { Logger } from '@nestjs/common';
+import { PushNotificationPort } from '../../../notifications/application/push-notification.port';
 import {
   CONSUME_RECOMMENDATION_CREDIT_USE_CASE,
   ConsumeRecommendationCreditUseCase,
@@ -34,6 +36,7 @@ export class RecommendationJobProcessor {
     private readonly listEventsUseCase: ListEventsUseCase,
     private readonly consumeRecommendationCreditUseCase: ConsumeRecommendationCreditUseCase,
     private readonly recommendationEngine: RecommendationEnginePort,
+    private readonly notifications: PushNotificationPort,
   ) {}
 
   async process(job: RecommendationJob): Promise<void> {
@@ -52,8 +55,9 @@ export class RecommendationJobProcessor {
       return;
     }
 
+    let completedSession: RecommendationSession;
     try {
-      await this.runRecommendation(job, session);
+      completedSession = await this.runRecommendation(job, session);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       debugLog('recommendations.job.failed', {
@@ -61,7 +65,7 @@ export class RecommendationJobProcessor {
         errorMessage,
       });
 
-      await this.sessions.update({
+      completedSession = {
         ...session,
         status: errorMessage.includes('timed out') ? 'timeout' : 'failed',
         results: [],
@@ -71,14 +75,33 @@ export class RecommendationJobProcessor {
           message: errorMessage,
           retryable: true,
         },
+      };
+    }
+
+    // Keep delivery outside recommendation error handling: a push failure must
+    // not overwrite the saved outcome or run credit consumption again.
+    const savedSession = await this.sessions.update(completedSession);
+    debugLog('recommendations.job.completed', {
+      ...job,
+      status: savedSession.status,
+      resultCount: savedSession.results.length,
+    });
+    if (savedSession.status === 'running') return;
+    try {
+      await this.notifications.sendRecommendationCompleted({
+        userId: savedSession.userId,
+        sessionId: savedSession.id,
+        status: savedSession.status,
       });
+    } catch {
+      Logger.warn(`Push delivery failed for recommendation ${savedSession.id}`, 'RecommendationJobProcessor');
     }
   }
 
   private async runRecommendation(
     job: RecommendationJob,
     session: RecommendationSession,
-  ): Promise<void> {
+  ): Promise<RecommendationSession> {
     debugLog('recommendations.job.start', {
       ...job,
       selectedChildCount: session.selectedChildrenSnapshot.length,
@@ -100,7 +123,7 @@ export class RecommendationJobProcessor {
       );
     }
 
-    const updatedSession = await this.sessions.update({
+    return {
       ...session,
       results,
       creditCost: results.length > 0 ? 1 : 0,
@@ -113,13 +136,7 @@ export class RecommendationJobProcessor {
               message: 'Babyroo API did not return recommendation results.',
               retryable: true,
             },
-    });
-
-    debugLog('recommendations.job.success', {
-      ...job,
-      status: updatedSession.status,
-      resultCount: updatedSession.results.length,
-    });
+    };
   }
 }
 

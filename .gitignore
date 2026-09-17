@@ -8,3 +8,4 @@ node_modules/
 dist/
 server/src/generated/
 assets
+app/android/app/google-services.json
