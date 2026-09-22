@@ -1596,26 +1596,28 @@ function HomeScreen({
     }
 
     setCreatingRecommendationSession(true);
-    let apiSession: AuthSession;
+    let apiSession = authSession;
 
-    try {
-      const apiAuth = await loginWithBabyrooApi(authSession);
-      apiSession = {
-        ...authSession,
-        apiAccessToken: apiAuth.accessToken,
-        apiUserId: apiAuth.user.id,
-      };
-      onChangeAuthSession(apiSession);
-      await saveAuthSession(apiSession);
-    } catch (error) {
-      Alert.alert(
-        '서버 연결 실패',
-        error instanceof Error
-          ? error.message
-          : 'Babyroo 서버에 로그인하지 못했습니다.',
-      );
-      setCreatingRecommendationSession(false);
-      return;
+    if (!apiSession.apiAccessToken) {
+      try {
+        const apiAuth = await loginWithBabyrooApi(authSession);
+        apiSession = {
+          ...authSession,
+          apiAccessToken: apiAuth.accessToken,
+          apiUserId: apiAuth.user.id,
+        };
+        onChangeAuthSession(apiSession);
+        await saveAuthSession(apiSession);
+      } catch (error) {
+        Alert.alert(
+          '서버 연결 실패',
+          error instanceof Error
+            ? error.message
+            : 'Babyroo 서버에 로그인하지 못했습니다.',
+        );
+        setCreatingRecommendationSession(false);
+        return;
+      }
     }
 
     const preferences = answersToPreferences(answers, departureAddress);
