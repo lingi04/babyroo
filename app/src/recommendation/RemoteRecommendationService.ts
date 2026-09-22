@@ -84,6 +84,23 @@ export class RemoteRecommendationService implements RecommendationService {
     }
 
     const session = await postJson<RemoteRecommendationSession>({
+      onNoContent: response => {
+        const sessionId = response.headers.get('X-Recommendation-Session-Id');
+        if (!sessionId) {
+          throw new Error('Recommendation response is missing its session ID.');
+        }
+        return {
+          id: sessionId,
+          userId: request.userId,
+          selectedChildIds: request.selectedChildIds,
+          selectedChildrenSnapshot: request.selectedChildren ?? this.options.selectedChildren,
+          preferences: request.preferences,
+          results: [],
+          creditCost: 0,
+          status: 'running',
+          createdAt: request.client.requestedAt,
+        };
+      },
       accessToken: this.options.accessToken,
       body: {
         selectedChildIds: request.selectedChildIds,

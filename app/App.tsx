@@ -1504,9 +1504,14 @@ function HomeScreen({
     })
       .listSessions()
       .then(sessions => {
-        setRecommendationSessions(sessions);
-        setSelectedRecommendationSessionId(
-          sessions.length > 0 ? sessions[0].id : null,
+        setRecommendationSessions(previousSessions => [
+          ...previousSessions.filter(
+            session => !sessions.some(item => item.id === session.id),
+          ),
+          ...sessions,
+        ]);
+        setSelectedRecommendationSessionId(previousId =>
+          previousId ?? (sessions.length > 0 ? sessions[0].id : null),
         );
       })
       .catch(error => {

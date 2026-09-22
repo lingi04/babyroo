@@ -461,3 +461,48 @@ test('loads running recommendation sessions as loading history cards', async () 
     }),
   ]);
 });
+
+test('creates a loading card immediately after an empty 204 without another request', async () => {
+  const json = jest.fn().mockRejectedValue(new Error('No body'));
+  const fetchMock = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: true,
+    status: 204,
+    headers: { get: () => 'rec-accepted' },
+    json,
+  } as unknown as Response);
+  const service = new RemoteRecommendationService({ accessToken: 'dev.user-001' });
+  await expect(service.createSession(baseRequest)).resolves.toMatchObject({
+    id: 'rec-accepted', status: 'loading',
+    selectedChildIds: baseRequest.selectedChildIds, results: [],
+    credit: { consumed: false, cost: 0 },
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(json).not.toHaveBeenCalled();
+});
+
+test.each([402, 500])('rejects HTTP %s so the caller shows an error instead of a card', async status => {
+  jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+    ok: false, status,
+    json: async () => ({ message: 'Request rejected', statusCode: status }),
+  } as Response);
+  const service = new RemoteRecommendationService({ accessToken: 'dev.user-001' });
+  await expect(service.createSession(baseRequest)).rejects.toMatchObject({ statusCode: status });
+});
+
+test('waits for server acknowledgement before resolving the loading card', async () => {
+  let acknowledge!: (response: Response) => void;
+  jest.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(resolve => {
+    acknowledge = resolve;
+  }));
+  const service = new RemoteRecommendationService({ accessToken: 'dev.user-001' });
+  const onCard = jest.fn();
+  const pending = service.createSession(baseRequest).then(onCard);
+  await Promise.resolve();
+  expect(onCard).not.toHaveBeenCalled();
+  acknowledge({
+    ok: true, status: 204,
+    headers: { get: () => 'rec-accepted' },
+  } as unknown as Response);
+  await pending;
+  expect(onCard).toHaveBeenCalledWith(expect.objectContaining({ status: 'loading' }));
+});

@@ -182,8 +182,11 @@ Recommendation flow:
 1. The app requests `POST /recommendation-sessions`.
 2. The server checks that the user has at least 1 credit.
 3. If credit is available, the server creates a `running` recommendation session and dispatches the recommendation job.
-4. If the recommendation completes successfully with at least one result, the server deducts 1 credit and records a ledger debit with reason `recommendation_session`.
-5. Failed, timed-out, or empty-result recommendations do not deduct credit.
+4. The server returns `204 No Content` with the persisted session ID in `X-Recommendation-Session-Id`. The app immediately adds a generating card and polls `GET /recommendation-sessions/:sessionId`. A failed creation returns an error status and the app shows an alert without adding a card.
+5. If the recommendation completes successfully with at least one result, the server deducts 1 credit and records a ledger debit with reason `recommendation_session`.
+6. Failed, timed-out, or empty-result recommendations do not deduct credit.
+
+Deploy the updated app before switching the server to 204 responses: older app versions require a JSON session body. The updated app accepts both responses.
 
 Credit APIs:
 
@@ -334,7 +337,7 @@ curl -X POST 'http://127.0.0.1:3100/api/saved-events/nfm-kids-1ba6be3101a8' \
 Create a recommendation session:
 
 ```sh
-curl -X POST 'http://127.0.0.1:3100/api/recommendation-sessions' \
+curl -i -X POST 'http://127.0.0.1:3100/api/recommendation-sessions' \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{

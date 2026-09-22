@@ -333,17 +333,20 @@ export async function getJson<T>({
 }
 
 export async function postJson<T>({
+  onNoContent,
   accessToken,
   body,
   path,
   timeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
 }: {
+  onNoContent?: (response: Response) => T;
   accessToken?: string;
   body: unknown;
   path: string;
   timeoutMs?: number;
 }): Promise<T> {
   return requestJson<T>({
+    onNoContent,
     accessToken,
     body,
     method: 'POST',
@@ -390,12 +393,14 @@ export async function deleteJson<T = void>({
 }
 
 async function requestJson<T>({
+  onNoContent,
   accessToken,
   body,
   method,
   path,
   timeoutMs,
 }: {
+  onNoContent?: (response: Response) => T;
   accessToken?: string;
   body?: unknown;
   method: 'DELETE' | 'GET' | 'PATCH' | 'POST';
@@ -428,6 +433,10 @@ async function requestJson<T>({
     throw error;
   } finally {
     clearTimeout(timeout);
+  }
+
+  if (response.ok && response.status === 204) {
+    return onNoContent ? onNoContent(response) : (undefined as T);
   }
 
   const payload = (await response.json().catch(() => null)) as

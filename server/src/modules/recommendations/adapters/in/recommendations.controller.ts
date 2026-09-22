@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Res, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../../../common/auth.guard';
 import { CurrentUser, RequestUser } from '../../../../common/current-user.decorator';
 import {
@@ -28,11 +28,14 @@ export class RecommendationsController {
   ) {}
 
   @Post()
-  createSession(
+  @HttpCode(204)
+  async createSession(
     @CurrentUser() user: RequestUser,
     @Body() body: CreateRecommendationSessionInput,
+    @Res({ passthrough: true }) response: { setHeader(name: string, value: string): void },
   ) {
-    return this.createRecommendationSessionUseCase.createSession(user.id, body);
+    const session = await this.createRecommendationSessionUseCase.createSession(user.id, body);
+    response.setHeader('X-Recommendation-Session-Id', session.id);
   }
 
   @Get()
