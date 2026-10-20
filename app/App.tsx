@@ -961,13 +961,15 @@ function BabyrooApp() {
           <SwipeableTabs
             activeTab={tab}
             onChangeTab={setTab}
-            renderBottomNavigation={({ activeTab, navigateToTab }) => (
-              <BottomTabs
-                activeTab={activeTab}
-                bottomInset={bottomInset}
-                onChange={navigateToTab}
-              />
-            )}
+            renderBottomNavigation={({ activeTab, navigateToTab }) =>
+              filterOpen ? null : (
+                <BottomTabs
+                  activeTab={activeTab}
+                  bottomInset={bottomInset}
+                  onChange={navigateToTab}
+                />
+              )
+            }
             renderTab={(screenTab, { navigateToTab }) =>
               renderTabScreen(screenTab, navigateToTab)
             }

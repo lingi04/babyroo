@@ -12,6 +12,10 @@ import { currentUser, User } from '../src/data/user';
 import { clearAuthSession, saveAuthSession } from '../src/storage/authStorage';
 import { loadUser, saveUser } from '../src/storage/userStorage';
 
+jest.mock('react-native-iap', () => ({
+  useIAP: () => ({ connected: false, products: [] }),
+}));
+
 const testAuthSession = {
   provider: 'google' as const,
   providerUserId: 'google-user-001',
@@ -626,6 +630,52 @@ test('shows simplified filters for schedule, region, and reservation', async () 
     0,
   );
   expect(renderer!.root.findAllByProps({ children: '종로구' })).toHaveLength(0);
+});
+
+test('hides bottom navigation while filters are open and restores it after applying or dismissing', async () => {
+  const backListener = jest.spyOn(BackHandler, 'addEventListener');
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+
+  const navigation = () =>
+    renderer!.root.findAllByProps({ accessibilityLabel: 'Bottom navigation' });
+  expect(navigation().length).toBeGreaterThan(0);
+
+  await ReactTestRenderer.act(() => {
+    renderer!.root
+      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
+      .props.onPress();
+  });
+
+  for (const closeBy of ['apply', 'back']) {
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ accessibilityLabel: 'Open filters' })
+        .props.onPress();
+    });
+
+    expect(navigation()).toHaveLength(0);
+
+    await ReactTestRenderer.act(() => {
+      if (closeBy === 'apply') {
+        renderer!.root
+          .findByProps({ accessibilityLabel: 'Apply filters' })
+          .props.onPress();
+      } else {
+        const listeners = backListener.mock.calls;
+        const handler = listeners[listeners.length - 1][1];
+        expect(handler({} as never)).toBe(true);
+      }
+    });
+
+    expect(navigation().length).toBeGreaterThan(0);
+  }
+
+  await ReactTestRenderer.act(() => renderer!.unmount());
+  backListener.mockRestore();
 });
 
 test('filters schedule by scheduled and ongoing states separately', async () => {
