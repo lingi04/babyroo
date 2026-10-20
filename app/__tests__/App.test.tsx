@@ -592,6 +592,17 @@ test('accepts a typed birthday when adding a child and rejects invalid dates', a
     await ReactTestRenderer.act(() => input().props.onChangeText(value));
     expect(save().props.disabled).toBe(true);
   }
+  await ReactTestRenderer.act(() => input().props.onChangeText('2025-1-2'));
+  await ReactTestRenderer.act(() => input().props.onBlur());
+  expect(input().props.value).toBe('2025-01-02');
+  expect(save().props.disabled).toBe(false);
+  await ReactTestRenderer.act(() => input().props.onChangeText('2025-1-'));
+  expect(input().props.value).toBe('2025-01-');
+  await ReactTestRenderer.act(() => input().props.onChangeText('2025-01-2'));
+  expect(input().props.value).toBe('2025-01-2');
+  await ReactTestRenderer.act(() => input().props.onChangeText('2025-01-23'));
+  await ReactTestRenderer.act(() => input().props.onBlur());
+  expect(input().props.value).toBe('2025-01-23');
   await ReactTestRenderer.act(() => input().props.onChangeText('2024-02-29'));
   expect(save().props.disabled).toBe(false);
   await ReactTestRenderer.act(async () => save().props.onPress());

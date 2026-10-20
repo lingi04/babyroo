@@ -4012,6 +4012,16 @@ function SettingsScreen({
                   <TextInput
                     style={[styles.textInput, styles.childFormInput, styles.birthDateInput]}
                     value={newChildDraft.birthDate}
+                    onBlur={() =>
+                      setNewChildDraft(previousDraft =>
+                        previousDraft
+                          ? {
+                              ...previousDraft,
+                              birthDate: normalizeBirthDateInput(previousDraft.birthDate),
+                            }
+                          : previousDraft,
+                      )
+                    }
                     onChangeText={birthDate =>
                       setNewChildDraft(previousDraft =>
                         previousDraft
@@ -5863,6 +5873,12 @@ function formatDateInput(date: Date) {
 }
 
 function formatBirthDateInput(value: string) {
+  const separated = value.match(/^(\d{4})-(\d{1,2})-(\d{0,2})$/);
+  if (separated) {
+    const [, year, month, day] = separated;
+    return `${year}-${month.padStart(2, '0')}-${day}`;
+  }
+
   const digits = value.replace(/\D/g, '').slice(0, 8);
   const formatted = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)]
     .filter(Boolean)
@@ -5871,6 +5887,16 @@ function formatBirthDateInput(value: string) {
   return value.endsWith('-') && (digits.length === 4 || digits.length === 6)
     ? `${formatted}-`
     : formatted;
+}
+
+function normalizeBirthDateInput(value: string) {
+  const separated = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!separated) {
+    return value;
+  }
+
+  const [, year, month, day] = separated;
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 function isValidDateInput(value: string) {
