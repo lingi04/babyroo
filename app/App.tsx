@@ -3924,9 +3924,9 @@ function SettingsScreen({
               </View>
 
               {editing ? (
-                <>
+                <View style={styles.childFormFields}>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, styles.childFormInput]}
                     defaultValue={child.nickname}
                     onChangeText={nickname =>
                       onUpdateChild(child.id, { nickname })
@@ -3967,7 +3967,7 @@ function SettingsScreen({
                       ),
                     )}
                   </View>
-                </>
+                </View>
               ) : null}
 
               {user.children.length > 1 ? (
@@ -3986,56 +3986,58 @@ function SettingsScreen({
         {newChildDraft ? (
           <View style={styles.childCard}>
             <Text style={styles.childName}>새 아이</Text>
-            <TextInput
-              style={styles.textInput}
-              value={newChildDraft.nickname}
-              onChangeText={nickname =>
-                setNewChildDraft(previousDraft =>
-                  previousDraft ? { ...previousDraft, nickname } : previousDraft,
-                )
-              }
-              placeholder="아이 이름 또는 별명"
-              placeholderTextColor={colors.muted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="default"
-              returnKeyType="done"
-              textContentType="none"
-            />
+            <View style={styles.childFormFields}>
+              <TextInput
+                style={[styles.textInput, styles.childFormInput]}
+                value={newChildDraft.nickname}
+                onChangeText={nickname =>
+                  setNewChildDraft(previousDraft =>
+                    previousDraft ? { ...previousDraft, nickname } : previousDraft,
+                  )
+                }
+                placeholder="아이 이름 또는 별명"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="default"
+                returnKeyType="done"
+                textContentType="none"
+              />
 
-            <Pressable
-              style={styles.datePickerButton}
-              onPress={() =>
-                openBirthDatePicker(
-                  newChildDraftDatePickerTarget,
-                  newChildDraft.birthDate,
-                )
-              }
-            >
-              <Text style={styles.datePickerText}>
-                {newChildDraft.birthDate}
-              </Text>
-              <Text style={styles.childMeta}>{formatChildAge(newChildDraft)}</Text>
-            </Pressable>
+              <Pressable
+                style={styles.datePickerButton}
+                onPress={() =>
+                  openBirthDatePicker(
+                    newChildDraftDatePickerTarget,
+                    newChildDraft.birthDate,
+                  )
+                }
+              >
+                <Text style={styles.datePickerText}>
+                  {newChildDraft.birthDate}
+                </Text>
+                <Text style={styles.childMeta}>{formatChildAge(newChildDraft)}</Text>
+              </Pressable>
 
-            <View style={styles.wrapRow}>
-              {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
-                <Pressable
-                  key={gender}
-                  onPress={() =>
-                    setNewChildDraft(previousDraft =>
-                      previousDraft
-                        ? { ...previousDraft, gender }
-                        : previousDraft,
-                    )
-                  }
-                >
-                  <Chip
-                    label={formatGender(gender)}
-                    selected={gender === newChildDraft.gender}
-                  />
-                </Pressable>
-              ))}
+              <View style={styles.wrapRow}>
+                {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
+                  <Pressable
+                    key={gender}
+                    onPress={() =>
+                      setNewChildDraft(previousDraft =>
+                        previousDraft
+                          ? { ...previousDraft, gender }
+                          : previousDraft,
+                      )
+                    }
+                  >
+                    <Chip
+                      label={formatGender(gender)}
+                      selected={gender === newChildDraft.gender}
+                    />
+                  </Pressable>
+                ))}
+              </View>
             </View>
 
             <View style={styles.childDraftActions}>
@@ -6717,7 +6719,6 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderRadius: radius.lg,
     borderWidth: 1,
-    marginTop: spacing.md,
     minHeight: 58,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
@@ -6726,6 +6727,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 15,
     fontWeight: '800',
+  },
+  childFormFields: {
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  childFormInput: {
+    marginTop: 0,
   },
   datePickerMeta: {
     color: colors.muted,
