@@ -557,6 +557,50 @@ test('resets locally saved user information from settings', async () => {
   ).toHaveLength(0);
 });
 
+test('accepts a typed birthday when adding a child and rejects invalid dates', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findAllByProps({ accessibilityLabel: 'Open user settings' })
+      .find(node => typeof node.props.onPress === 'function')!.props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ accessibilityLabel: 'Add child' }).props.onPress();
+  });
+  await ReactTestRenderer.act(() => {
+    renderer!.root.findByProps({ placeholder: '아이 이름 또는 별명' })
+      .props.onChangeText('둘째');
+  });
+  const input = () => renderer!.root.findByProps({ accessibilityLabel: 'New child birth date' });
+  const save = () => renderer!.root.findByProps({ accessibilityLabel: 'Save child' });
+  expect(renderer!.root.findByProps({ accessibilityLabel: 'Choose new child birth date' })).toBeTruthy();
+  for (const [typed, formatted] of [
+    ['20251', '2025-1'],
+    ['2025-', '2025-'],
+    ['202501', '2025-01'],
+    ['2025-01-', '2025-01-'],
+    ['2025012', '2025-01-2'],
+    ['20250123', '2025-01-23'],
+    ['2025', '2025'],
+  ]) {
+    await ReactTestRenderer.act(() => input().props.onChangeText(typed));
+    expect(input().props.value).toBe(formatted);
+  }
+  for (const value of ['', '2024-02', '2024-02-30', '2024-13-01', '2999-01-01']) {
+    await ReactTestRenderer.act(() => input().props.onChangeText(value));
+    expect(save().props.disabled).toBe(true);
+  }
+  await ReactTestRenderer.act(() => input().props.onChangeText('2024-02-29'));
+  expect(save().props.disabled).toBe(false);
+  await ReactTestRenderer.act(async () => save().props.onPress());
+  expect((await loadUser()).children).toEqual(expect.arrayContaining([
+    expect.objectContaining({ nickname: '둘째', birthDate: '2024-02-29' }),
+  ]));
+  await ReactTestRenderer.act(() => renderer!.unmount());
+});
+
 test('shows residence choices in user settings', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
 

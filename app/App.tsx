@@ -3813,7 +3813,9 @@ function SettingsScreen({
   };
 
   const openBirthDatePicker = (target: string, birthDate?: string) => {
-    const value = birthDate ? parseDateInput(birthDate) : defaultBirthDate();
+    const value = birthDate && isValidDateInput(birthDate)
+      ? parseDateInput(birthDate)
+      : defaultBirthDate();
 
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
@@ -4004,20 +4006,52 @@ function SettingsScreen({
                 textContentType="none"
               />
 
-              <Pressable
-                style={styles.datePickerButton}
-                onPress={() =>
-                  openBirthDatePicker(
-                    newChildDraftDatePickerTarget,
-                    newChildDraft.birthDate,
-                  )
-                }
-              >
-                <Text style={styles.datePickerText}>
-                  {newChildDraft.birthDate}
+              <View style={styles.birthDateFields}>
+                <Text style={styles.settingsLabel}>생년월일</Text>
+                <View style={styles.birthDateInputRow}>
+                  <TextInput
+                    style={[styles.textInput, styles.childFormInput, styles.birthDateInput]}
+                    value={newChildDraft.birthDate}
+                    onChangeText={birthDate =>
+                      setNewChildDraft(previousDraft =>
+                        previousDraft
+                          ? { ...previousDraft, birthDate: formatBirthDateInput(birthDate) }
+                          : previousDraft,
+                      )
+                    }
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.muted}
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={10}
+                    accessibilityLabel="New child birth date"
+                  />
+                  <Pressable
+                    style={styles.birthDatePickerButton}
+                    accessibilityLabel="Choose new child birth date"
+                    accessibilityRole="button"
+                    onPress={() =>
+                      openBirthDatePicker(
+                        newChildDraftDatePickerTarget,
+                        newChildDraft.birthDate,
+                      )
+                    }
+                  >
+                    <View style={styles.calendarIcon} accessible={false}>
+                      <View style={styles.calendarIconHeader} />
+                      <View style={styles.calendarIconGrid}>
+                        {[0, 1, 2, 3].map(day => (
+                          <View key={day} style={styles.calendarIconDay} />
+                        ))}
+                      </View>
+                    </View>
+                  </Pressable>
+                </View>
+                <Text style={styles.childMeta}>
+                  {isValidDateInput(newChildDraft.birthDate)
+                    ? formatChildAge(newChildDraft)
+                    : '오늘까지의 올바른 날짜를 입력해주세요 (YYYY-MM-DD)'}
                 </Text>
-                <Text style={styles.childMeta}>{formatChildAge(newChildDraft)}</Text>
-              </Pressable>
+              </View>
 
               <View style={styles.wrapRow}>
                 {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
@@ -5700,7 +5734,9 @@ function datePickerValue(
   newChildDraftTarget?: string,
 ) {
   if (target === newChildDraftTarget && newChildDraft) {
-    return parseDateInput(newChildDraft.birthDate);
+    return isValidDateInput(newChildDraft.birthDate)
+      ? parseDateInput(newChildDraft.birthDate)
+      : defaultBirthDate();
   }
 
   const child = children.find(candidate => candidate.id === target);
@@ -5826,6 +5862,17 @@ function formatDateInput(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function formatBirthDateInput(value: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  const formatted = [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)]
+    .filter(Boolean)
+    .join('-');
+
+  return value.endsWith('-') && (digits.length === 4 || digits.length === 6)
+    ? `${formatted}-`
+    : formatted;
+}
+
 function isValidDateInput(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -5833,7 +5880,11 @@ function isValidDateInput(value: string) {
 
   const date = parseDateInput(value);
 
-  return !Number.isNaN(date.getTime()) && date <= new Date();
+  return (
+    !Number.isNaN(date.getTime()) &&
+    formatDateInput(date) === value &&
+    date <= new Date()
+  );
 }
 
 function defaultBirthDate() {
@@ -6731,6 +6782,46 @@ const styles = StyleSheet.create({
   childFormFields: {
     gap: spacing.md,
     marginTop: spacing.md,
+  },
+  birthDateInputRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  birthDateInput: {
+    flex: 1,
+  },
+  birthDatePickerButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    minWidth: 48,
+  },
+  calendarIcon: {
+    borderColor: colors.text,
+    borderRadius: 4,
+    borderWidth: 2,
+    height: 24,
+    width: 24,
+  },
+  calendarIconHeader: {
+    borderBottomColor: colors.text,
+    borderBottomWidth: 2,
+    height: 6,
+  },
+  calendarIconGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 3,
+    padding: 3,
+  },
+  calendarIconDay: {
+    backgroundColor: colors.text,
+    height: 4,
+    width: 4,
+  },
+  birthDateFields: {
+    gap: spacing.sm,
   },
   childFormInput: {
     marginTop: 0,
