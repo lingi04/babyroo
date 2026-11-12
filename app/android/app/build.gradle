@@ -87,8 +87,8 @@ android {
         applicationId "com.babyroo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 26
-        versionName "0.2.6"
+        versionCode 27
+        versionName "0.2.7"
         manifestPlaceholders = [usesCleartextTraffic: "true"]
     }
     signingConfigs {
