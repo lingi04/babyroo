@@ -1,4 +1,21 @@
 export type PublicationStatus = 'draft' | 'published' | 'hidden' | 'archived';
+export type AppPolicy = {
+  platform: 'android' | 'ios';
+  minimumBuild: number;
+  latestBuild: number;
+  storeUrl: string;
+  message: string;
+  updatedAt: string;
+};
+
+export function listAppPolicies(accessToken: string): Promise<AppPolicy[]> {
+  return request('/admin/app-policies', { accessToken });
+}
+
+export function updateAppPolicy(accessToken: string, platform: AppPolicy['platform'],
+  policy: Omit<AppPolicy, 'platform' | 'updatedAt'>): Promise<AppPolicy> {
+  return request(`/admin/app-policies/${platform}`, { accessToken, method: 'PUT', body: policy });
+}
 export type ReservationStatus = 'unknown' | 'available' | 'limited' | 'closed';
 export type PriceType = 'free' | 'paid' | 'unknown';
 

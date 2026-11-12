@@ -5,8 +5,10 @@ import { clearSession, readStoredSession } from './api/auth';
 import { LoginPage } from './pages/LoginPage';
 import { EventEditorPage } from './pages/EventEditorPage';
 import { EventListPage } from './pages/EventListPage';
+import { AppPolicyPage } from './pages/AppPolicyPage';
 
 type Route =
+  | { name: 'policy' }
   | { name: 'list' }
   | { name: 'new' }
   | { name: 'edit'; id: string };
@@ -24,7 +26,7 @@ export function App() {
 
   const navigate = useCallback((next: Route) => {
     window.location.hash =
-      next.name === 'new' ? '#/events/new' : next.name === 'edit' ? `#/events/${next.id}/edit` : '#/events';
+      next.name === 'policy' ? '#/app-policies' : next.name === 'new' ? '#/events/new' : next.name === 'edit' ? `#/events/${next.id}/edit` : '#/events';
     setRoute(next);
   }, []);
 
@@ -34,6 +36,9 @@ export function App() {
     }
     if (route.name === 'new') {
       return <EventEditorPage accessToken={session.accessToken} mode="new" onDone={() => navigate({ name: 'list' })} />;
+    }
+    if (route.name === 'policy') {
+      return <AppPolicyPage accessToken={session.accessToken} refreshToken={refreshToken} />;
     }
     if (route.name === 'edit') {
       return (
@@ -66,10 +71,12 @@ export function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow">Babyroo Admin</p>
-          <h1>이벤트 관리</h1>
+          <h1>{route.name === 'policy' ? '앱 업데이트 정책' : '이벤트 관리'}</h1>
         </div>
         {session && (
           <div className="header-actions">
+            <button type="button" onClick={() => navigate({ name: 'list' })}>이벤트 관리</button>
+            <button type="button" onClick={() => navigate({ name: 'policy' })}>앱 업데이트 정책</button>
             <span className="admin-email">{session.adminUser.email}</span>
             <button type="button" className="icon-button" onClick={() => setRefreshToken(value => value + 1)} title="새로고침">
               <RefreshCw size={18} />
@@ -91,6 +98,7 @@ export function App() {
 
 function parseRoute(): Route {
   const hash = window.location.hash || '#/events';
+  if (hash === '#/app-policies') return { name: 'policy' };
   if (hash === '#/events/new') {
     return { name: 'new' };
   }
