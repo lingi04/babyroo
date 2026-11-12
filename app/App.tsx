@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
 import {
   Alert,
   Animated,
@@ -7871,4 +7872,10 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default function VersionedApp({ nativeBuild }: { nativeBuild?: string }) {
+  return (
+    <AppUpdateGate nativeBuild={nativeBuild}>
+      <App />
+    </AppUpdateGate>
+  );
+}

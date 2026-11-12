@@ -12,6 +12,11 @@ import { currentUser, User } from '../src/data/user';
 import { clearAuthSession, saveAuthSession } from '../src/storage/authStorage';
 import { loadUser, saveUser } from '../src/storage/userStorage';
 
+// The version gate is tested independently from the main app.
+jest.mock('../src/appUpdate/AppUpdateGate', () => ({
+  AppUpdateGate: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 jest.mock('react-native-iap', () => ({
   useIAP: () => ({ connected: false, products: [] }),
 }));

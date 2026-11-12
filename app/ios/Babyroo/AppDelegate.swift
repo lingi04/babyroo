@@ -26,6 +26,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     factory.startReactNative(
       withModuleName: "Babyroo",
       in: window,
+      initialProperties: [
+        "nativeBuild": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+      ],
       launchOptions: launchOptions
     )
 
