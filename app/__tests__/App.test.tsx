@@ -56,6 +56,40 @@ test('renders correctly', async () => {
   });
 });
 
+test('opens a feedback draft from each header and shows the address on failure', async () => {
+  const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    const feedbackButtons = renderer!.root
+      .findAllByProps({ accessibilityLabel: '의견 보내기' })
+      .filter(node => typeof node.props.onPress === 'function');
+    expect(feedbackButtons).toHaveLength(3);
+    for (const button of feedbackButtons) {
+      await ReactTestRenderer.act(async () => button.props.onPress());
+    }
+
+    const subject = encodeURIComponent('베이비루 앱 의견');
+    expect(openURL.mock.calls).toEqual(
+      Array.from({ length: 3 }, () => [
+        `mailto:hans.tyranos@gmail.com?subject=${subject}`,
+      ]),
+    );
+
+    openURL.mockRejectedValueOnce(new Error('No mail app'));
+    await ReactTestRenderer.act(async () => feedbackButtons[0].props.onPress());
+    expect(alert).toHaveBeenCalledWith('메일 앱을 열 수 없어요', 'hans.tyranos@gmail.com');
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    openURL.mockRestore();
+    alert.mockRestore();
+  }
+});
+
 test('starts Google sign in when signed out', async () => {
   await clearAuthSession();
   await saveUser(currentUser);

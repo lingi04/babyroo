@@ -1124,6 +1124,56 @@ function BabyrooBrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
+const feedbackEmail = 'hans.tyranos@gmail.com';
+
+async function openFeedbackEmail() {
+  const subject = encodeURIComponent('베이비루 앱 의견');
+
+  try {
+    await Linking.openURL(`mailto:${feedbackEmail}?subject=${subject}`);
+  } catch {
+    Alert.alert('메일 앱을 열 수 없어요', feedbackEmail);
+  }
+}
+
+function HeaderActions({
+  compact = false,
+  onOpenSettings,
+}: {
+  compact?: boolean;
+  onOpenSettings: () => void;
+}) {
+  const buttonStyle = compact
+    ? styles.exploreCompactIconButton
+    : styles.mastheadIconButton;
+  const iconStyle = compact
+    ? styles.exploreCompactIconText
+    : styles.mastheadIconText;
+
+  return (
+    <View style={styles.headerActions}>
+      <Pressable
+        style={buttonStyle}
+        onPress={openFeedbackEmail}
+        accessibilityLabel="의견 보내기"
+        accessibilityRole="button"
+      >
+        <View style={styles.feedbackEnvelope} accessible={false}>
+          <View style={styles.feedbackEnvelopeFlap} />
+        </View>
+      </Pressable>
+      <Pressable
+        style={buttonStyle}
+        onPress={onOpenSettings}
+        accessibilityLabel="Open user settings"
+        accessibilityRole="button"
+      >
+        <Text style={iconStyle}>⚙</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function OnboardingScreen({
   authSession,
   initialUser,
@@ -1767,13 +1817,7 @@ function HomeScreen({
         <View style={styles.homeMasthead}>
           <View style={styles.mastheadTopRow}>
             <BabyrooBrandMark />
-            <Pressable
-              style={styles.mastheadIconButton}
-              onPress={onOpenSettings}
-              accessibilityLabel="Open user settings"
-            >
-              <Text style={styles.mastheadIconText}>⚙</Text>
-            </Pressable>
+            <HeaderActions onOpenSettings={onOpenSettings} />
           </View>
         </View>
 
@@ -3109,13 +3153,7 @@ function ExploreScreen({
               {exploreIntentSummary.meta}
             </Text>
           </Pressable>
-          <Pressable
-            style={styles.exploreCompactIconButton}
-            onPress={onOpenSettings}
-            accessibilityLabel="Open user settings"
-          >
-            <Text style={styles.exploreCompactIconText}>⚙</Text>
-          </Pressable>
+          <HeaderActions compact onOpenSettings={onOpenSettings} />
         </Animated.View>
 
         <Animated.View
@@ -3135,13 +3173,7 @@ function ExploreScreen({
             ]}
           >
             <BabyrooBrandMark />
-            <Pressable
-              style={styles.mastheadIconButton}
-              onPress={onOpenSettings}
-              accessibilityLabel="Open user settings"
-            >
-              <Text style={styles.mastheadIconText}>⚙</Text>
-            </Pressable>
+            <HeaderActions onOpenSettings={onOpenSettings} />
           </Animated.View>
 
           <Animated.View
@@ -6194,6 +6226,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    flexShrink: 0,
+    gap: spacing.sm,
+  },
+  feedbackEnvelope: {
+    alignItems: 'center',
+    width: 18,
+    height: 13,
+    borderWidth: 2,
+    borderColor: colors.inverseText,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  feedbackEnvelopeFlap: {
+    position: 'absolute',
+    top: -4,
+    width: 10,
+    height: 10,
+    borderBottomWidth: 2,
+    borderRightWidth: 2,
+    borderColor: colors.inverseText,
+    transform: [{ rotate: '45deg' }],
   },
   mastheadIconButton: {
     alignItems: 'center',
