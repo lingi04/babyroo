@@ -1249,10 +1249,11 @@ function OnboardingScreen({
           <TextInput
             style={styles.textInput}
             value={childBirthDate}
-            onChangeText={setChildBirthDate}
-            placeholder="YYYY-MM-DD"
+            onChangeText={value => setChildBirthDate(formatBirthDateInput(value))}
+            placeholder="YYYYMMDD / YYYY-MM-DD"
             placeholderTextColor={colors.muted}
             keyboardType="numbers-and-punctuation"
+            maxLength={10}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -4030,7 +4031,7 @@ function SettingsScreen({
                           : previousDraft,
                       )
                     }
-                    placeholder="YYYY-MM-DD"
+                    placeholder="YYYYMMDD / YYYY-MM-DD"
                     placeholderTextColor={colors.muted}
                     keyboardType="numbers-and-punctuation"
                     maxLength={10}
@@ -4060,7 +4061,7 @@ function SettingsScreen({
                 <Text style={styles.childMeta}>
                   {isValidDateInput(newChildDraft.birthDate)
                     ? formatChildAge(newChildDraft)
-                    : '오늘까지의 올바른 날짜를 입력해주세요 (YYYY-MM-DD)'}
+                    : '오늘까지의 올바른 날짜를 입력해주세요 (YYYYMMDD 또는 YYYY-MM-DD)'}
                 </Text>
               </View>
 

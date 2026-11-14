@@ -581,6 +581,11 @@ test('accepts a typed birthday when adding a child and rejects invalid dates', a
   const input = () => renderer!.root.findByProps({ accessibilityLabel: 'New child birth date' });
   const save = () => renderer!.root.findByProps({ accessibilityLabel: 'Save child' });
   expect(renderer!.root.findByProps({ accessibilityLabel: 'Choose new child birth date' })).toBeTruthy();
+  for (const value of ['20250412', '2025-04-12']) {
+    await ReactTestRenderer.act(() => input().props.onChangeText(value));
+    expect(input().props.value).toBe('2025-04-12');
+    expect(save().props.disabled).toBe(false);
+  }
   for (const [typed, formatted] of [
     ['20251', '2025-1'],
     ['2025-', '2025-'],
