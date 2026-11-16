@@ -7,5 +7,5 @@ __pycache__/
 node_modules/
 dist/
 server/src/generated/
-assets
+assets/generated
 app/android/app/google-services.json
