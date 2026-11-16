@@ -21,6 +21,7 @@
 
 ## Design quality and visual review
 
+- Before implementing a UI change, share an image of the current UI and a mockup image of the proposed UI with the user during plan review. Label them clearly and place them side by side when practical. Show the same screen and interaction state at the same display size so the user can compare them before approving implementation. Use a screenshot for the current UI when available, and clearly label any faithful reconstruction as a preview.
 - Take responsibility for reviewing whether UI changes look aesthetically polished and are intuitively understandable to a person using the app. Perform this review proactively without waiting for the user to request it.
 - Evaluate visual balance, spacing, alignment, typography, contrast, and consistency with the surrounding interface. For icons, also check recognizability, stroke weight, and optical size as a set.
 - Assess whether the intended users can understand each symbol and action in context. Choose familiar visual conventions and use labels where they help comprehension.

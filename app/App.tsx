@@ -59,6 +59,13 @@ import {
   RecommendationSession,
   RemoteRecommendationService,
 } from './src/recommendation';
+import { useLocalToday } from './src/recommendation/useLocalToday';
+import {
+  formatVisitDate,
+  formatVisitRange,
+  isPastVisitRange,
+  recommendationVisitRange,
+} from './src/recommendation/visitDates';
 import { AuthSession } from './src/auth/types';
 import { useRecommendationNotifications } from './src/notifications/useRecommendationNotifications';
 import {
@@ -1445,6 +1452,7 @@ function HomeScreen({
   onOpenSettings: () => void;
   bottomInset: number;
 }) {
+  const today = useLocalToday();
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [recommendationSessions, setRecommendationSessions] = useState<
     RecommendationSession[]
@@ -1913,51 +1921,33 @@ function HomeScreen({
                   추천권 구매 및 사용 기록 보기
                 </Text>
               </Pressable>
-              {latestRecommendationSession ? (
-                <Text style={styles.recommendationSetupFootnote}>
-                  최근 추천{' '}
-                  {formatRecommendationSessionTime(
-                    latestRecommendationSession.createdAt,
-                  )}{' '}
-                  · 총 {recommendationSessions.length}회 사용
-                </Text>
-              ) : null}
             </>
           )}
         </View>
 
         <View style={styles.recommendationHistorySection}>
-          <View style={styles.sectionHeaderCompact}>
+          <View style={styles.recommendationHistoryHeading}>
             <Text style={styles.sectionTitle}>추천 기록</Text>
-            <Text style={styles.sectionMeta}>
-              추천받은 결과를 조건별로 다시 볼 수 있어요
+            <Text style={styles.recommendationHistoryMeta}>
+              오늘 {formatVisitDate(today)}
             </Text>
           </View>
           {visibleRecommendationSessions.length > 0 ? (
-            visibleRecommendationSessions.map(session => (
-              <RecommendationSessionCard
-                key={session.id}
-                events={events}
-                questions={buildRecommendationQuestions(
-                  events,
-                  recommendationSessionChildren(session),
-                  preferencesToAnswers(session.preferences),
-                  user.homeAddress,
-                  undefined,
-                  new Date(session.createdAt),
-                )}
-                session={session}
-                onPress={() => {
-                  if (session.status === 'loading') {
+            <View style={styles.recommendationHistoryList}>
+              {visibleRecommendationSessions.map((session, index) => (
+                <RecommendationSessionCard
+                  key={session.id}
+                  events={events}
+                  session={session}
+                  today={today}
+                  separated={index > 0}
+                  onPress={() => {
                     setSelectedRecommendationSessionId(session.id);
-                    return;
-                  }
-
-                  setSelectedRecommendationSessionId(session.id);
-                  onOpenRecommendationDetail(session);
-                }}
-              />
-            ))
+                    onOpenRecommendationDetail(session);
+                  }}
+                />
+              ))}
+            </View>
           ) : (
             <View style={styles.recommendationHistoryEmpty}>
               <Text style={styles.emptyStateTitle}>
@@ -2381,49 +2371,68 @@ function RecommendationConfirmationCard({
 function RecommendationSessionCard({
   events,
   onPress,
-  questions,
+  separated,
   session,
+  today,
 }: {
   events: BabyrooEvent[];
   onPress: () => void;
-  questions: RecommendationQuestion[];
+  separated: boolean;
   session: RecommendationSession;
+  today: Date;
 }) {
   const isLoading = session.status === 'loading';
+  const isSuccess = session.status === 'success';
+  const range = recommendationVisitRange(
+    session.preferences.visitWindow,
+    new Date(session.createdAt),
+  );
+  const isPast = isSuccess && isPastVisitRange(range, today);
+  const title = formatRecommendationOutingTitle(session.preferences);
+  const visitLabel = range
+    ? `방문 예정 ${formatVisitRange(range)}`
+    : '방문일 미정';
+  const resultCount = isSuccess ? ` · 후보 ${session.results.length}곳` : '';
 
   return (
     <Pressable
-      style={[
+      style={({ pressed }) => [
         styles.recommendationHistoryItem,
-        isLoading && styles.recommendationHistoryItemLoading,
+        separated && styles.recommendationHistoryDivider,
+        (pressed || isLoading) && styles.recommendationHistoryItemMuted,
       ]}
       onPress={onPress}
-      accessibilityLabel="Open stored recommendation"
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isLoading, busy: isLoading }}
       disabled={isLoading}
     >
       <View style={styles.recommendationHistoryBody}>
         <View style={styles.recommendationHistoryHeader}>
-          <Text style={styles.recommendationHistoryTitle}>
-            {formatRecommendationSessionTime(session.createdAt)} 추천
-          </Text>
-          <Text style={styles.recommendationHistoryBadge}>
-            {isLoading ? '진행중' : '보기'}
-          </Text>
+          <Text style={styles.recommendationHistoryTitle}>{title}</Text>
+          {isPast ? (
+            <View style={styles.recommendationHistoryBadge}>
+              <Text style={styles.recommendationHistoryBadgeText}>지난 일정</Text>
+            </View>
+          ) : null}
         </View>
-        <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
-          {formatRecommendationSessionChildSummary(session)}
-        </Text>
-        <Text style={styles.recommendationHistoryMeta} numberOfLines={1}>
-          {formatRecommendationSessionAnswerSummary(session, questions)}
+        <Text style={styles.recommendationHistoryMeta}>
+          {visitLabel}
+          {resultCount}
         </Text>
         <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
           {isLoading
-            ? '아이에게 맞는 후보를 고르고 있어요'
+            ? '장소를 찾고 있어요'
             : session.status === 'failed'
             ? recommendationErrorMessage(session.error?.code ?? 'unknown').title
             : formatRecommendationSessionEventPreview(session, events)}
         </Text>
       </View>
+      {isLoading ? null : (
+        <View
+          style={styles.recommendationHistoryChevron}
+          importantForAccessibility="no"
+        />
+      )}
     </Pressable>
   );
 }
@@ -3666,6 +3675,13 @@ function RecommendationSessionDetail({
   session: RecommendationSession;
   topInset: number;
 }) {
+  const today = useLocalToday();
+  const visitRange = recommendationVisitRange(
+    session.preferences.visitWindow,
+    new Date(session.createdAt),
+  );
+  const isPast =
+    session.status === 'success' && isPastVisitRange(visitRange, today);
   const recommendedEvents = session.results
     .map(result =>
       [...(session.eventSnapshots ?? []), ...events].find(
@@ -3701,6 +3717,21 @@ function RecommendationSessionDetail({
             </Text>
           </View>
         </View>
+
+        {visitRange ? (
+          <View style={styles.recommendationDetailVisit}>
+            <Text style={styles.recommendationHistoryMeta}>
+              방문 예정 {formatVisitRange(visitRange)}
+            </Text>
+            {isPast ? (
+              <View style={styles.recommendationHistoryBadge}>
+                <Text style={styles.recommendationHistoryBadgeText}>
+                  이 추천의 방문 예정일이 지났어요.
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <RecommendationAnswerSummary
           answers={preferencesToAnswers(session.preferences)}
@@ -5029,21 +5060,30 @@ function recommendationAnswerLabel(
   );
 }
 
-function formatRecommendationSessionAnswerSummary(
-  session: RecommendationSession,
-  questions: RecommendationQuestion[],
-) {
-  const answers = preferencesToAnswers(session.preferences);
-  const labels = questions
-    .map(question => recommendationAnswerLabel(question, answers[question.id]))
-    .filter(label => label !== '선택 안 함')
-    .slice(0, 4);
-
-  if (labels.length === 0) {
-    return '조건 정보 없음';
+function formatRecommendationOutingTitle(preferences: Preferences) {
+  const { activity, place, visitWindow, weatherPlan } = preferences;
+  const preferredPlace =
+    place === 'indoor' || place === 'outdoor'
+      ? place
+      : weatherPlan === 'prefer_indoor'
+      ? 'indoor'
+      : weatherPlan === 'prefer_outdoor'
+      ? 'outdoor'
+      : undefined;
+  let setting = '';
+  if (preferredPlace === 'indoor') {
+    setting = '실내 ';
+  } else if (preferredPlace === 'outdoor') {
+    setting = '야외 ';
   }
-
-  return labels.join(' · ');
+  const outing =
+    activity === 'experience'
+      ? '체험'
+      : activity === 'exhibition'
+      ? '전시'
+      : '나들이';
+  const timing = visitWindow === 'this_weekend' ? '주말 ' : '';
+  return `${timing}${setting}${outing}`;
 }
 
 function formatRecommendationSessionChildSummary(
@@ -5096,7 +5136,7 @@ function formatRecommendationSessionEventPreview(
   }
 
   if (remainingCount > 0) {
-    return `${previewTitles.join(', ')} 외 ${remainingCount}개`;
+    return `${previewTitles.join(', ')} 외 ${remainingCount}곳`;
   }
 
   return previewTitles.join(', ');
@@ -6381,11 +6421,6 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: spacing.sm,
   },
-  recommendationSetupFootnote: {
-    ...typography.caption,
-    color: colors.muted,
-    marginTop: spacing.md,
-  },
   recommendationContextRow: {
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -6668,51 +6703,85 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     padding: spacing.lg,
   },
-  recommendationHistoryItem: {
+  recommendationHistoryHeading: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'space-between',
+  },
+  recommendationHistoryList: {
     backgroundColor: colors.surface,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.md,
-    padding: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.04,
-    shadowRadius: 16,
+    overflow: 'hidden',
   },
-  recommendationHistoryItemLoading: {
+  recommendationHistoryItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.lg,
+  },
+  recommendationHistoryDivider: {
+    borderTopColor: colors.borderSubtle,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  recommendationHistoryItemMuted: {
     backgroundColor: colors.surfaceSoft,
-    borderColor: colors.primarySoft,
   },
   recommendationHistoryBody: {
-    gap: spacing.sm,
+    flex: 1,
+    gap: spacing.xs,
   },
   recommendationHistoryHeader: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   recommendationHistoryTitle: {
     color: colors.text,
-    fontSize: 14,
-    fontWeight: '900',
+    flexShrink: 1,
+    fontSize: 16,
+    fontWeight: '800',
   },
   recommendationHistoryMeta: {
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
   },
   recommendationHistoryPreview: {
     color: colors.text,
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '600',
     lineHeight: 18,
   },
   recommendationHistoryBadge: {
-    color: colors.primaryStrong,
+    alignSelf: 'flex-start',
+    backgroundColor: colors.cream,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  recommendationHistoryBadgeText: {
+    color: colors.muted,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '700',
+  },
+  recommendationHistoryChevron: {
+    borderBottomWidth: 1.5,
+    borderColor: colors.muted,
+    borderRightWidth: 1.5,
+    height: 8,
+    marginRight: spacing.xs,
+    transform: [{ rotate: '-45deg' }],
+    width: 8,
+  },
+  recommendationDetailVisit: {
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   creditBalanceCard: {
     backgroundColor: colors.primarySoft,
@@ -7112,9 +7181,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginTop: spacing.xxxl,
-  },
-  sectionHeaderCompact: {
-    marginBottom: spacing.xs,
   },
   sectionTitle: {
     ...typography.section,

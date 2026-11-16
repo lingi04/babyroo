@@ -6,6 +6,7 @@ import {
   defaultRecommendationPolicy,
 } from './recommendationPolicy';
 import type { RecommendationService } from '../RecommendationService';
+import { recommendationVisitRange } from '../visitDates';
 import { parseRecommendationResponse } from './recommendationValidation';
 import type {
   Candidate,
@@ -147,7 +148,7 @@ function prepareCandidates({
   preferences: Preferences;
   recommendationPolicy: RecommendationPolicy;
 }) {
-  const visitWindow = preferenceVisitWindow(preferences);
+  const visitWindow = recommendationVisitRange(preferences.visitWindow, new Date());
 
   return events
     .filter(event => {
@@ -339,27 +340,6 @@ function eventMatchesRegion(
   return event.region !== '서울' && event.region !== '경기';
 }
 
-function preferenceVisitWindow(preferences: Preferences) {
-  const today = new Date();
-
-  if (preferences.visitWindow === 'soon') {
-    return {
-      start: addDays(today, 1),
-      end: addDays(today, 2),
-    };
-  }
-
-  if (preferences.visitWindow === 'this_weekend') {
-    return thisWeekendRange(today);
-  }
-
-  if (preferences.visitWindow === 'next_week') {
-    return nextWeekRange(today);
-  }
-
-  return null;
-}
-
 function eventOverlapsDateRange(
   event: BabyrooEvent,
   range: { start: Date; end: Date },
@@ -471,42 +451,4 @@ function calculateAgeMonths(birthDateValue: string) {
   }
 
   return Math.max(ageMonths, 0);
-}
-
-function addDays(date: Date, days: number) {
-  const nextDate = new Date(date);
-  nextDate.setDate(nextDate.getDate() + days);
-
-  return nextDate;
-}
-
-function thisWeekendRange(referenceDate: Date) {
-  const day = referenceDate.getDay();
-
-  if (day === 5 || day === 6 || day === 0) {
-    return {
-      start: new Date(referenceDate),
-      end: nextWeekday(referenceDate, 0),
-    };
-  }
-
-  return {
-    start: nextWeekday(referenceDate, 6),
-    end: nextWeekday(referenceDate, 0),
-  };
-}
-
-function nextWeekRange(referenceDate: Date) {
-  const nextMonday = nextWeekday(addDays(referenceDate, 1), 1);
-
-  return {
-    start: nextMonday,
-    end: addDays(nextMonday, 6),
-  };
-}
-
-function nextWeekday(referenceDate: Date, weekday: number) {
-  const daysUntilWeekday = (weekday - referenceDate.getDay() + 7) % 7;
-
-  return addDays(referenceDate, daysUntilWeekday);
 }
