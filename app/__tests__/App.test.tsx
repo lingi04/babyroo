@@ -808,10 +808,12 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
       .props.onPress();
   });
 
-  expect(renderer!.root.findByProps({ children: '필터 1' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ children: '필터 편집' })).toBeTruthy();
   expect(
     renderer!.root.findAllByProps({ children: '예정' }).length,
   ).toBeGreaterThan(0);
+
+  await ReactTestRenderer.act(() => renderer!.unmount());
 });
 
 test('uses explore content types to combine events, permanent venues, and Seoul kids cafes', async () => {

@@ -1160,32 +1160,40 @@ function HeaderActions({
   compact?: boolean;
   onOpenSettings: () => void;
 }) {
-  const buttonStyle = compact
-    ? styles.exploreCompactIconButton
-    : styles.mastheadIconButton;
-  const iconStyle = compact
-    ? styles.exploreCompactIconText
-    : styles.mastheadIconText;
+  const buttonStyle = ({ pressed }: { pressed: boolean }) => [
+    styles.mastheadIconButton,
+    compact && styles.exploreCompactIconButton,
+    pressed && styles.outlineControlPressed,
+  ];
+  const hitSlop = compact ? { top: 7, bottom: 7, left: 4, right: 4 } : 3;
 
   return (
     <View style={styles.headerActions}>
       <Pressable
         style={buttonStyle}
+        hitSlop={hitSlop}
         onPress={openFeedbackEmail}
         accessibilityLabel="의견 보내기"
         accessibilityRole="button"
       >
-        <View style={styles.feedbackEnvelope} accessible={false}>
-          <View style={styles.feedbackEnvelopeFlap} />
-        </View>
+        <Image
+          source={require('./assets/icons/header/mail.png')}
+          style={styles.mastheadIcon}
+          accessible={false}
+        />
       </Pressable>
       <Pressable
         style={buttonStyle}
+        hitSlop={hitSlop}
         onPress={onOpenSettings}
         accessibilityLabel="Open user settings"
         accessibilityRole="button"
       >
-        <Text style={iconStyle}>⚙</Text>
+        <Image
+          source={require('./assets/icons/header/settings.png')}
+          style={styles.mastheadIcon}
+          accessible={false}
+        />
       </Pressable>
     </View>
   );
@@ -1847,7 +1855,6 @@ function HomeScreen({
               question={currentRecommendationQuestion}
               questionIndex={recommendationQuestionIndex}
               questionCount={recommendationQuestions.length}
-              tone="dark"
               onAnswer={answerRecommendationQuestion}
               onBack={() =>
                 setRecommendationQuestionIndex(previousIndex =>
@@ -1858,7 +1865,8 @@ function HomeScreen({
               onNext={goToNextRecommendationQuestion}
               nextLabel={
                 returnToConfirmationAfterAnswer ||
-                recommendationQuestionIndex >= recommendationQuestions.length - 1
+                recommendationQuestionIndex >=
+                  recommendationQuestions.length - 1
                   ? '확인하기'
                   : '다음 질문'
               }
@@ -1868,7 +1876,6 @@ function HomeScreen({
               answers={recommendationAnswers}
               creating={creatingRecommendationSession}
               questions={recommendationQuestions}
-              tone="dark"
               onConfirm={() => requestRecommendation(recommendationAnswers)}
               onClose={() => setRecommendationFlowStep('idle')}
               onEditAnswer={editRecommendationAnswer}
@@ -1885,30 +1892,38 @@ function HomeScreen({
               </View>
 
               <Pressable
-                style={styles.recommendationContextRow}
+                style={({ pressed }) => [
+                  styles.recommendationContextRow,
+                  pressed && styles.outlineControlPressed,
+                ]}
                 onPress={onOpenSettings}
                 accessibilityLabel="Edit recommendation children"
+                accessibilityRole="button"
               >
-                <View>
-                  <Text style={styles.recommendationContextLabel}>추천 기준</Text>
+                <View style={styles.recommendationQuestionTitleGroup}>
+                  <Text style={styles.recommendationContextLabel}>
+                    아이 기준
+                  </Text>
                   <Text style={styles.recommendationContextValue}>
                     {formatRecommendationCriteriaSummary(selectedChildren)}
                   </Text>
                 </View>
-                <Text style={styles.recommendationContextAction}>설정</Text>
+                <Text style={styles.recommendationContextAction}>설정 ›</Text>
               </Pressable>
 
               <Pressable
-                style={[
-                  styles.primaryButton,
+                style={({ pressed }) => [
                   styles.recommendationPrimaryButton,
+                  pressed && styles.recommendationPrimaryPressed,
                   creditStatusLoading && styles.buttonDisabled,
                 ]}
                 onPress={startRecommendationInterview}
                 disabled={creditStatusLoading}
                 accessibilityLabel="Request recommendation"
+                accessibilityRole="button"
+                accessibilityState={{ disabled: creditStatusLoading }}
               >
-                <Text style={styles.primaryButtonText}>
+                <Text style={styles.recommendationPrimaryButtonText}>
                   {recommendationCtaLabel}
                 </Text>
               </Pressable>
@@ -1993,7 +2008,6 @@ function RecommendationQuestionCard({
   question,
   questionIndex,
   questionCount,
-  tone = 'light',
   onAnswer,
   onBack,
   onClose,
@@ -2004,7 +2018,6 @@ function RecommendationQuestionCard({
   question: RecommendationQuestion;
   questionIndex: number;
   questionCount: number;
-  tone?: 'light' | 'dark';
   onAnswer: (
     questionId: RecommendationQuestionId,
     value: RecommendationAnswerValue,
@@ -2014,49 +2027,45 @@ function RecommendationQuestionCard({
   onNext?: () => void;
   nextLabel?: string;
 }) {
-  const isDark = tone === 'dark';
   const selectedValue = answers[question.id];
 
   return (
-    <View
-      style={[
-        styles.recommendationQuestionCard,
-        isDark && styles.recommendationQuestionCardInSetup,
-      ]}
-    >
+    <View>
       <View style={styles.recommendationQuestionHeader}>
         <View style={styles.recommendationQuestionTitleGroup}>
-          <Text style={[styles.settingsLabel, isDark && styles.darkCardLabel]}>
+          <Text style={styles.recommendationContextLabel}>
             질문 {questionIndex + 1}/{questionCount}
           </Text>
-          <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
-            {question.prompt}
-          </Text>
+          <Text style={styles.settingsTitle}>{question.prompt}</Text>
         </View>
         <Pressable
           style={styles.recommendationQuestionCloseButton}
           onPress={onClose}
           accessibilityLabel="Close recommendation questions"
         >
-          <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
-            닫기
-          </Text>
+          <Text style={styles.recommendationContextAction}>닫기</Text>
         </Pressable>
       </View>
 
-      <View style={styles.recommendationOptionList}>
+      <View
+        style={styles.recommendationOptionList}
+        accessibilityRole="radiogroup"
+      >
         {question.options.map(option => {
           const selected = option.value === selectedValue;
 
           return (
             <Pressable
               key={option.value}
-              style={[
+              style={({ pressed }) => [
                 styles.recommendationOption,
                 selected && styles.recommendationOptionSelected,
+                pressed && styles.recommendationOptionPressed,
               ]}
               onPress={() => onAnswer(question.id, option.value)}
               accessibilityLabel={`Answer recommendation ${option.label}`}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
             >
               <Text
                 style={[
@@ -2066,6 +2075,17 @@ function RecommendationQuestionCard({
               >
                 {option.label}
               </Text>
+              <View
+                style={[
+                  styles.recommendationRadio,
+                  selected && styles.recommendationRadioSelected,
+                ]}
+                importantForAccessibility="no"
+              >
+                {selected ? (
+                  <View style={styles.recommendationRadioDot} />
+                ) : null}
+              </View>
             </Pressable>
           );
         })}
@@ -2078,17 +2098,16 @@ function RecommendationQuestionCard({
             onPress={onBack}
             accessibilityLabel="Previous recommendation question"
           >
-            <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
-              이전 질문
-            </Text>
+            <Text style={styles.recommendationContextAction}>이전 질문</Text>
           </Pressable>
-        ) : (
-          <View />
-        )}
+        ) : null}
 
         {selectedValue && onNext ? (
           <Pressable
-            style={styles.recommendationNextButton}
+            style={({ pressed }) => [
+              styles.recommendationNextButton,
+              pressed && styles.recommendationPrimaryPressed,
+            ]}
             onPress={onNext}
             accessibilityLabel="Go to next recommendation question"
           >
@@ -2223,15 +2242,12 @@ function DepartureAddressModal({
 function RecommendationAnswerSummary({
   answers,
   questions,
-  tone = 'light',
   onEditAnswer,
 }: {
   answers: RecommendationAnswerMap;
   questions: RecommendationQuestion[];
-  tone?: 'light' | 'dark';
   onEditAnswer?: (questionId: RecommendationQuestionId) => void;
 }) {
-  const isDark = tone === 'dark';
   const answeredQuestions = questions.filter(question =>
     Boolean(answers[question.id]),
   );
@@ -2244,24 +2260,30 @@ function RecommendationAnswerSummary({
     <View
       style={[
         styles.recommendationAnswerSummary,
-        isDark && styles.recommendationAnswerSummaryDark,
+        onEditAnswer && styles.recommendationAnswerSummaryEditable,
       ]}
     >
       <Text
         style={[
           styles.fieldLabel,
           styles.recommendationAnswerSummaryLabel,
-          isDark && styles.darkCardLabel,
+          onEditAnswer && styles.recommendationContextLabel,
         ]}
       >
         선택한 답변
       </Text>
       <View style={styles.recommendationAnswerList}>
-        {answeredQuestions.map(question => (
+        {answeredQuestions.map((question, index) => (
           <Pressable
             key={question.id}
-            style={styles.recommendationAnswerItem}
+            style={({ pressed }) => [
+              styles.recommendationAnswerItem,
+              onEditAnswer && styles.recommendationAnswerItemEditable,
+              onEditAnswer && index > 0 && styles.recommendationAnswerDivider,
+              onEditAnswer && pressed && styles.outlineControlPressed,
+            ]}
             onPress={onEditAnswer ? () => onEditAnswer(question.id) : undefined}
+            accessibilityRole={onEditAnswer ? 'button' : undefined}
             accessibilityLabel={`Edit answer ${recommendationQuestionLabel(
               question,
             )}`}
@@ -2269,7 +2291,7 @@ function RecommendationAnswerSummary({
             <Text
               style={[
                 styles.recommendationAnswerQuestion,
-                isDark && styles.recommendationAnswerQuestionDark,
+                onEditAnswer && styles.recommendationAnswerQuestionEditable,
               ]}
             >
               {recommendationQuestionLabel(question)}
@@ -2277,19 +2299,14 @@ function RecommendationAnswerSummary({
             <Text
               style={[
                 styles.recommendationAnswerValue,
-                isDark && styles.recommendationAnswerValueDark,
+                onEditAnswer && styles.recommendationAnswerValueEditable,
               ]}
             >
               {recommendationAnswerLabel(question, answers[question.id])}
             </Text>
             {onEditAnswer ? (
-              <Text
-                style={[
-                  styles.recommendationAnswerEdit,
-                  isDark && styles.recommendationAnswerEditDark,
-                ]}
-              >
-                수정
+              <Text style={styles.recommendationAnswerEdit} accessible={false}>
+                ›
               </Text>
             ) : null}
           </Pressable>
@@ -2302,7 +2319,6 @@ function RecommendationAnswerSummary({
 function RecommendationConfirmationCard({
   answers,
   creating,
-  tone = 'light',
   onConfirm,
   onClose,
   onEditAnswer,
@@ -2310,57 +2326,46 @@ function RecommendationConfirmationCard({
 }: {
   answers: RecommendationAnswerMap;
   creating: boolean;
-  tone?: 'light' | 'dark';
   onConfirm: () => void;
   onClose: () => void;
   onEditAnswer: (questionId: RecommendationQuestionId) => void;
   questions: RecommendationQuestion[];
 }) {
-  const isDark = tone === 'dark';
-
   return (
-    <View
-      style={[
-        styles.recommendationQuestionCard,
-        isDark && styles.recommendationQuestionCardInSetup,
-      ]}
-    >
+    <View>
       <View style={styles.recommendationQuestionHeader}>
         <View style={styles.recommendationQuestionTitleGroup}>
-          <Text style={[styles.settingsTitle, isDark && styles.darkCardTitle]}>
-            이 조건으로 추천 받을까요?
-          </Text>
+          <Text style={styles.settingsTitle}>이 조건으로 추천 받을까요?</Text>
         </View>
         <Pressable
           style={styles.recommendationQuestionCloseButton}
           onPress={onClose}
           accessibilityLabel="Close recommendation confirmation"
         >
-          <Text style={[styles.linkText, isDark && styles.darkCardLinkText]}>
-            닫기
-          </Text>
+          <Text style={styles.recommendationContextAction}>닫기</Text>
         </Pressable>
       </View>
-      <Text style={[styles.settingsMeta, isDark && styles.darkCardMeta]}>
+      <Text style={styles.settingsMeta}>
         추천 결과가 생성되면 추천권 1회가 사용돼요.
       </Text>
       <RecommendationAnswerSummary
         answers={answers}
         questions={questions}
-        tone={tone}
         onEditAnswer={onEditAnswer}
       />
       <Pressable
-        style={[
-          styles.primaryButton,
-          styles.recommendationConfirmButton,
+        style={({ pressed }) => [
+          styles.recommendationPrimaryButton,
+          pressed && styles.recommendationPrimaryPressed,
           creating && styles.buttonDisabled,
         ]}
         onPress={onConfirm}
         disabled={creating}
         accessibilityLabel="Confirm recommendation request"
+        accessibilityRole="button"
+        accessibilityState={{ disabled: creating, busy: creating }}
       >
-        <Text style={styles.primaryButtonText}>
+        <Text style={styles.recommendationPrimaryButtonText}>
           {creating ? '추천 요청 생성중...' : '추천 받기'}
         </Text>
       </Pressable>
@@ -2956,7 +2961,6 @@ function ExploreScreen({
   const [signingInFromExplore, setSigningInFromExplore] = useState(false);
   const [childFilterSignInPromptOpen, setChildFilterSignInPromptOpen] =
     useState(false);
-  const activeFilterCount = countActiveExploreFilters(filters);
   const filteredEvents = useMemo(
     () => filterEvents(events, searchQuery, filters, selectedChildren),
     [events, filters, searchQuery, selectedChildren],
@@ -3277,6 +3281,8 @@ function ExploreScreen({
                 )
               }
               accessibilityLabel="Toggle exploration controls"
+              accessibilityRole="button"
+              accessibilityState={{ expanded: !exploreControlsCollapsed }}
             >
               <View style={styles.exploreControlsSummaryArea}>
                 <View style={styles.exploreControlsTitleRow}>
@@ -3308,14 +3314,7 @@ function ExploreScreen({
             </Pressable>
 
             {exploreControlsCollapsed ? null : (
-              <>
-                <View
-                  style={[
-                    styles.exploreControlDivider,
-                    styles.exploreControlDividerInMasthead,
-                  ]}
-                />
-
+              <View style={styles.exploreControlsInset}>
                 <View style={styles.exploreControlSection}>
                   <Text
                     style={[
@@ -3340,6 +3339,8 @@ function ExploreScreen({
                             key={child.id}
                             onPress={() => onToggleChild(child.id)}
                             accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected }}
                           >
                             <ChildContextChip
                               child={child}
@@ -3353,7 +3354,9 @@ function ExploreScreen({
                         onPress={onOpenSettings}
                         accessibilityLabel="Add child from settings"
                       >
-                        <Text style={styles.childContextAddIcon}>＋</Text>
+                        <Text style={styles.childContextAddText}>
+                          ＋ 아이 추가
+                        </Text>
                       </Pressable>
                     </ScrollView>
                   ) : (
@@ -3387,12 +3390,7 @@ function ExploreScreen({
                   onSignIn={handleExploreSignIn}
                 />
 
-                <View
-                  style={[
-                    styles.exploreControlDivider,
-                    styles.exploreControlDividerInMasthead,
-                  ]}
-                />
+                <View style={styles.exploreControlDivider} />
 
                 <View
                   style={[
@@ -3406,7 +3404,7 @@ function ExploreScreen({
                       styles.exploreControlLabelInMasthead,
                     ]}
                   >
-                    필터
+                    적용한 필터
                   </Text>
                   <ScrollView
                     horizontal
@@ -3414,23 +3412,18 @@ function ExploreScreen({
                     style={styles.chipRow}
                   >
                     {activeFilterLabels.map(chip => (
-                      <Chip key={chip} label={chip} selected />
+                      <Chip key={chip} label={chip} selected outline />
                     ))}
-                      <Pressable
-                        onPress={onOpenFilter}
-                        accessibilityLabel="Open filters"
-                      >
-                        <Chip
-                          label={
-                            activeFilterCount > 0
-                              ? `필터 ${activeFilterCount}`
-                              : '필터'
-                          }
-                        />
-                      </Pressable>
+                    <Pressable
+                      onPress={onOpenFilter}
+                      accessibilityLabel="Open filters"
+                      accessibilityRole="button"
+                    >
+                      <Chip label="필터 편집" outline />
+                    </Pressable>
                   </ScrollView>
                 </View>
-              </>
+              </View>
             )}
           </Animated.View>
         </Animated.View>
@@ -4739,20 +4732,33 @@ function Chip({
   label,
   selected,
   dense,
+  outline,
 }: {
   label: string;
   selected?: boolean;
   dense?: boolean;
+  outline?: boolean;
 }) {
   return (
     <View
       style={[
         styles.chip,
-        selected && styles.chipSelected,
+        outline && styles.chipOutline,
+        selected &&
+          (outline ? styles.chipOutlineSelected : styles.chipSelected),
         dense && styles.chipDense,
       ]}
     >
-      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+      <Text
+        style={[
+          styles.chipText,
+          outline && styles.chipOutlineText,
+          selected &&
+            (outline
+              ? styles.chipOutlineTextSelected
+              : styles.chipTextSelected),
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -4780,15 +4786,7 @@ function ChildContextChip({
         ]}
         numberOfLines={1}
       >
-        {child.nickname}
-      </Text>
-      <Text
-        style={[
-          styles.childContextAge,
-          selected && styles.childContextAgeSelected,
-        ]}
-      >
-        {formatChildAge(child)}
+        {child.nickname} · {formatChildAge(child)}
       </Text>
     </View>
   );
@@ -5554,10 +5552,6 @@ function eventMatchesReservationFilter(
   return event.reservationRequired === false;
 }
 
-function countActiveExploreFilters(filters: ExploreFilters) {
-  return getActiveExploreFilterLabels(filters).length;
-}
-
 function getActiveExploreFilterLabels(filters: ExploreFilters) {
   const labels: string[] = [];
 
@@ -6187,8 +6181,8 @@ const styles = StyleSheet.create({
   },
   exploreCompactHeader: {
     alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderColor: 'rgba(232, 94, 37, 0.12)',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
@@ -6222,18 +6216,8 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   exploreCompactIconButton: {
-    alignItems: 'center',
-    backgroundColor: colors.foreground,
-    borderRadius: radius.pill,
-    flexShrink: 0,
     height: 34,
-    justifyContent: 'center',
     width: 34,
-  },
-  exploreCompactIconText: {
-    color: colors.inverseText,
-    fontSize: 15,
-    fontWeight: '900',
   },
   exploreList: {
     flex: 1,
@@ -6292,41 +6276,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerActions: {
+    alignItems: 'center',
     flexDirection: 'row',
     flexShrink: 0,
     gap: spacing.sm,
-  },
-  feedbackEnvelope: {
-    alignItems: 'center',
-    width: 18,
-    height: 13,
-    borderWidth: 2,
-    borderColor: colors.inverseText,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  feedbackEnvelopeFlap: {
-    position: 'absolute',
-    top: -4,
-    width: 10,
-    height: 10,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
-    borderColor: colors.inverseText,
-    transform: [{ rotate: '45deg' }],
+    minHeight: layout.touchTarget,
   },
   mastheadIconButton: {
     alignItems: 'center',
-    backgroundColor: colors.foreground,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderRadius: radius.pill,
+    borderWidth: 1,
+    flexShrink: 0,
     height: 42,
     justifyContent: 'center',
     width: 42,
   },
-  mastheadIconText: {
-    color: colors.inverseText,
-    fontSize: 17,
-    fontWeight: '900',
+  outlineControlPressed: {
+    backgroundColor: colors.surfaceRaised,
+  },
+  mastheadIcon: {
+    height: 20,
+    width: 20,
   },
   exploreTopHeader: {
     alignItems: 'center',
@@ -6365,12 +6337,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   exploreMasthead: {
-    backgroundColor: colors.primarySoft,
-    borderColor: 'rgba(232, 94, 37, 0.12)',
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: radius.xxxl,
+    borderRadius: radius.lg,
     marginTop: spacing.lg,
-    padding: spacing.xl,
+    padding: spacing.lg,
   },
   eyebrow: {
     ...typography.caption,
@@ -6403,13 +6375,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   recommendationSetupCard: {
-    backgroundColor: colors.primarySoft,
-    borderColor: 'rgba(232, 94, 37, 0.12)',
-    borderRadius: radius.xxl,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
     borderWidth: 1,
     marginTop: spacing.lg,
     padding: layout.cardPadding,
-    ...shadows.elevated,
   },
   recommendationSetupTitle: {
     ...typography.title,
@@ -6423,11 +6394,10 @@ const styles = StyleSheet.create({
   },
   recommendationContextRow: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: 'rgba(232, 94, 37, 0.16)',
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.md,
     flexDirection: 'row',
+    gap: spacing.sm,
     justifyContent: 'space-between',
     marginTop: spacing.lg,
     minHeight: 58,
@@ -6436,7 +6406,7 @@ const styles = StyleSheet.create({
   },
   recommendationContextLabel: {
     ...typography.caption,
-    color: colors.primaryStrong,
+    color: colors.muted,
   },
   recommendationContextValue: {
     color: colors.text,
@@ -6452,34 +6422,29 @@ const styles = StyleSheet.create({
   },
   creditStatusTextLinkText: {
     ...typography.caption,
-    color: colors.primaryStrong,
+    color: colors.coralText,
   },
   recommendationContextAction: {
     ...typography.caption,
-    color: colors.primaryStrong,
+    color: colors.coralText,
   },
   recommendationPrimaryButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    justifyContent: 'center',
     marginTop: spacing.lg,
+    minHeight: layout.touchTarget,
+    padding: spacing.md,
   },
-  recommendationConfirmButton: {
-    marginTop: spacing.lg,
+  recommendationPrimaryPressed: {
+    backgroundColor: colors.primaryStrong,
   },
-  recommendationQuestionCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    marginTop: spacing.lg,
-    padding: layout.cardPadding,
-    ...shadows.card,
-  },
-  recommendationQuestionCardInSetup: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    marginTop: 0,
-    padding: 0,
-    shadowOpacity: 0,
-    elevation: 0,
+  recommendationPrimaryButtonText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '900',
+    textAlign: 'center',
   },
   recommendationQuestionHeader: {
     alignItems: 'flex-start',
@@ -6501,60 +6466,78 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   recommendationOption: {
-    backgroundColor: colors.cream,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    alignItems: 'center',
+    borderColor: 'transparent',
+    borderRadius: radius.md,
     borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.md,
     minHeight: 48,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   recommendationOptionSelected: {
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
+    backgroundColor: colors.surfaceSoft,
+    borderColor: colors.coralText,
+  },
+  recommendationOptionPressed: {
+    backgroundColor: colors.surfaceRaised,
   },
   recommendationOptionText: {
     color: colors.text,
+    flexShrink: 1,
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '700',
   },
   recommendationOptionTextSelected: {
-    color: colors.primaryStrong,
+    color: colors.coralText,
   },
-  darkCardLabel: {
-    color: colors.primaryStrong,
+  recommendationRadio: {
+    alignItems: 'center',
+    borderColor: colors.subtleText,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: 16,
+    justifyContent: 'center',
+    width: 16,
   },
-  darkCardTitle: {
-    color: colors.text,
+  recommendationRadioSelected: {
+    borderColor: colors.coralText,
   },
-  darkCardMeta: {
-    color: colors.muted,
-  },
-  darkCardLinkText: {
-    color: colors.primaryStrong,
+  recommendationRadioDot: {
+    backgroundColor: colors.coralText,
+    borderRadius: radius.pill,
+    height: 8,
+    width: 8,
   },
   recommendationQuestionActions: {
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     justifyContent: 'space-between',
     marginTop: spacing.md,
   },
   recommendationBackButton: {
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
+    minHeight: layout.touchTarget,
   },
   recommendationNextButton: {
     alignItems: 'center',
     backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    minHeight: 38,
+    borderRadius: radius.md,
+    marginLeft: 'auto',
+    minHeight: layout.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   recommendationNextButtonText: {
-    color: colors.inverseText,
+    color: colors.text,
     fontSize: 13,
     fontWeight: '900',
+    textAlign: 'center',
   },
   recommendationAnswerSummary: {
     backgroundColor: colors.surfaceRaised,
@@ -6564,10 +6547,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
     padding: spacing.sm,
   },
-  recommendationAnswerSummaryDark: {
-    backgroundColor: colors.surface,
-    borderColor: 'rgba(232, 94, 37, 0.16)',
-    marginTop: spacing.xs,
+  recommendationAnswerSummaryEditable: {
+    backgroundColor: colors.surfaceSoft,
+    borderWidth: 0,
+    padding: spacing.md,
   },
   recommendationAnswerSummaryLabel: {
     marginBottom: spacing.xs,
@@ -6583,13 +6566,24 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     justifyContent: 'space-between',
   },
+  recommendationAnswerItemEditable: {
+    gap: spacing.sm,
+    minHeight: layout.touchTarget,
+    paddingVertical: spacing.xs,
+  },
+  recommendationAnswerDivider: {
+    borderTopColor: colors.borderSubtle,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
   recommendationAnswerQuestion: {
     color: colors.muted,
     fontSize: 11,
     fontWeight: '800',
   },
-  recommendationAnswerQuestionDark: {
-    color: colors.muted,
+  recommendationAnswerQuestionEditable: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
   },
   recommendationAnswerValue: {
     color: colors.text,
@@ -6598,17 +6592,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'right',
   },
-  recommendationAnswerValueDark: {
-    color: colors.text,
+  recommendationAnswerValueEditable: {
+    color: colors.coralText,
+    flex: 2,
+    fontWeight: '700',
   },
   recommendationAnswerEdit: {
-    color: colors.primary,
+    color: colors.coralText,
     flexShrink: 0,
-    fontSize: 11,
+    fontSize: 16,
     fontWeight: '900',
-  },
-  recommendationAnswerEditDark: {
-    color: colors.primaryStrong,
   },
   recommendationDebugPrompt: {
     backgroundColor: colors.text,
@@ -7167,6 +7160,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.foreground,
     borderColor: colors.foreground,
   },
+  chipOutline: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    minHeight: layout.touchTarget,
+  },
+  chipOutlineSelected: {
+    borderColor: colors.coralText,
+  },
   chipDense: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
@@ -7178,6 +7181,13 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: colors.inverseText,
+  },
+  chipOutlineText: {
+    color: colors.text,
+    fontWeight: '700',
+  },
+  chipOutlineTextSelected: {
+    color: colors.coralText,
   },
   sectionHeader: {
     marginTop: spacing.xxxl,
@@ -7260,7 +7270,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
     justifyContent: 'space-between',
-    minHeight: 32,
+    minHeight: layout.touchTarget,
+  },
+  exploreControlsInset: {
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
   },
   exploreControlsSummaryArea: {
     flex: 1,
@@ -7312,9 +7328,9 @@ const styles = StyleSheet.create({
   },
   exploreControlsChevronButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.56)',
-    borderColor: 'rgba(232, 94, 37, 0.16)',
-    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     borderWidth: 1,
     flexShrink: 0,
     height: 34,
@@ -7322,9 +7338,9 @@ const styles = StyleSheet.create({
     width: 34,
   },
   exploreControlsChevronGlyph: {
-    borderBottomColor: colors.primaryStrong,
+    borderBottomColor: colors.text,
     borderBottomWidth: 2,
-    borderRightColor: colors.primaryStrong,
+    borderRightColor: colors.text,
     borderRightWidth: 2,
     height: 9,
     width: 9,
@@ -7348,15 +7364,12 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: spacing.md,
   },
-  exploreControlDividerInMasthead: {
-    backgroundColor: 'rgba(232, 94, 37, 0.16)',
-  },
   exploreControlLabel: {
     ...typography.caption,
     color: colors.muted,
   },
   exploreControlLabelInMasthead: {
-    color: colors.primaryStrong,
+    color: colors.text,
   },
   childChipRow: {
     marginHorizontal: -spacing.md,
@@ -7368,24 +7381,23 @@ const styles = StyleSheet.create({
   },
   exploreChildFilterAddBox: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.34)',
-    borderColor: 'rgba(232, 94, 37, 0.34)',
-    borderRadius: radius.lg,
-    borderStyle: 'dashed',
-    borderWidth: 2,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
     justifyContent: 'center',
     marginTop: spacing.sm,
     minHeight: 72,
     padding: spacing.md,
   },
   exploreChildFilterAddIcon: {
-    color: colors.primaryStrong,
+    color: colors.text,
     fontSize: 26,
     fontWeight: '900',
     lineHeight: 30,
   },
   exploreChildFilterAddText: {
-    color: colors.primaryStrong,
+    color: colors.text,
     fontSize: 12,
     fontWeight: '900',
     lineHeight: 16,
@@ -7431,54 +7443,44 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   childContextChip: {
-    backgroundColor: colors.cream,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     borderWidth: 1,
+    justifyContent: 'center',
     marginRight: spacing.sm,
     minWidth: 92,
+    minHeight: layout.touchTarget,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   childContextChipSelected: {
-    backgroundColor: colors.foreground,
-    borderColor: colors.foreground,
+    borderColor: colors.coralText,
   },
   childContextAddButton: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.42)',
-    borderColor: 'rgba(232, 94, 37, 0.34)',
-    borderRadius: radius.lg,
-    borderStyle: 'dashed',
-    borderWidth: 2,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    borderWidth: 1,
     justifyContent: 'center',
     marginRight: spacing.sm,
-    minHeight: 56,
-    width: 56,
+    minHeight: layout.touchTarget,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  childContextAddIcon: {
-    color: colors.primaryStrong,
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 28,
+  childContextAddText: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: '700',
   },
   childContextName: {
     color: colors.text,
-    fontSize: 13,
-    fontWeight: '900',
-    maxWidth: 116,
+    fontSize: 12,
+    fontWeight: '700',
   },
   childContextNameSelected: {
-    color: colors.inverseText,
-  },
-  childContextAge: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  childContextAgeSelected: {
-    color: colors.inverseMuted,
+    color: colors.coralText,
   },
   noResultsCard: {
     backgroundColor: colors.surface,
