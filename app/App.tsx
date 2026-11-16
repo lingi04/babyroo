@@ -3211,35 +3211,41 @@ function ExploreScreen({
                       flexBasis:
                         eventTypeAvailableWidth * option.widthWeight / 3.4,
                     },
-                    stackEventTypeContent && styles.eventTypeOptionStacked,
-                    selected && styles.eventTypeOptionSelected,
                   ]}
                   onPress={() => onToggleEventType(option.value)}
                   accessibilityRole="button"
                   accessibilityLabel={`Toggle explore event type ${option.label}`}
                   accessibilityState={{ selected }}
                 >
-                  <Image
-                    source={option.icon}
+                  <View
                     style={[
-                      styles.eventTypeIcon,
-                      width >= 390 && styles.eventTypeIconLarge,
-                      selected && styles.eventTypeIconSelected,
+                      styles.eventTypeOptionContent,
+                      stackEventTypeContent && styles.eventTypeOptionStacked,
+                      selected && styles.eventTypeOptionSelected,
                     ]}
-                    accessible={false}
-                    importantForAccessibility="no"
-                  />
-                  <Text
-                    style={[
-                      styles.eventTypeLabel,
-                      selected && styles.eventTypeLabelSelected,
-                    ]}
-                    numberOfLines={fontScale > 1 ? undefined : 2}
-                    lineBreakStrategyIOS="hangul-word"
-                    textBreakStrategy="highQuality"
                   >
-                    {option.label}
-                  </Text>
+                    <Image
+                      source={option.icon}
+                      style={[
+                        styles.eventTypeIcon,
+                        width >= 390 && styles.eventTypeIconLarge,
+                        selected && styles.eventTypeIconSelected,
+                      ]}
+                      accessible={false}
+                      importantForAccessibility="no"
+                    />
+                    <Text
+                      style={[
+                        styles.eventTypeLabel,
+                        selected && styles.eventTypeLabelSelected,
+                      ]}
+                      numberOfLines={fontScale > 1 ? undefined : 2}
+                      lineBreakStrategyIOS="hangul-word"
+                      textBreakStrategy="highQuality"
+                    >
+                      {option.label}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -7128,22 +7134,27 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   eventTypeOption: {
+    minHeight: layout.touchTarget,
+    minWidth: 0,
+    paddingVertical: spacing.xs,
+  },
+  eventTypeOptionContent: {
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: radius.md,
     borderWidth: 1,
+    flexGrow: 1,
     flexDirection: 'row',
     gap: 6,
-    minHeight: layout.touchTarget,
+    minHeight: 40,
     justifyContent: 'center',
     minWidth: 0,
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
+    paddingVertical: 6,
   },
   eventTypeOptionSelected: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primaryStrong,
+    borderColor: colors.coralText,
   },
   eventTypeOptionStacked: {
     flexDirection: 'column',

@@ -2,6 +2,30 @@
 
 ## Status and agreed direction
 
+The latest approved revision is the orange-outline sample, chosen by the user
+after comparing two rendered alternatives. It supersedes the peach selected
+background described in the initial design below.
+
+### Orange-outline refinement
+
+- Selected badge background is `#FFFFFF`. Border, icon, and label are `#A74619`.
+- Unselected background is `#FFFFFF`, border is `rgba(0, 0, 0, 0.12)`, and icon
+  and label are `#000000`.
+- At standard text size and widths 360 or greater, the visible badge height is
+  40 logical units. The outer Pressable retains a 48-unit minimum touch height,
+  with 4 units of transparent vertical padding above and below the visible badge.
+- The inner badge has 6-unit vertical padding, 8-unit horizontal padding,
+  a 1-unit border, and a 12-unit corner radius. Labels stay at 12/16 with weight
+  700. Icon sizes remain 16 below width 390 and 20 at width 390 and above.
+- Inner badges stretch equally and grow with wrapped or enlarged text. The
+  existing stacked layout applies below width 360 or font scale above 1.0.
+- The full-screen composite is updated to show this revision. It uses the saved
+  surrounding screen and substitute-font labels. Device rendering remains pending.
+- TypeScript, repository ESLint, and Git whitespace checks passed. Reviewed the
+  updated full-screen composite for badge height, readable labels, icon alignment,
+  and separation from the peach filter panel. Content uses automatic flex basis
+  so enlarged text can increase badge and header height.
+
 Approved by the user with “Proceed with implementation”. Implementation and
 preview review completed. Running-app visual verification remains pending.
 
