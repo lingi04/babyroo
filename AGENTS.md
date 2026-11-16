@@ -19,6 +19,16 @@
 - When a model change would materially help, suggest it briefly at a natural stage boundary and continue authorized work with the active model unless the user asks to pause.
 - Keep tool output and reports focused on the task. Reuse relevant context and avoid repeating checks unless changes or failures justify them.
 
+## Design quality and visual review
+
+- Take responsibility for reviewing whether UI changes look aesthetically polished and are intuitively understandable to a person using the app. Perform this review proactively without waiting for the user to request it.
+- Evaluate visual balance, spacing, alignment, typography, contrast, and consistency with the surrounding interface. For icons, also check recognizability, stroke weight, and optical size as a set.
+- Assess whether the intended users can understand each symbol and action in context. Choose familiar visual conventions and use labels where they help comprehension.
+- Inspect rendered UI at its actual display size in the surrounding screen, including relevant selected, unselected, and interaction states. Use a simulator, device, screenshot, or faithful preview, and distinguish previews from the running app when reporting results.
+- Fix visual and comprehension issues found during review within the approved scope, then inspect the revised result again before delivery.
+- Include visual quality and intuitive meaning in acceptance criteria for design work. Provide a screenshot or preview when available and briefly report what was visually checked.
+- If rendering is blocked, make a useful preview when feasible and clearly state any remaining visual verification gap. Keep visual approval pending until the rendered result has been inspected.
+
 ## Development workflow
 
 Follow this workflow for development tasks unless the user explicitly requests another approach.

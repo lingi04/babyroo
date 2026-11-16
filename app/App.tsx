@@ -17,6 +17,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import DateTimePicker, {
@@ -136,20 +137,29 @@ const exploreEventTypeOptions: Array<{
   value: ExploreEventType;
   label: string;
   summaryLabel: string;
-  icon: string;
+  icon: number;
+  widthWeight: number;
 }> = [
-  { value: 'limitedEvent', label: '이벤트', summaryLabel: '이벤트', icon: 'E' },
+  {
+    value: 'limitedEvent',
+    label: '이벤트',
+    summaryLabel: '이벤트',
+    icon: require('./assets/icons/explore/ticket.png'),
+    widthWeight: 0.85,
+  },
   {
     value: 'permanentVenue',
     label: '상설 전시',
     summaryLabel: '상설 전시',
-    icon: '상',
+    icon: require('./assets/icons/explore/landmark.png'),
+    widthWeight: 1.05,
   },
   {
     value: 'seoulKidsCafe',
     label: '서울형 키즈카페',
     summaryLabel: '키즈카페',
-    icon: '키',
+    icon: require('./assets/icons/explore/blocks.png'),
+    widthWeight: 1.5,
   },
 ];
 
@@ -2915,6 +2925,10 @@ function ExploreScreen({
   onToggleChild: (childId: string) => void;
   bottomInset: number;
 }) {
+  const { width, fontScale } = useWindowDimensions();
+  const eventTypeAvailableWidth =
+    width - 2 * layout.screenPadding - 2 * spacing.sm;
+  const stackEventTypeContent = width < 360 || fontScale > 1;
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const childrenByAge = sortChildrenByAge(user.children);
   const searchQuery = '';
@@ -3193,32 +3207,36 @@ function ExploreScreen({
                   key={option.value}
                   style={[
                     styles.eventTypeOption,
+                    {
+                      flexBasis:
+                        eventTypeAvailableWidth * option.widthWeight / 3.4,
+                    },
+                    stackEventTypeContent && styles.eventTypeOptionStacked,
                     selected && styles.eventTypeOptionSelected,
                   ]}
                   onPress={() => onToggleEventType(option.value)}
+                  accessibilityRole="button"
                   accessibilityLabel={`Toggle explore event type ${option.label}`}
+                  accessibilityState={{ selected }}
                 >
-                  <View
+                  <Image
+                    source={option.icon}
                     style={[
                       styles.eventTypeIcon,
+                      width >= 390 && styles.eventTypeIconLarge,
                       selected && styles.eventTypeIconSelected,
                     ]}
-                  >
-                    <Text
-                      style={[
-                        styles.eventTypeIconText,
-                        selected && styles.eventTypeIconTextSelected,
-                      ]}
-                    >
-                      {option.icon}
-                    </Text>
-                  </View>
+                    accessible={false}
+                    importantForAccessibility="no"
+                  />
                   <Text
                     style={[
                       styles.eventTypeLabel,
                       selected && styles.eventTypeLabelSelected,
                     ]}
-                    numberOfLines={2}
+                    numberOfLines={fontScale > 1 ? undefined : 2}
+                    lineBreakStrategyIOS="hangul-word"
+                    textBreakStrategy="highQuality"
                   >
                     {option.label}
                   </Text>
@@ -7102,7 +7120,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   eventTypeSelector: {
-    alignItems: 'center',
+    alignItems: 'stretch',
     backgroundColor: 'transparent',
     borderRadius: radius.lg,
     flexDirection: 'row',
@@ -7111,55 +7129,48 @@ const styles = StyleSheet.create({
   },
   eventTypeOption: {
     alignItems: 'center',
-    backgroundColor: colors.cream,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     borderWidth: 1,
-    flex: 1,
     flexDirection: 'row',
-    gap: spacing.xs,
-    height: 44,
+    gap: 6,
+    minHeight: layout.touchTarget,
     justifyContent: 'center',
     minWidth: 0,
-    paddingHorizontal: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
   },
   eventTypeOptionSelected: {
-    backgroundColor: colors.foreground,
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primaryStrong,
+  },
+  eventTypeOptionStacked: {
+    flexDirection: 'column',
   },
   eventTypeIcon: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.pill,
-    borderWidth: 1,
     flexShrink: 0,
-    height: 22,
-    justifyContent: 'center',
-    width: 22,
+    height: 16,
+    width: 16,
+    tintColor: colors.text,
   },
   eventTypeIconSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    tintColor: colors.coralText,
   },
-  eventTypeIconText: {
-    color: colors.primary,
-    fontSize: 10,
-    fontWeight: '900',
-    lineHeight: 13,
-  },
-  eventTypeIconTextSelected: {
-    color: colors.inverseText,
+  eventTypeIconLarge: {
+    height: 20,
+    width: 20,
   },
   eventTypeLabel: {
     color: colors.text,
     flexShrink: 1,
     fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '900',
+    lineHeight: 16,
+    fontWeight: '700',
     textAlign: 'center',
   },
   eventTypeLabelSelected: {
-    color: colors.inverseText,
+    color: colors.coralText,
   },
   resultCount: {
     color: colors.muted,
