@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { getDatabaseUrl } from '../../../../common/database-url';
+import { getPrismaClient } from '../../../../common/prisma-client';
 import {
   Prisma,
-  PrismaClient,
   RecommendationSession as PrismaRecommendationSession,
 } from '../../../../generated/prisma/client';
 import { RecommendationSessionRepositoryPort } from '../../application/ports/out/recommendation-session-repository.port';
@@ -20,11 +18,7 @@ import { Child } from '../../../users/domain/user.entity';
 export class PrismaRecommendationSessionRepository
   implements RecommendationSessionRepositoryPort
 {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
 
   async create(session: RecommendationSession): Promise<RecommendationSession> {
     const createdSession = await this.prisma.recommendationSession.create({

@@ -24,7 +24,7 @@ const ALLOWED_IMAGE_TYPES = new Map([
   ['image/png', 'png'],
   ['image/webp', 'webp'],
 ]);
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
 
 @Controller('admin/uploads')
 @UseGuards(AdminAuthGuard)
@@ -43,7 +43,7 @@ export class AdminUploadsController {
       throw new BadRequestException('Only jpeg, png, and webp images are allowed');
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      throw new BadRequestException('Image must be 5MB or smaller');
+      throw new BadRequestException('Image must be 4MB or smaller');
     }
 
     const ownerId = this.safePathSegment(eventId || tempId || createId('temp'));

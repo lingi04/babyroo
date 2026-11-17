@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { getDatabaseUrl } from '../../../../common/database-url';
 import { createId } from '../../../../common/id';
-import { Prisma, PrismaClient } from '../../../../generated/prisma/client';
+import { getPrismaClient } from '../../../../common/prisma-client';
+import { Prisma } from '../../../../generated/prisma/client';
 import {
   Child,
   CreateChildInput,
@@ -20,11 +19,7 @@ type UserWithChildren = Prisma.UserGetPayload<{
 
 @Injectable()
 export class PrismaUserRepository implements UserRepositoryPort {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
 
   async upsertFromAuth(input: UpsertUserInput): Promise<User> {
     const user = await this.prisma.user.upsert({

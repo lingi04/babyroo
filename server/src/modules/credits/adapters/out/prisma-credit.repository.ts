@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
 import { ApplicationError } from '../../../../common/application-error';
-import { getDatabaseUrl } from '../../../../common/database-url';
 import { createId } from '../../../../common/id';
+import { getPrismaClient } from '../../../../common/prisma-client';
 import {
   GooglePlayPurchase as PrismaGooglePlayPurchase,
   CreditLedgerEntry as PrismaCreditLedgerEntry,
   Prisma,
-  PrismaClient,
 } from '../../../../generated/prisma/client';
 import { CreditRepositoryPort } from '../../application/ports/out/credit-repository.port';
 import {
@@ -19,11 +17,7 @@ import {
 
 @Injectable()
 export class PrismaCreditRepository implements CreditRepositoryPort {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
 
   private readonly defaultStartingCredits = Number(
     process.env.DEFAULT_RECOMMENDATION_CREDITS ?? 3,

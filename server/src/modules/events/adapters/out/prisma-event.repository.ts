@@ -1,20 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
-import { getDatabaseUrl } from '../../../../common/database-url';
 import { debugLog } from '../../../../common/debug-log';
-import { Event as PrismaEvent, PrismaClient } from '../../../../generated/prisma/client';
+import { getPrismaClient } from '../../../../common/prisma-client';
+import { Event as PrismaEvent } from '../../../../generated/prisma/client';
 import { EventRepositoryPort } from '../../application/ports/out/event-repository.port';
 import { BabyrooEvent, ReservationStatus } from '../../domain/event.entity';
 
+const EVENT_LIST_CACHE_TTL_MS = 60_000;
+
 @Injectable()
 export class PrismaEventRepository implements EventRepositoryPort {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
+  private cachedEventList:
+    | {
+        expiresAt: number;
+        events: BabyrooEvent[];
+      }
+    | undefined;
 
   async list(): Promise<BabyrooEvent[]> {
+    const now = Date.now();
+
+    if (this.cachedEventList && this.cachedEventList.expiresAt > now) {
+      debugLog('events.repository.loadedFromCache', {
+        count: this.cachedEventList.events.length,
+        expiresInMs: this.cachedEventList.expiresAt - now,
+      });
+      return this.cachedEventList.events;
+    }
+
     const events = await this.prisma.event.findMany({
       orderBy: {
         csvSequence: 'asc',
@@ -25,7 +38,13 @@ export class PrismaEventRepository implements EventRepositoryPort {
       count: events.length,
     });
 
-    return events.map(event => this.toDomainEvent(event));
+    const mappedEvents = events.map(event => this.toDomainEvent(event));
+    this.cachedEventList = {
+      events: mappedEvents,
+      expiresAt: Date.now() + EVENT_LIST_CACHE_TTL_MS,
+    };
+
+    return mappedEvents;
   }
 
   async findById(id: string): Promise<BabyrooEvent | null> {

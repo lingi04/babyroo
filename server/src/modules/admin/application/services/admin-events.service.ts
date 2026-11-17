@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
 import { createId } from '../../../../common/id';
-import { getDatabaseUrl } from '../../../../common/database-url';
 import { debugLog } from '../../../../common/debug-log';
-import { Event, Prisma, PrismaClient } from '../../../../generated/prisma/client';
+import { getPrismaClient } from '../../../../common/prisma-client';
+import { Event, Prisma } from '../../../../generated/prisma/client';
 import { PublicationStatus, ReservationStatus } from '../../../events/domain/event.entity';
 
 export type AdminEventListQuery = Partial<{
@@ -104,11 +103,7 @@ const CATEGORIES = [
 
 @Injectable()
 export class AdminEventsService {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
 
   async list(query: AdminEventListQuery) {
     const limit = Math.min(Number(query.limit ?? 50), 100);

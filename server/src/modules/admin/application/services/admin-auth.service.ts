@@ -1,19 +1,13 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { PrismaNeon } from '@prisma/adapter-neon';
 import { issueAuthToken } from '../../../../common/auth-token';
-import { getDatabaseUrl } from '../../../../common/database-url';
 import { debugLog } from '../../../../common/debug-log';
 import { verifyGoogleIdToken } from '../../../../common/google-id-token';
-import { PrismaClient } from '../../../../generated/prisma/client';
+import { getPrismaClient } from '../../../../common/prisma-client';
 import type { AdminGoogleLoginInput } from '../../adapters/in/admin-auth.controller';
 
 @Injectable()
 export class AdminAuthService {
-  private readonly prisma = new PrismaClient({
-    adapter: new PrismaNeon({
-      connectionString: getDatabaseUrl() ?? '',
-    }),
-  });
+  private readonly prisma = getPrismaClient();
 
   async loginWithGoogle(input: AdminGoogleLoginInput) {
     const googleIdentity = await verifyGoogleIdToken(input.idToken);
