@@ -6165,6 +6165,7 @@ const styles = StyleSheet.create({
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   exploreRoot: {
+    backgroundColor: colors.exploreResultsBackground,
     flex: 1,
   },
   exploreFixedHeader: {
@@ -6181,8 +6182,8 @@ const styles = StyleSheet.create({
   },
   exploreCompactHeader: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.explorePanel,
+    borderColor: colors.explorePanelBorder,
     borderRadius: radius.lg,
     borderWidth: 1,
     flexDirection: 'row',
@@ -6337,8 +6338,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   exploreMasthead: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.explorePanel,
+    borderColor: colors.explorePanelBorder,
     borderWidth: 1,
     borderRadius: radius.lg,
     marginTop: spacing.lg,
@@ -7273,7 +7274,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   exploreControlsInset: {
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     marginTop: spacing.md,
     padding: spacing.md,
