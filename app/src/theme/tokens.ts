@@ -16,6 +16,7 @@ export const colors = {
   explorePanel: '#FFF0E7',
   explorePanelBorder: '#EAC5B0',
   exploreResultsBackground: '#FAF1EA',
+  exploreSelectedLabel: '#C0430D',
   foreground: '#000000',
   foregroundSoft: '#171717',
   cream: '#F3EDE8',

@@ -7169,7 +7169,7 @@ const styles = StyleSheet.create({
     minHeight: layout.touchTarget,
   },
   chipOutlineSelected: {
-    borderColor: colors.coralText,
+    borderColor: colors.primaryStrong,
   },
   chipDense: {
     paddingHorizontal: spacing.sm,
@@ -7188,7 +7188,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   chipOutlineTextSelected: {
-    color: colors.coralText,
+    color: colors.exploreSelectedLabel,
   },
   sectionHeader: {
     marginTop: spacing.xxxl,
@@ -7231,7 +7231,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   eventTypeOptionSelected: {
-    borderColor: colors.coralText,
+    borderColor: colors.primaryStrong,
   },
   eventTypeOptionStacked: {
     flexDirection: 'column',
@@ -7243,7 +7243,7 @@ const styles = StyleSheet.create({
     tintColor: colors.text,
   },
   eventTypeIconSelected: {
-    tintColor: colors.coralText,
+    tintColor: colors.primaryStrong,
   },
   eventTypeIconLarge: {
     height: 20,
@@ -7258,7 +7258,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   eventTypeLabelSelected: {
-    color: colors.coralText,
+    color: colors.exploreSelectedLabel,
   },
   resultCount: {
     color: colors.muted,
@@ -7456,7 +7456,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   childContextChipSelected: {
-    borderColor: colors.coralText,
+    borderColor: colors.primaryStrong,
   },
   childContextAddButton: {
     alignItems: 'center',
@@ -7481,7 +7481,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   childContextNameSelected: {
-    color: colors.coralText,
+    color: colors.exploreSelectedLabel,
   },
   noResultsCard: {
     backgroundColor: colors.surface,
