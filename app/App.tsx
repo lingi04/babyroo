@@ -1028,6 +1028,7 @@ function BabyrooApp() {
             <EventDetail
               event={selectedEvent}
               bottomInset={bottomInset}
+              topInset={topInset}
               onBack={closeDetail}
             />
           ) : null}
@@ -3614,15 +3615,34 @@ function ChildFilterSignInPrompt({
   );
 }
 
-function EventDetail({
+export function EventDetail({
   event,
   bottomInset,
+  topInset,
   onBack,
 }: {
   event: BabyrooEvent;
   bottomInset: number;
+  topInset: number;
   onBack: () => void;
 }) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string>();
+  const { width, fontScale } = useWindowDimensions();
+  const [detailWidth, setDetailWidth] = useState(width);
+  const heroWidth = Math.max(0, detailWidth - spacing.xl * 2);
+  const heroSize = { width: heroWidth, height: heroWidth / 2.3 };
+  const singleColumn = width < 350 || fontScale >= 1.4;
+  const location = [event.region, event.locality].filter(Boolean).join(' ');
+  const dates = [event.startsAt, event.endsAt].filter(Boolean).join(' – ');
+  const hasAge = event.ageMinMonths != null || event.ageMaxMonths != null;
+  const reservation =
+    event.reservationStatus === 'closed'
+      ? '예약 마감'
+      : event.reservationStatus === 'limited'
+      ? '예약 필요 · 제한'
+      : event.reservationRequired == null
+      ? ''
+      : formatReservation(event);
   const openSourceUrl = () => {
     Linking.openURL(event.sourceUrl).catch(() => {
       Alert.alert('페이지를 열 수 없어요', '잠시 후 다시 시도해 주세요.');
@@ -3630,20 +3650,39 @@ function EventDetail({
   };
 
   return (
-    <View style={styles.detailRoot}>
+    <View
+      style={[styles.detailRoot, { paddingTop: topInset }]}
+      onLayout={layoutEvent =>
+        setDetailWidth(layoutEvent.nativeEvent.layout.width)
+      }
+    >
+      <View style={styles.detailHeader}>
+        <Pressable
+          style={styles.backButton}
+          onPress={onBack}
+          accessibilityLabel="Go back"
+          accessibilityRole="button"
+        >
+          <Image source={detailIcons.back} style={styles.detailBackIcon} />
+        </Pressable>
+        <Text style={styles.detailHeaderTitle} accessibilityRole="header">
+          장소 상세
+        </Text>
+      </View>
       <ScrollView
         contentContainerStyle={[
           styles.detailContent,
           detailContentBottomPadding(bottomInset),
         ]}
       >
-        <View style={styles.detailHero}>
-          {event.imageUrl ? (
+        <View style={[styles.detailHero, heroSize]}>
+          {event.imageUrl && failedImageUrl !== event.imageUrl ? (
             <Image
               source={{ uri: event.imageUrl }}
               resizeMode="cover"
-              style={styles.detailHeroImage}
+              style={[styles.detailHeroImage, heroSize]}
               accessibilityIgnoresInvertColors
+              onError={() => setFailedImageUrl(event.imageUrl)}
             />
           ) : (
             <EventThumbnailFallback
@@ -3652,47 +3691,107 @@ function EventDetail({
               showSourceLabel={false}
             />
           )}
-          <View style={styles.detailHeroScrim} />
-          <Pressable
-            style={styles.backButton}
-            onPress={onBack}
-            accessibilityLabel="Go back"
-          >
-            <Text style={styles.backButtonText}>‹</Text>
-          </Pressable>
         </View>
 
         <View style={styles.detailPanel}>
           <View style={styles.detailPills}>
-            <Chip label={thumbnailCategoryLabel(event)} selected />
+            <View style={styles.detailCategory}>
+              <Text style={styles.detailCategoryText}>
+                {thumbnailCategoryLabel(event)}
+              </Text>
+            </View>
           </View>
-          <Text style={styles.detailTitle}>{event.title}</Text>
+          <Text style={styles.detailTitle} accessibilityRole="header">
+            {event.title}
+          </Text>
           <Text style={styles.detailMeta}>
-            {event.region} {event.locality} · {formatDateRange(event)}
+            {[location, dates].filter(Boolean).join(' · ')}
           </Text>
 
           <View style={styles.factGrid}>
-            <Fact label="월령" value={formatAge(event)} />
+            <Fact
+              label="월령"
+              value={hasAge ? formatAge(event) : ''}
+              icon="age"
+              fullWidth={singleColumn}
+            />
             <Fact
               label="가격"
               value={event.priceText || formatPriceType(event.priceType)}
+              icon="price"
+              fullWidth={singleColumn}
             />
-            <Fact label="예약" value={formatReservation(event)} />
-            <Fact label="장소" value={event.venueName} />
+            <Fact
+              label="예약"
+              value={reservation}
+              icon="reservation"
+              fullWidth={singleColumn}
+            />
+            <Fact
+              label="장소"
+              value={event.venueName}
+              icon="venue"
+              fullWidth={singleColumn}
+            />
+          </View>
+
+          <View style={styles.detailSection}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              행사 소개
+            </Text>
+            <Text style={styles.detailDescription}>{event.summary}</Text>
+          </View>
+
+          <View style={styles.detailSection}>
+            <Text style={styles.sectionTitle} accessibilityRole="header">
+              이용 안내
+            </Text>
+            <View style={styles.detailInfoRow}>
+              <View style={styles.detailInfoHeading}>
+                <Image
+                  source={detailIcons.clock}
+                  style={styles.detailInfoIcon}
+                  accessible={false}
+                  importantForAccessibility="no"
+                />
+                <Text style={styles.detailInfoLabel}>운영 시간</Text>
+              </View>
+              <Text style={styles.detailInfoValue} />
+            </View>
+            {event.guardianRequired === true ? (
+              <View style={styles.detailInfoRow}>
+                <View style={styles.detailInfoHeading}>
+                  <Image
+                    source={detailIcons.people}
+                    style={styles.detailInfoIcon}
+                    accessible={false}
+                    importantForAccessibility="no"
+                  />
+                  <Text style={styles.detailInfoLabel}>보호자 동반</Text>
+                </View>
+                <Text style={styles.detailInfoValue}>필수</Text>
+              </View>
+            ) : null}
             {event.venueDetail ? (
-              <Fact label="상세위치" value={event.venueDetail} />
+              <View style={styles.detailInfoRow}>
+                <Text style={styles.detailInfoLabel}>상세위치</Text>
+                <Text style={styles.detailInfoValue}>{event.venueDetail}</Text>
+              </View>
             ) : null}
           </View>
 
-          <Text style={styles.sectionTitle}>행사 소개</Text>
-          <Text style={styles.bodyText}>{event.summary}</Text>
-
-          <Text style={styles.sectionTitle}>태그</Text>
-          <View style={styles.wrapRow}>
-            {event.tags.slice(0, 6).map(tag => (
-              <Chip key={tag} label={tag} />
-            ))}
-          </View>
+          {event.tags.length > 0 ? (
+            <View style={styles.detailSection}>
+              <Text style={styles.sectionTitle} accessibilityRole="header">
+                태그
+              </Text>
+              <View style={styles.detailTags}>
+                {event.tags.slice(0, 6).map(tag => (
+                  <Chip key={tag} label={tag} />
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -3700,7 +3799,7 @@ function EventDetail({
         style={[styles.ctaBar, bottomInsetPadding(bottomInset, spacing.xl)]}
       >
         <Pressable
-          style={styles.primaryButton}
+          style={[styles.primaryButton, styles.detailSourceButton]}
           onPress={openSourceUrl}
           accessibilityLabel="Open source or reservation page"
           accessibilityRole="link"
@@ -4853,13 +4952,39 @@ function ChildContextChip({
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+const detailIcons = {
+  age: require('./assets/icons/detail/age.png'),
+  price: require('./assets/icons/detail/price.png'),
+  reservation: require('./assets/icons/detail/reservation.png'),
+  venue: require('./assets/icons/detail/venue.png'),
+  back: require('./assets/icons/detail/back.png'),
+  clock: require('./assets/icons/detail/clock.png'),
+  people: require('./assets/icons/detail/people.png'),
+};
+
+function Fact({
+  label,
+  value,
+  icon,
+  fullWidth,
+}: {
+  label: string;
+  value: string;
+  icon: 'age' | 'price' | 'reservation' | 'venue';
+  fullWidth: boolean;
+}) {
   return (
-    <View style={styles.fact}>
-      <Text style={styles.factLabel}>{label}</Text>
-      <Text style={styles.factValue} numberOfLines={2}>
-        {value}
-      </Text>
+    <View style={[styles.fact, fullWidth && styles.factFullWidth]}>
+      <Image
+        source={detailIcons[icon]}
+        style={styles.factIcon}
+        accessible={false}
+        importantForAccessibility="no"
+      />
+      <View style={styles.factText}>
+        <Text style={styles.factLabel}>{label}</Text>
+        <Text style={styles.factValue}>{value}</Text>
+      </View>
     </View>
   );
 }
@@ -6093,10 +6218,6 @@ function formatGender(gender: Child['gender']) {
     return '남아';
   }
   return '성별 미입력';
-}
-
-function formatDateRange(event: BabyrooEvent) {
-  return `${event.startsAt} - ${event.endsAt}`;
 }
 
 function formatShortDate(value: string) {
@@ -7775,46 +7896,39 @@ const styles = StyleSheet.create({
   detailContent: {
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
+  detailHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    gap: spacing.xs,
+  },
+  detailHeaderTitle: {
+    ...typography.section,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  detailBackIcon: {
+    height: 24,
+    width: 24,
+  },
   detailHero: {
+    alignSelf: 'center',
     backgroundColor: colors.primarySoft,
-    height: 260,
-    justifyContent: 'flex-end',
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
     overflow: 'hidden',
-    padding: spacing.xl,
   },
   detailHeroImage: {
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
-  detailHeroScrim: {
-    backgroundColor: 'rgba(0, 0, 0, 0.22)',
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
+    alignSelf: 'center',
   },
   backButton: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderWidth: 1,
-    borderRadius: radius.pill,
-    height: 44,
+    height: 48,
     justifyContent: 'center',
-    left: spacing.xl,
-    position: 'absolute',
-    top: spacing.xl,
-    width: 44,
-  },
-  backButtonText: {
-    color: colors.text,
-    fontSize: 34,
-    fontWeight: '500',
-    lineHeight: 38,
+    width: 48,
   },
   heroSource: {
     color: colors.inverseText,
@@ -7826,11 +7940,7 @@ const styles = StyleSheet.create({
   },
   detailPanel: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xxl,
-    borderTopRightRadius: radius.xxl,
-    marginTop: -spacing.xxl,
     padding: spacing.xl,
-    ...shadows.card,
   },
   recommendationDetailContent: {
     padding: spacing.xl,
@@ -7880,6 +7990,17 @@ const styles = StyleSheet.create({
   },
   detailPills: {
     marginBottom: spacing.md,
+    alignItems: 'flex-start',
+  },
+  detailCategory: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  detailCategoryText: {
+    ...typography.caption,
+    color: colors.coralText,
   },
   detailTitle: {
     ...typography.title,
@@ -7893,29 +8014,97 @@ const styles = StyleSheet.create({
   factGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: spacing.md,
+    gap: spacing.sm,
     marginTop: spacing.xl,
   },
   fact: {
-    backgroundColor: colors.cream,
-    borderColor: colors.borderSubtle,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    minHeight: 82,
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.md,
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    minHeight: 76,
     padding: spacing.md,
-    width: '47.8%',
+  },
+  factFullWidth: {
+    flexBasis: '100%',
+  },
+  factIcon: {
+    width: 28,
+    height: 28,
+  },
+  factText: {
+    flex: 1,
+    minWidth: 0,
   },
   factLabel: {
     color: colors.muted,
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: spacing.xs,
   },
   factValue: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800',
-    lineHeight: 18,
+    lineHeight: 20,
+    minHeight: 20,
+  },
+  detailSection: {
+    marginTop: spacing.xxl,
+  },
+  detailDescription: {
+    ...typography.body,
+    color: colors.muted,
+    fontWeight: '500',
+    lineHeight: 24,
+    marginTop: spacing.sm,
+  },
+  detailInfoRow: {
+    alignItems: 'flex-start',
+    borderBottomColor: colors.borderSubtle,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: spacing.lg,
+    rowGap: spacing.xs,
+    paddingVertical: spacing.md,
+  },
+  detailInfoLabel: {
+    ...typography.body,
+    color: colors.text,
+    flexShrink: 1,
+  },
+  detailInfoHeading: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexShrink: 1,
+    gap: spacing.sm,
+  },
+  detailInfoIcon: {
+    width: 22,
+    height: 22,
+  },
+  detailInfoValue: {
+    ...typography.body,
+    color: colors.muted,
+    flexBasis: '55%',
+    flexGrow: 1,
+  },
+  detailTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  detailSourceButton: {
+    borderRadius: radius.md,
+    height: undefined,
+    minHeight: 48,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
   },
   bodyText: {
     ...typography.body,
