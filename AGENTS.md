@@ -18,6 +18,9 @@
 - These preferences guide model selection. The active model and reasoning level are controlled by the client or runtime settings.
 - When a model change would materially help, suggest it briefly at a natural stage boundary and continue authorized work with the active model unless the user asks to pause.
 - Keep tool output and reports focused on the task. Reuse relevant context and avoid repeating checks unless changes or failures justify them.
+- Keep a `Model usage` table in each task's plan file with columns for workflow stage, model used, reasoning level, and evidence. Record the Plan, Review the plan, Implement, and Verify stages as they are performed; mark stages that have not started as `Pending`.
+- Use only model names and reasoning levels confirmed by runtime metadata or client settings supplied by the user. Record the source in the evidence column. If either value cannot be confirmed, write `Unknown` for that value; do not infer it from the preferences above or interrupt work to obtain it.
+- Update the table when the model or reasoning level changes within a stage, retaining earlier entries so the record shows all confirmed settings used during that stage.
 
 ## Design quality and visual review
 
@@ -37,6 +40,7 @@ Follow this workflow for development tasks unless the user explicitly requests a
 ### 1. Plan
 
 - Inspect relevant code and project documentation.
+- Before writing a plan, choose and read the appropriate reusable skill, then follow it for the requirements interview: use `.agents/skills/grill-with-docs/SKILL.md` when the plan needs to be checked against existing domain terminology and documented decisions, or `.agents/skills/grill-me/SKILL.md` for other plans.
 - Before writing the plan, interview the user to make each feature's requirements concrete. Ask focused questions grounded in the feature and repository, covering applicable areas such as target users and scenarios, functional behavior and user flows, visual design and interaction details, data and integrations, states and edge cases, permissions, errors, and constraints.
 - Ask about one feature or closely related decision group at a time. Avoid generic or already-answered questions; use follow-ups to resolve important ambiguity, and offer a recommended option when there are reasonable alternatives.
 - Do not write the plan until the material design and behavior decisions are clear. If the user declines to answer or delegates a decision, state a reasonable assumption in the plan rather than presenting it as confirmed.
