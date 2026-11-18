@@ -8,6 +8,7 @@ import {
   Alert,
   Animated,
   BackHandler,
+  FlatList,
   Image,
   Linking,
   LayoutChangeEvent,
@@ -2951,6 +2952,13 @@ function ExploreScreen({
   const childrenByAge = sortChildrenByAge(user.children);
   const searchQuery = '';
   const exploreScrollY = useRef(new Animated.Value(0)).current;
+  const exploreListRef = useRef<FlatList<BabyrooEvent>>(null);
+  const [backToTopVisible, setBackToTopVisible] = useState(false);
+  // Momentum can otherwise move or unmount the target before a tap is released.
+  const [backToTopPressBottom, setBackToTopPressBottom] = useState<number | null>(
+    null,
+  );
+  const [recommendationCtaHeight, setRecommendationCtaHeight] = useState(0);
   const recommendationCtaScrollRef = useRef<RecommendationCtaScrollState>({
     visible: false,
     anchorOffset: 0,
@@ -2968,6 +2976,11 @@ function ExploreScreen({
   const [signingInFromExplore, setSigningInFromExplore] = useState(false);
   const [childFilterSignInPromptOpen, setChildFilterSignInPromptOpen] =
     useState(false);
+  const backToTopBottom =
+    backToTopPressBottom ??
+    (FLOATING_RECOMMENDATION_BOTTOM +
+      bottomInset +
+      (recommendationCtaVisible ? recommendationCtaHeight + spacing.md : 0));
   const filteredEvents = useMemo(
     () => filterEvents(events, searchQuery, filters, selectedChildren),
     [events, filters, searchQuery, selectedChildren],
@@ -3037,6 +3050,13 @@ function ExploreScreen({
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffsetY = event.nativeEvent.contentOffset.y;
+    const viewportHeight = event.nativeEvent.layoutMeasurement.height;
+    const maxOffset = Math.max(
+      0,
+      event.nativeEvent.contentSize.height - viewportHeight,
+    );
+    const clampedOffset = Math.max(0, Math.min(scrollOffsetY, maxOffset));
+    setBackToTopVisible(viewportHeight > 0 && clampedOffset > viewportHeight);
     const nextCompactTouchable = compactHeaderTouchable
       ? scrollOffsetY > 44
       : scrollOffsetY > 78;
@@ -3439,6 +3459,7 @@ function ExploreScreen({
       </Animated.View>
 
       <Animated.FlatList
+        ref={exploreListRef}
         style={styles.exploreList}
         data={filteredEvents}
         keyExtractor={event => event.id}
@@ -3486,24 +3507,55 @@ function ExploreScreen({
         windowSize={7}
       />
 
-      {recommendationCtaVisible ? (
+      <Pressable
+        style={[
+          styles.floatingRecommendationCta,
+          floatingRecommendationBottomOffset(bottomInset),
+          !recommendationCtaVisible && styles.hiddenFloatingRecommendationCta,
+        ]}
+        onLayout={event =>
+          setRecommendationCtaHeight(event.nativeEvent.layout.height)
+        }
+        pointerEvents={recommendationCtaVisible ? 'auto' : 'none'}
+        accessibilityElementsHidden={!recommendationCtaVisible}
+        importantForAccessibility={
+          recommendationCtaVisible ? 'auto' : 'no-hide-descendants'
+        }
+        onPress={onOpenRecommendation}
+        accessibilityLabel="Open recommendation page"
+      >
+        <View style={styles.floatingRecommendationCopy}>
+          <Text style={styles.floatingRecommendationTitle}>
+            고르기 어렵다면
+          </Text>
+          <Text style={styles.floatingRecommendationText}>
+            아이에게 맞는 후보만 추천받기
+          </Text>
+        </View>
+        <Text style={styles.floatingRecommendationBadge}>추천 1회</Text>
+      </Pressable>
+
+      {backToTopVisible || backToTopPressBottom !== null ? (
         <Pressable
-          style={[
-            styles.floatingRecommendationCta,
-            floatingRecommendationBottomOffset(bottomInset),
+          accessibilityRole="button"
+          accessibilityLabel="맨 위로"
+          onPressIn={() => setBackToTopPressBottom(backToTopBottom)}
+          onPressOut={() => setBackToTopPressBottom(null)}
+          onPress={() =>
+            exploreListRef.current?.scrollToOffset({ offset: 0, animated: true })
+          }
+          style={({ pressed }) => [
+            styles.exploreBackToTop,
+            {
+              bottom: backToTopBottom,
+            },
+            pressed && styles.exploreBackToTopPressed,
           ]}
-          onPress={onOpenRecommendation}
-          accessibilityLabel="Open recommendation page"
         >
-          <View>
-            <Text style={styles.floatingRecommendationTitle}>
-              고르기 어렵다면
-            </Text>
-            <Text style={styles.floatingRecommendationText}>
-              아이에게 맞는 후보만 추천받기
-            </Text>
+          <View style={styles.backToTopArrow} accessible={false}>
+            <View style={styles.backToTopArrowStem} />
+            <View style={styles.backToTopArrowHead} />
           </View>
-          <Text style={styles.floatingRecommendationBadge}>추천 1회</Text>
         </Pressable>
       ) : null}
     </View>
@@ -6250,6 +6302,53 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing.xl,
     ...shadows.elevated,
+  },
+  hiddenFloatingRecommendationCta: {
+    opacity: 0,
+  },
+  floatingRecommendationCopy: {
+    flex: 1,
+    marginRight: spacing.md,
+  },
+  exploreBackToTop: {
+    position: 'absolute',
+    right: spacing.xl,
+    width: 48,
+    height: 48,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.elevated,
+  },
+  exploreBackToTopPressed: {
+    backgroundColor: colors.surfaceSoft,
+  },
+  backToTopArrow: {
+    width: 24,
+    height: 24,
+  },
+  backToTopArrowStem: {
+    position: 'absolute',
+    left: 11,
+    top: 4,
+    width: 2,
+    height: 17,
+    borderRadius: 1,
+    backgroundColor: colors.foreground,
+  },
+  backToTopArrowHead: {
+    position: 'absolute',
+    left: 6,
+    top: 4,
+    width: 12,
+    height: 12,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: colors.foreground,
+    transform: [{ rotate: '45deg' }],
   },
   exploreFullHeader: {
     paddingBottom: spacing.lg,

@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Alert, BackHandler, Linking, StyleSheet } from 'react-native';
+import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
@@ -54,6 +54,161 @@ test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);
   });
+});
+
+test('Explore back-to-top follows the viewport and measured recommendation area', async () => {
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    const root = renderer!.root;
+    const topButtons = () =>
+      root
+        .findAllByProps({ accessibilityLabel: '맨 위로' })
+        .filter((node) => typeof node.props.onPress === 'function');
+    const topButtonStyle = () => {
+      const style = topButtons()[0].props.style;
+      return StyleSheet.flatten(
+        typeof style === 'function' ? style({ pressed: false }) : style,
+      );
+    };
+    const list = root.findAll(
+      (node) =>
+        node.props.scrollEventThrottle === 16 &&
+        typeof node.props.onScroll === 'function',
+    )[0];
+    const scroll = async (y: number, contentHeight = 3000) => {
+      await ReactTestRenderer.act(() => {
+        list.props.onScroll({
+          nativeEvent: {
+            contentOffset: { x: 0, y },
+            contentSize: { width: 390, height: contentHeight },
+            layoutMeasurement: { width: 390, height: 700 },
+          },
+        });
+      });
+    };
+    const recommendation = root
+      .findAllByProps({
+        accessibilityLabel: 'Open recommendation page',
+      })
+      .find((node) => typeof node.props.onLayout === 'function')!;
+    await ReactTestRenderer.act(() => {
+      recommendation.props.onLayout({
+        nativeEvent: { layout: { height: 80 } },
+      });
+    });
+
+    expect(topButtons()).toHaveLength(0);
+    await scroll(700);
+    expect(topButtons()).toHaveLength(0);
+    await scroll(800);
+    expect(topButtons().length).toBeGreaterThan(0);
+    const raisedBottom = topButtonStyle().bottom;
+    expect(raisedBottom).toBe(96 + 34 + 80 + 12);
+    await ReactTestRenderer.act(() => {
+      recommendation.props.onLayout({
+        nativeEvent: { layout: { height: 128 } },
+      });
+    });
+    expect(topButtonStyle().bottom).toBe(96 + 34 + 128 + 12);
+
+    await scroll(752);
+    expect(topButtonStyle().bottom).toBe(96 + 34);
+    expect(recommendation.props.pointerEvents).toBe('none');
+    expect(recommendation.props.importantForAccessibility).toBe(
+      'no-hide-descendants',
+    );
+    await ReactTestRenderer.act(() => topButtons()[0].props.onPress());
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: true });
+
+    await scroll(700);
+    expect(topButtons()).toHaveLength(0);
+    await scroll(0);
+    await scroll(900, 1000);
+    expect(topButtons()).toHaveLength(0);
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    scrollTo.mockRestore();
+  }
+});
+
+test('keeps a back-to-top tap active while upward momentum moves and hides its target', async () => {
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
+  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
+
+  try {
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    const root = renderer!.root;
+    const button = () =>
+      root
+        .findAllByProps({ accessibilityLabel: '맨 위로' })
+        .find((node) => typeof node.props.onPress === 'function');
+    const bottom = () => {
+      const style = button()!.props.style;
+      return StyleSheet.flatten(
+        typeof style === 'function' ? style({ pressed: false }) : style,
+      ).bottom;
+    };
+    const list = root.findAll(
+      (node) =>
+        node.props.scrollEventThrottle === 16 &&
+        typeof node.props.onScroll === 'function',
+    )[0];
+    const scroll = async (y: number) => {
+      await ReactTestRenderer.act(() => {
+        list.props.onScroll({
+          nativeEvent: {
+            contentOffset: { x: 0, y },
+            contentSize: { width: 390, height: 3000 },
+            layoutMeasurement: { width: 390, height: 700 },
+          },
+        });
+      });
+    };
+
+    const recommendation = root
+      .findAllByProps({
+        accessibilityLabel: 'Open recommendation page',
+      })
+      .find((node) => typeof node.props.onLayout === 'function')!;
+    await ReactTestRenderer.act(() => {
+      recommendation.props.onLayout({
+        nativeEvent: { layout: { height: 80 } },
+      });
+    });
+    await scroll(800);
+    const originalBottom = bottom();
+    await ReactTestRenderer.act(() => button()!.props.onPressIn?.());
+    expect(scrollTo).not.toHaveBeenCalled();
+    await scroll(752);
+    expect(bottom()).toBe(originalBottom);
+    await scroll(690);
+    expect(button()).toBeDefined();
+    const { onPress, onPressOut } = button()!.props;
+    await ReactTestRenderer.act(() => {
+      onPressOut();
+      onPress();
+    });
+    expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: true });
+    expect(button()).toBeUndefined();
+
+    await scroll(1000);
+    await ReactTestRenderer.act(() => button()!.props.onPressIn());
+    await scroll(940);
+    expect(bottom()).toBe(originalBottom);
+    await ReactTestRenderer.act(() => button()!.props.onPressOut());
+    expect(bottom()).toBe(96 + 34);
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    scrollTo.mockRestore();
+  }
 });
 
 test('opens a feedback draft from each header and shows the address on failure', async () => {
