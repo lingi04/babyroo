@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
 import {
+  type RecommendationCtaScrollState,
+  updateRecommendationCtaScroll,
+} from './src/mobileLayout/recommendationCtaScroll';
+import {
   Alert,
   Animated,
   BackHandler,
@@ -2947,7 +2951,10 @@ function ExploreScreen({
   const childrenByAge = sortChildrenByAge(user.children);
   const searchQuery = '';
   const exploreScrollY = useRef(new Animated.Value(0)).current;
-  const previousExploreScrollOffsetYRef = useRef(0);
+  const recommendationCtaScrollRef = useRef<RecommendationCtaScrollState>({
+    visible: false,
+    anchorOffset: 0,
+  });
   const [eventsLoaded, setEventsLoaded] = useState(false);
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
@@ -3030,22 +3037,24 @@ function ExploreScreen({
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffsetY = event.nativeEvent.contentOffset.y;
-    const previousScrollOffsetY = previousExploreScrollOffsetYRef.current;
-    const scrollingDown = scrollOffsetY > previousScrollOffsetY;
-    const scrollingUp = scrollOffsetY < previousScrollOffsetY;
     const nextCompactTouchable = compactHeaderTouchable
       ? scrollOffsetY > 44
       : scrollOffsetY > 78;
     const shouldCollapseOpenControls =
       !exploreControlsCollapsed && scrollOffsetY > 12;
 
-    if (scrollingDown && scrollOffsetY > 420 && !recommendationCtaVisible) {
-      setRecommendationCtaVisible(true);
-    } else if (scrollingUp && recommendationCtaVisible) {
-      setRecommendationCtaVisible(false);
-    }
+    const previousCtaState = recommendationCtaScrollRef.current;
+    const nextCtaState = updateRecommendationCtaScroll(
+      previousCtaState,
+      scrollOffsetY,
+      event.nativeEvent.contentSize.height -
+        event.nativeEvent.layoutMeasurement.height,
+    );
+    recommendationCtaScrollRef.current = nextCtaState;
 
-    previousExploreScrollOffsetYRef.current = scrollOffsetY;
+    if (nextCtaState.visible !== previousCtaState.visible) {
+      setRecommendationCtaVisible(nextCtaState.visible);
+    }
 
     if (nextCompactTouchable !== compactHeaderTouchable) {
       setCompactHeaderTouchable(nextCompactTouchable);
