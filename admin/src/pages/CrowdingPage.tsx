@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { crowdingRequest } from '../api/adminApi';
+import { AdminEvent, crowdingRequest } from '../api/adminApi';
+import { CrowdingEventPicker } from '../components/CrowdingEventPicker';
 
 type Area = {
   id: string;
@@ -58,7 +59,7 @@ export function CrowdingPage({
   const [enabled, setEnabled] = useState('keep');
   const [active, setActive] = useState('keep');
   const [target, setTarget] = useState<'selected' | 'all'>('selected');
-  const [eventId, setEventId] = useState(initialEventId);
+  const [eventId, setEventId] = useState('');
   const [areaId, setAreaId] = useState('');
   const [verification, setVerification] = useState<Verification>();
   const [evidence, setEvidence] = useState('');
@@ -91,11 +92,11 @@ export function CrowdingPage({
   }, [accessToken, refreshToken]);
   useEffect(() => {
     verificationRequest.current += 1;
-    setEventId(initialEventId);
+    setEventId('');
     setVerification(undefined);
     setConfirmedInside(false);
     setEvidence('');
-  }, [initialEventId]);
+  }, [initialEventId, accessToken]);
   async function save(action: () => Promise<void>) {
     setBusy(true);
     setError('');
@@ -115,6 +116,15 @@ export function CrowdingPage({
     setConfirmedInside(false);
     setEvidence('');
   };
+  const selectEvent = useCallback((event: AdminEvent | null) => {
+    verificationRequest.current += 1;
+    setEventId(event?.id ?? '');
+    setVerification(undefined);
+    setConfirmedInside(false);
+    setEvidence('');
+    setError('');
+    setNotice('');
+  }, []);
   return (
     <main className="page editor-page crowding-page">
       <h2>주변 혼잡도</h2>
@@ -378,9 +388,18 @@ export function CrowdingPage({
           공식 경계 안에 있는 장소만 연결하세요. 지역 이름이나 거리만으로
           판단하지 마세요.
         </p>
+        <CrowdingEventPicker
+          key={JSON.stringify([accessToken, initialEventId])}
+          accessToken={accessToken}
+          initialEventId={initialEventId}
+          refreshToken={refreshToken}
+          disabled={busy}
+          onSelect={selectEvent}
+        />
         <form
           onSubmit={e => {
             e.preventDefault();
+            if (!eventId || !areaId) return;
             setError('');
             clearVerification();
             setBusy(true);
@@ -402,18 +421,7 @@ export function CrowdingPage({
               .finally(() => setBusy(false));
           }}
         >
-          <fieldset disabled={busy} className="crowding-fields">
-            <label>
-              이벤트 ID
-              <input
-                required
-                value={eventId}
-                onChange={e => {
-                  setEventId(e.target.value);
-                  clearVerification();
-                }}
-              />
-            </label>
+          <fieldset disabled={busy || !eventId} className="crowding-fields">
             <label>
               공식 지역
               <select
