@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
 import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
 import {
   type RecommendationCtaScrollState,
@@ -1029,6 +1030,8 @@ function BabyrooApp() {
               event={selectedEvent}
               bottomInset={bottomInset}
               topInset={topInset}
+              accessToken={authSession?.apiAccessToken}
+              onSignIn={handleGoogleSignIn}
               onBack={closeDetail}
             />
           ) : null}
@@ -3619,11 +3622,15 @@ export function EventDetail({
   event,
   bottomInset,
   topInset,
+  accessToken,
+  onSignIn,
   onBack,
 }: {
   event: BabyrooEvent;
   bottomInset: number;
   topInset: number;
+  accessToken?: string;
+  onSignIn?: () => Promise<void>;
   onBack: () => void;
 }) {
   const [failedImageUrl, setFailedImageUrl] = useState<string>();
@@ -3734,6 +3741,15 @@ export function EventDetail({
               fullWidth={singleColumn}
             />
           </View>
+
+          {event.crowdingArea ? (
+            <CurrentCrowdingCard
+              eventId={event.id}
+              area={event.crowdingArea}
+              accessToken={accessToken}
+              onSignIn={onSignIn ?? (async () => undefined)}
+            />
+          ) : null}
 
           <View style={styles.detailSection}>
             <Text style={styles.sectionTitle} accessibilityRole="header">
@@ -4805,6 +4821,9 @@ function EventCard({
         <Text style={styles.cardMeta} numberOfLines={2}>
           {event.venueName} · {formatAge(event)}
         </Text>
+        {event.crowdingArea ? (
+          <Text style={styles.detailCrowdingTeaser}>주변 혼잡도 확인 ›</Text>
+        ) : null}
         {(showSequence || compact) && chipLabels.length > 0 ? (
           <View style={styles.cardTagRow}>
             {chipLabels.map(label => (
@@ -7892,6 +7911,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 12,
+  },
+  detailCrowdingTeaser: {
+    color: colors.coralText,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: spacing.sm,
   },
   detailContent: {
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,

@@ -214,6 +214,10 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+export function crowdingRequest<T>(accessToken: string, path: string, method = 'GET', body?: unknown): Promise<T> {
+  return request<T>(`/admin/crowding${path}`, { accessToken, method, body });
+}
+
 function queryString(query: EventListQuery): string {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {

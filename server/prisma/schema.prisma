@@ -167,6 +167,7 @@ model Event {
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   eventAuditLogs EventAuditLog[]
+  crowdingMapping CrowdingMapping?
 
   @@unique([source, sourceEventId])
   @@index([region, locality])
@@ -177,6 +178,67 @@ model Event {
   @@index([publicationStatus])
   @@index([source])
   @@map("events")
+}
+
+model CrowdingArea {
+  id String @id
+  name String
+  boundaryVersion String @map("boundary_version")
+  boundaryUrl String @map("boundary_url")
+  active Boolean @default(true)
+  enabled Boolean @default(false)
+  intervalMinutes Int @default(30) @map("interval_minutes")
+  revision Int @default(1)
+  nextDueAt DateTime @default(now()) @map("next_due_at")
+  leaseToken String? @map("lease_token")
+  leaseUntil DateTime? @map("lease_until")
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  lastSuccessAt DateTime? @map("last_success_at")
+  lastError String? @map("last_error")
+  failures Int @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  mappings CrowdingMapping[]
+  observations CrowdingObservation[]
+
+  @@index([enabled, active, nextDueAt])
+  @@map("crowding_areas")
+}
+
+model CrowdingObservation {
+  areaId String @map("area_id")
+  boundaryVersion String @map("boundary_version")
+  observedAt DateTime @map("observed_at")
+  level String
+  quality String?
+  fetchedAt DateTime @map("fetched_at")
+  area CrowdingArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
+
+  @@id([areaId, boundaryVersion, observedAt])
+  @@map("crowding_observations")
+}
+
+model CrowdingMapping {
+  eventId String @id @map("event_id")
+  areaId String @map("area_id")
+  fingerprint String
+  evidence String
+  verifiedBy String @map("verified_by")
+  verifiedAt DateTime @default(now()) @map("verified_at")
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  area CrowdingArea @relation(fields: [areaId], references: [id], onDelete: Restrict)
+
+  @@index([areaId])
+  @@map("crowding_mappings")
+}
+
+model CrowdingAudit {
+  id String @id
+  actorId String @map("actor_id")
+  action String
+  details Json
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("crowding_audits")
 }
 
 model EventAuditLog {

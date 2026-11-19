@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { debugLog } from '../../../../common/debug-log';
 import { getPrismaClient } from '../../../../common/prisma-client';
-import { Event as PrismaEvent } from '../../../../generated/prisma/client';
+import { Prisma } from '../../../../generated/prisma/client';
+import { verifiedSupport } from '../../../crowding/domain/crowding';
 import { EventRepositoryPort } from '../../application/ports/out/event-repository.port';
 import { BabyrooEvent, ReservationStatus } from '../../domain/event.entity';
 
 const EVENT_LIST_CACHE_TTL_MS = 60_000;
+type EventWithCrowding = Prisma.EventGetPayload<{
+  include: { crowdingMapping: { include: { area: true } } };
+}>;
 
 @Injectable()
 export class PrismaEventRepository implements EventRepositoryPort {
@@ -29,6 +33,7 @@ export class PrismaEventRepository implements EventRepositoryPort {
     }
 
     const events = await this.prisma.event.findMany({
+      include: { crowdingMapping: { include: { area: true } } },
       orderBy: {
         csvSequence: 'asc',
       },
@@ -50,14 +55,18 @@ export class PrismaEventRepository implements EventRepositoryPort {
   async findById(id: string): Promise<BabyrooEvent | null> {
     const event = await this.prisma.event.findUnique({
       where: { id },
+      include: { crowdingMapping: { include: { area: true } } },
     });
 
     return event ? this.toDomainEvent(event) : null;
   }
 
-  private toDomainEvent(event: PrismaEvent): BabyrooEvent {
+  private toDomainEvent(event: EventWithCrowding): BabyrooEvent {
     return {
       id: event.id,
+      crowdingArea: verifiedSupport({
+        event, mapping: event.crowdingMapping ?? null, area: event.crowdingMapping?.area ?? null,
+      }),
       csvSequence: event.csvSequence ?? undefined,
       title: event.title,
       venueName: event.venueName ?? '',

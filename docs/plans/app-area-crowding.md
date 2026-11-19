@@ -1,113 +1,137 @@
-# Surrounding-area crowding
+# Current surrounding-area crowding — stage 2
 
-Status: Draft — implementation not approved. Visual review pending.
-
-## Delivery sequence
-
-1. UI redesign of existing detail view using the current app/API event contract only. No crowding UI, area assignments, credit scaling, data migrations or new event fields in this stage. See `app-detail-ui-redesign.md` for the field audit and proposed scope.
-2. Add crowding, history, collection/admin controls and associated access/credit changes after stage 1. This document covers that later feature; it does not authorize implementing it during the UI redesign.
-
-## Latest design review decisions
-
-- User approved the compact full-detail layout and separate “혼잡도 기록” screen. The before-unlock state is under review. Design approval is not approval to implement the complete plan.
-- Keep crowding secondary to venue information: one compact card on detail, with “기록 보기” opening the dedicated selected-hour weekday/date comparison screen. Do not embed the seven-day list in place detail.
-- Replace the earlier proposed official forecast with a historical reference: for one hour ahead, show the observation from the same weekday last week at that target hour. Label the actual date/time and that it is a historical reference; never present it as a prediction. Missing corresponding observations show unavailable. Earlier official-forecast proposals below are superseded and forecast integration is out of scope.
-- This historical reference can require observations almost eight days old. Retain at least nine days internally while exposing the agreed rolling seven-day history. Do not fabricate missing historical references.
-- Paid mode before unlock: current data and full history remain locked; show yesterday's same-hour observation clearly dated, plus the actual price and 24-hour duration. Button opens confirmation before spending. Normal 10-credit, partial-history 5-credit and payment-disabled 0-credit states share the layout; sign-in remains required. Free preview may also open yesterday-only history.
-- The generated broader detail redesign is a visual proposal. Museum imagery, operating times, guardian details and example descriptions are illustrative; production UI must use existing verified event fields and omit unavailable facts. No invented facts may be introduced to match a mockup.
+Status: Reduced scope explicitly authorized and implemented locally; committed as f059368, with review fixes in 9643883. Current crowding is free after login; history UI/payment remain deferred. The user subsequently authorized [raw observation archival](server-crowding-observation-history.md), superseding latest-only storage. Production rollout, live-source/database integration and rendered device/admin visual verification remain pending.
 
 ## Model usage
 
 | Workflow stage | Model used | Reasoning level | Evidence |
 | --- | --- | --- | --- |
-| Plan | Unknown | Unknown | Runtime exposes no confirmed active model name or reasoning setting. |
-| Review the plan | Unknown | Unknown | Repository and source review performed in this session; active settings unavailable. Visual review pending. |
-| Implement | Pending | Pending | Requires explicit plan approval. |
-| Verify | Pending | Pending | Implementation has not started. |
+| Plan | Unknown | Unknown | Runtime does not expose confirmed model/reasoning settings. |
+| Review the plan | Unknown | Unknown | Rechecked reduced scope against public event controllers/domain, user/admin guards, current mobile detail and preserved history specification. No confirmed runtime settings available. |
+| Implement | Unknown | Unknown | Explicit user authorization; implemented server, admin, mobile and migration. Active runtime model/settings not confirmed. |
+| Verify | Unknown | Unknown | Server build/tests, three-project TypeScript, mobile lint/tests and baseline comparison; live/database/visual gaps recorded below. Active settings not confirmed. |
+| Implement — review fixes | Unknown | Unknown | User authorized committing the implementation and fixing all three review findings. Runtime settings remain unconfirmed. |
+| Verify — review fixes | Unknown | Unknown | Server build/full suite, server/admin TypeScript and admin static rendering checks; isolated PostgreSQL and browser visual checks remain pending. |
 
-## Agreed requirements
+## Review fixes — 2026-11-19
 
-- Start with Seoul surrounding-area crowding. Weather, air quality, and parking are future work, subject to source validation.
-- Supported Explore cards show a crowding teaser opening their existing detail screen. The detail screen hosts conditions and access controls.
-- Administrators manually verify a venue lies within an official area boundary before mapping it. Unsupported/unverified venues have no teaser. Area conditions never imply venue occupancy.
-- Login is required for all unlocks, including free unlocks. Anonymous browsing and other existing detail content remain available.
-- A global payment-required setting starts disabled. Disabled means an explicit 0-credit, 24-hour area unlock, not automatic unrestricted access. No positive credit balance is required.
-- With payment enabled, free access shows yesterday's hourly history, with yesterday's corresponding current hour highlighted. An area unlock adds current crowding and rolling seven-day history.
-- Unlocks are per user and area, reusable across mapped venues, valid from purchase inclusive until purchase + 24 hours exclusive. Existing unlocks keep their expiry when prices/settings change.
-- Use existing credits. Scale all credit units by ten while preserving cash prices and purchasing power: recommendations cost 10, packages grant 50/120, existing balances and historical credit quantities scale consistently. Product IDs and purchase-token idempotency remain stable.
-- Initial normal area price is 10 credits. Before collection spans the previous 168 hours, charge half the configured price, rounded to the nearest integer (positive halves round up); initially 5. Display actual available period and final cost before confirmation, without discount wording or percentage.
-- Confirm before debit. No readings means purchase/unlock disabled with a collection notice. Partial history is disclosed before purchase.
-- Refresh immediately after an unlock and whenever detail reopens during active access. If refresh fails, show available history, observation times, and retry; retry never charges. Do not reject payment solely because current data is old. No separate freshness cutoff was approved.
-- Collect every 30 minutes initially, independently configurable per area. Admin supports changes to one area, selected areas, or all areas.
-- Use Korea time for days, hourly buckets, and yesterday. Access lasts exactly 24 elapsed hours.
-- Each hourly bucket uses its latest observation. Missing hours stay gaps. Future hours are not represented as collected observations.
-- The primary conditions view answers three questions: current crowding, official forecast approximately one hour ahead, and observed crowding at a selected hour on each of the last seven days. Show current and forecast side by side, clearly distinguishing observations from predictions. A time selector controls a compact weekday/date comparison list with full category labels. Historical comparisons describe actual dated observations, not typical weekday patterns or recommendations inferred from one sample per weekday. This replaces the grid and the single-day chart as the main view. In paid mode, users without an unlock see yesterday only; forecast follows full-access permissions.
-- Forecasts use source-provided values only. Show the exact forecast target time and source update time; do not invent or interpolate a one-hour estimate. If the source provides no valid target near the requested time, show “Forecast unavailable.” Verify target cadence/tolerance against the official payload before implementation; an older forecast must not be represented as one hour from now.
-- Admin manages coverage/mappings, per-area intervals and bulk changes, global payment mode and normal price.
-- Keep product copy concise and concrete. Do not add explanatory filler such as “수집된 기간과 관측 시각을 함께 표시해요.” Show actual available dates and observation times where relevant instead of announcing what the UI displays.
-- Design direction: a concise UI whose meaning is immediately understandable. Lead with the named area, current crowding or access contents, and a single clear action showing the actual credit cost and 24-hour duration. Keep area-versus-venue scope, login requirements, timestamps and purchase disclosures visible in their relevant states; use hierarchy and plain labels rather than promotional subtitles or unexplained icons.
+Authorized scope: fix the three implementation-review findings after committing the existing feature on `feature/crowding` (`f059368`). No product-scope changes.
 
-## Source verification (2026-11-18, Korea time)
+- Interactive refresh must obey an area's failure retry deadline, while successful refreshes retain the shared 60-second cooldown. Enforce this atomically in lease claiming; add an isolated PostgreSQL regression covering refusal before the deadline and acquisition at the deadline.
+- Report successful, failed and skipped collection outcomes separately. Provider/database failures must not count as completed. The scheduler command exits nonzero if any collection fails, including partial failures; other areas still complete independently.
+- Allow admin disconnection by event ID without requiring active-area selection or verification. Keep the confirmation and disable the action for an empty event ID or while busy. The existing verification/save flow remains intact.
+- Verification: server build and server/admin TypeScript pass; full server suite: 32 passed, zero failed, one isolated PostgreSQL test skipped. Static React rendering confirms disconnection is present without verification/active-area selection and disabled for an empty ID. This is a markup check, not browser visual approval. Existing browser/runtime restrictions and the absence of an isolated PostgreSQL URL leave those checks pending.
 
-- [Official Seoul dataset](https://data.seoul.go.kr/dataList/OA-21285/A/1/datasetView.do) explicitly lists KOGL Type 1, commercial use/modification permitted, 121 areas, area-list and boundary downloads, one area per API call, and sample-key access limited to Gwanghwamun/Deoksugung. This verifies published coverage count, not the overlap with Babyroo venues or successful authenticated access to every area.
-- [KOGL Type 1](https://www.kogl.or.kr/info/licenseType1.do) requires attribution, source links where possible, and disclosure of free source availability. Avoid implying Seoul endorsement.
-- [Seoul API terms](https://data.seoul.go.kr/etc/accessTerms.do) require visible Seoul public-data attribution, prohibit sharing API keys, and allow request restrictions. Keep the key server-side.
-- The dataset FAQ says historical API data is unavailable. Collect prospectively; never manufacture seven days of history.
-- Before implementing the provider, inspect the current official manual, exact population payload, timestamps, boundaries, and API limits. The live dashboard's extracted placeholder says 50 while the dataset metadata says 121; use the versioned official area list/boundaries and validate available areas rather than using that placeholder as the catalog.
-- Forecast research: [official population API schema](https://data.seoul.go.kr/dataList/OA-21778/A/1/datasetView.do) documents `FCST_YN`, `FCST_TIME`, and `FCST_CONGEST_LVL`; the [official dashboard](https://data.seoul.go.kr/SeoulRtd/map) presents a future 12-hour outlook. Forecast support is therefore documented, but availability, cadence and freshness must be validated per area. Do not assume all coverage areas have forecasts or change providers without checking that feed's license.
+## Confirmed current scope
 
-## Repository findings
+- Keep stage 1's existing detail layout and current event data contract except for additive crowding support metadata.
+- Show one compact surrounding-area crowding card for places manually verified to lie inside an official covered area.
+- User explicitly selected **current crowding for free**, replacing yesterday's preview as the remaining card content.
+- Card copy: replace 어제 이 시간 with 현재 혼잡도. Show the latest source observation time (for example, 14:30 기준), not yesterday's same-hour reading or the phone's current time presented as a measurement. If only an old reading exists during an outage, identify it as the last observation with its actual date/time.
+- Preserve the previously agreed login requirement. Signed-in users view current crowding directly, without credits, a 0-credit unlock, or a 24-hour entitlement. Guests get a login entry rather than crowding readings.
+- Display area name, full crowding label, actual source observation time, area-versus-venue distinction and source attribution/link. Do not pretend a fresh fetch is a fresh observation.
+- If the source marks REPLACE_YN=Y, label it 참고 혼잡도 and disclose that it is a recent four-week same-weekday/time average. This is source-quality disclosure, not the deferred historical-reference feature.
+- Refresh on entering/reopening detail and allow retry on failure, coalescing provider requests to respect quotas. Retain a clearly dated last observation during outages; no valid reading means unavailable.
+- Add a verified-area teaser in Explore that opens detail; this teaser does not exist yet. Unsupported/unverified places have no teaser or crowding card.
+- Keep 30-minute collection default, per-area configurable intervals and selected/all bulk changes in the existing admin app, together with manual mapping and collection health.
+- Weather, air quality and parking remain outside this release.
 
-- `app/App.tsx` contains shared Explore/detail screens; `app/src/data/events.ts` and server event entities have no coordinates or reusable venue identity.
-- Server follows ports/adapters and uses Prisma/Postgres with in-memory local fallbacks. No recurring scheduler was found.
-- Credits are currently recommendation-specific in labels, validation, debit paths, purchase packages, and some hardcoded UI conditions. Scaling must cover these, signup grants, session costs, ledger quantities, and credited-purchase records.
-- Admin is a React/Vite app with existing authenticated pages and event editing.
+## Removed from this release
 
-## Proposed implementation decisions (assumptions for review)
+- The circled credit/24-hour button and its current/history sales subtitle.
+- Seven-day history, 기록 보기 action and dedicated history screen.
+- Eight-row comparison, manual historical hour selection and last-week next-hour reference.
+- Yesterday-only free-preview branch, paid history restrictions and history completeness/discount calculations.
+- Payment switch, unlock prices, quotes, entitlements and crowding credit deductions.
+- Tenfold credit-system migration and recommendation/purchase changes. Existing recommendation credits remain as they are.
 
-- Store the verified area assignment on existing event/place records for MVP; do not introduce a separate venue catalog. Admin records verification time and evidence/address. Multiple records for the same venue require consistent assignment.
-- Store raw observations with source observation time, ingestion time, source area code and crowding level; deduplicate provider observations. Screen visits never replace scheduled collection.
-- Persist a collection-start marker per area. Full-history price requires that marker at or before now minus 168 hours; ordinary gaps do not reset it. Show first/last actual readings and gaps rather than claiming continuous completeness.
-- A rolling 168-hour interval can touch eight Korea calendar dates. Make partial boundary dates selectable without displaying observations outside the rolling interval. Yesterday is the full prior Korea calendar day.
-- Lead with the two compact current/forecast summaries, followed by a selected-hour weekday/date list. Use full crowding labels, small restrained color accents and visible missing readings. Default the hour selector to the current Korea hour; label each row's actual observation time. A rolling window may offer partial boundary dates; do not include observations outside it. Show expiry once. No heatmap or multi-chart dashboard. Any secondary day chart is deferred pending explicit review.
-- Refresh serves the latest authorized stored data and attempts a bounded provider refresh after purchase/re-entry. Coalesce simultaneous same-area requests; failures retain stored observations. Record actual source time, never label ingestion time as observation time.
-- Use a scheduler-neutral protected due-area endpoint with database leases and retries, triggered externally at a frequency supporting configured intervals. Confirm deployment scheduler capability before deployment; do not rely on timers in serverless requests. Restrict interval choices to supported cadence and validate bulk inputs atomically.
-- Persist policy and per-area schedule settings server-side. Record admin changes and mapping verification. Reverify mapping when venue location changes.
-- Atomically debit credits and create an entitlement; serialize same-user/area purchases, use idempotency keys, and return existing access without another debit. Expiry uses the server clock. Bind confirmation to a short-lived server quote and require reconfirmation if cost changes.
-- Logged-out users can see the teaser, area explanation and free yesterday preview, but must sign in to unlock. Server endpoints enforce paid/current/history boundaries; hidden UI is insufficient.
-- Setting payment off offers 0-credit access; it does not retroactively extend an existing unlock. Reopening active access does not shorten/renew its expiry.
-- Retain at least eight days of observations to cover calendar-day previews and rolling-window boundaries, then prune; retain financial/entitlement history separately.
-- No auto-renewal, advance unlock stacking, or refund for ordinary refresh failure. Zero-data purchase rejection is enforced at commit as well as quote time.
+The current card has no empty space reserved for those deferred controls.
 
-## Implementation steps
+## Preservation of previous work
 
-1. Verify official manual, area catalog/boundaries and source schema. Document provenance and select initial supported venue mappings from existing data, without assuming matching district names imply coverage.
-2. Add credit-unit constants and an exactly-once transactional tenfold migration. Handle stored account balances, ledger entries, purchase credit quantities, recommendation session costs and numeric credit metadata deliberately. Update grant defaults, package labels, validation and app displays without changing cash prices or product identities. Define deployment compatibility for old clients before enabling scaled purchases.
-3. Add coverage-area, verified assignment, observations, collection metadata, policy and entitlement models/migrations. Define application ports and Postgres/in-memory adapters.
-4. Add server-side Seoul adapter, due-area collection endpoint, leases, per-area scheduling, idempotent observation storage and retention. Keep provider credentials out of client responses/logs.
-5. Implement authorized preview/full-history reads, server quotes and atomic unlock/debit flow. Include source attribution and policy/price metadata in responses.
-6. Add admin conditions page for settings, interval bulk editing and collection status; extend event editor for verified assignments. Include confirmation for bulk operations and actionable validation failures.
-7. Add mobile teaser, detail conditions panel, login return flow, 0/5/10-credit confirmation, active-access expiry, refresh/retry, yesterday preview, current/official-forecast summaries and selected-hour weekday comparisons. Preserve reservation CTA and existing detail navigation.
-8. Complete matching screenshots and acceptance review, then deployment/runbook instructions for key setup, scheduler, collecting initial history, migrations, credit cutover and payment activation.
+The **entire previous reviewed plan** is preserved in [deferred history and paid-access specification](app-area-crowding-history-deferred.md), with a scope banner. Do not delete its agreed behavior, arithmetic corrections, source evidence, edge cases or unresolved proposals. It is future design input, not current implementation authorization.
+
+The glossary retains historical-reference/target/unlock terms as future feature terminology. Earlier mockups with history/payment controls remain design references for that deferred feature, not the current UI.
+
+## Review findings and implementation rules
+
+### Data and API boundaries
+
+- Existing public event routes remain public. Their optional/additive support metadata may identify availability and verified area, but MUST NOT contain crowding levels, source observation times or other condition readings. Do not add a login requirement to ordinary event browsing.
+- Proposed current-condition route: GET /api/events/:id/crowding, protected by the existing user AuthGuard. Resolve the currently published event and verified assignment server-side; do not trust an area ID supplied by the client. Hidden/deleted/unverified events must not expose condition readings through direct requests.
+- Response identifies event/area and mapping revision, serverNow, level, source observedAt, last successful fetch, refresh status and attribution. An absent observation has a null level and unavailable state, never an invented low-crowding value. Keep unsupported mapping distinct from a temporarily unavailable provider.
+- Current observations are latest known estimates, not guaranteed live measurements. If observedAt precedes the current Korea hour, show 마지막 관측 and the actual date/time rather than implying a new current-hour measurement. Same-hour readings also show actual observedAt. This is presentation, not a freshness cutoff that hides valid data.
+- Never infer crowding from the venue's category, weather, price, tags or proximity. Use only the mapped official source level.
+
+### Minimum persistence and collection
+
+- Persist a versioned source-area catalog/boundary reference; verified event assignments with verifier/evidence/location fingerprint; one latest valid observation per area; and collection state with interval, due time, lease, last attempt/success and last error.
+- Preserve shared area identity across multiple mapped venues. Location changes in admin or imports and boundary revisions invalidate verification; unchanged reimports must not erase valid assignments. A disabled/removed source area cannot silently map to another area.
+- Latest-observation writes must be ordered by source observedAt: a slower old response cannot overwrite a newer observation. Repeated timestamps update fetch health without inventing a new measurement. Treat same-timestamp corrections explicitly; reject malformed dates, impossible future readings and unknown level values.
+- Raw observations now accumulate under the separately authorized observation-storage plan, preserving current observations for future history work. No nine-day expiry, hourly buckets, coverage counters or retention job is introduced. Current reads select the latest observation for the current boundary version. Historical values discarded before this change are not backfilled.
+- Scheduler/admin changes remain per-area with selected/all bulk edits. Define positive interval validation against actual deployed cadence and quotas, validate all bulk targets before changing any, audit changes and avoid an immediate simultaneous request burst.
+- Use durable leases, bounded batches/concurrency/timeouts and retry backoff, isolating provider failure per area. Source credentials and scheduler secrets stay server-side; admin mutations use AdminAuthGuard. Redact keys and key-bearing URLs in logs.
+- Implementation transport correction: Seoul's [official response](https://data.seoul.go.kr/together/notice/inquireView.do?bbsCd=10003&ditcCd=QNA01&seq=1d2186fcde0d53cbbb2814bec743624a) confirms HTTP-only source access and the replacement-average meaning. Permit HTTP only to openapi.seoul.go.kr:8088, with redirects forbidden and no key-bearing logging. The app/admin/scheduler API uses HTTPS. A verified HTTPS proxy can override the server's source template; unavailable official HTTPS is not a prerequisite.
+
+### Refresh, login and UI behavior
+
+- Entering/reopening detail loads authenticated current data and attempts a bounded provider refresh when the area's shared cooldown permits. Screen reopening is not permission for an unlimited upstream call. Routine batch size, timeout and cooldown values can be selected during implementation from validated quotas/latency.
+- Return stored valid data when a refresh times out/fails; expose the actual source time and retry state. With no stored reading, show unavailable and retry. A successful fetch returning the same observation must not advance its observation time.
+- Key responses/cache by user, event, verified area and mapping revision. Cancel or ignore old requests after venue changes, remapping, logout or account switching; clear displayed readings on logout. No shared/CDN cache of authenticated condition responses.
+- Login returns to the same detail screen and then loads current crowding directly. There is no quote, purchase confirmation, unlock step, credit check or expiration state.
+- Preserve all stage-1 detail content and safe areas. The compact card contains one current/last-known level and timestamp, area/scope, attribution and refresh/retry where relevant. No second historical column, history action or blank space for deferred controls.
+
+### Evidence and release dependencies
+
+- Research references: [Seoul OA-21285](https://data.seoul.go.kr/dataList/OA-21285/A/1/datasetView.do), [official manual](https://data.seoul.go.kr/SeoulRtd/downloads/실시간_도시데이터_매뉴얼.pdf), [Seoul terms](https://data.seoul.go.kr/etc/accessTerms.do), and [KOGL Type 1](https://www.kogl.or.kr/info/licenseType1.do). Prior verification recorded 121 areas and KOGL Type 1; revalidate the exact feed, current boundaries, authenticated payload and permitted attribution before production use. Do not assume the separate population feed has the same contract/terms.
+- Select a deployment-compatible scheduler, confirm its minimum cadence/request quotas, and prepare initial verified mappings. The repository has no recurring collection job configured. Do not rely on in-process timers in a serverless request.
+- Provider credentials and a live scheduler are production rollout requirements, not prerequisites to writing/test-driving isolated adapters with fixtures. Local tests must not modify production data or expose keys.
+
+## Proposed implementation direction
+
+1. Implementation was explicitly authorized by the user. Previous history/payment mockups do not establish rendered verification of the final reduced-scope UI; that visual review remains pending.
+2. Validate the feed contract and record architecture/settings decisions. Build verified mappings, latest-observation persistence, provider adapter and collection state using existing ports/adapters conventions. No historical API/query or financial migration.
+3. Implement the protected collector with leases, bounded requests, retry/backoff and scheduling integration. Add admin mapping/interval/bulk/health controls.
+4. Implement additive public support metadata and authenticated current-condition reads with the boundaries above. Keep provider credentials server-side and avoid per-card upstream requests.
+5. Implement the compact current card, login-return/retry states and supported-area Explore teaser, preserving stage-1 layout fixes. No unlock or history navigation.
+6. Verify locally and in rendered UI, then prepare source-key/scheduler/mapping setup and deployment runbook. Activate production collection only after rollout prerequisites and authorization are met.
+
+These are scoped planning steps, not permission to deploy or a claim that operational credentials/scheduler are available. Observation archival was subsequently authorized in the linked storage plan; historical presentation and payment remain deferred.
 
 ## Acceptance and verification
 
-- Supported/unsupported and verified/unverified records behave correctly; mapping changes cannot silently grant access to another area.
-- Anonymous unlocks fail server-side; signed-in 0-credit unlock works with zero balance. Yesterday preview cannot expose current data or unauthorized historical observations.
-- Exact expiry, shared-area reuse, duplicate taps/concurrent purchases, insufficient credits, quote changes, policy switches, and refreshed access cause no double debit or unintended extension.
-- Partial-history quote is 5 for initial normal price 10; normal quote is 10 at the 168-hour threshold. Odd configured prices round half upward. Empty areas cannot unlock. Missing samples remain gaps.
-- Verify Korea midnight boundaries, source timestamp parsing, latest-per-hour selection, eight possible selectable calendar dates, future-hour handling, and yesterday highlight.
-- Verify independent intervals, selected/all bulk changes, overlapping scheduler executions, provider retries/rate limits and credential protection. No synthetic history when collection is down.
-- Prove tenfold migration runs once and preserves purchasing power and ledger reconciliation; replaying old purchase tokens never grants credits twice. Verify old-client cutover and recommendation costs/displays.
-- Review Explore teaser, detail locked/unlocked/expired/login/loading/error/empty/partial states, confirmation, chart selection and all admin controls at normal/narrow widths and enlarged text. Inspect spacing, hierarchy, contrast, level labels, date navigation discoverability and 48-unit mobile controls. Inspect 0/5/10-credit UI in context.
-- A parent should be able to identify the covered area, whether information is current or historical, the crowding level, and the cost/duration of the next action without reading a paragraph. Keep one primary action per conditions state; do not hide essential meaning behind color alone.
-- Server: `npm test`, `npm run typecheck`; admin: `npm run build`; app: targeted meaningful tests, `npx tsc --noEmit`, `npm run lint`, then full relevant tests. Compare pre-existing failures against baseline.
-- Verify no unauthorized external payment or deployment occurs as part of local implementation.
+- Signed-in current-condition access requires no credit balance, payment, unlock or expiry; guest access requires login.
+- No crowding/history payment UI, record-history entry, last-week comparison, yesterday preview or tenfold credit changes.
+- Current readings always identify the official area and actual observation time; never imply venue occupancy or substitute an invented reading.
+- Mapping validation/invalidation covers location changes through admin and imports, as well as revised official boundaries.
+- Current-source parsing, deduplication, missing/malformed data, stale/repeated observations and provider failures have meaningful server checks.
+- Regression cases include old response arriving after a newer one, repeated timestamps, same-time corrections, failed refresh with/without a snapshot, logout/venue change during a pending request, and unpublished/remapped direct event access.
+- Anonymous/public responses never leak condition readings; user/admin token kinds cannot substitute for one another. Server-protected endpoints enforce login rather than relying on the UI.
+- Scheduling covers per-area changes, selected/all bulk validation, leases, retry/isolation and quota-safe refreshes. Persistent storage and real scheduling are verified before collection rollout.
+- UI review includes supported/unsupported, guest/signed-in, loading/current/stale/unavailable/retry states at narrow widths/enlarged text, with the previously fixed detail safe-area and image alignment preserved.
+- Run relevant server tests/typecheck, admin build and mobile TypeScript/lint/tests, comparing known baseline failures. Source attribution and key redaction are verified.
+- Implementation authorization has been received. Reduced-scope rendered mobile/admin visual verification is still pending. Scheduler capability, initial verified mappings, provider credentials and a successful live smoke check precede production rollout; these operational items do not block isolated local implementation.
 
-## Plan review and remaining gates
+## Review outcome
 
-- Requirements interview complete for core scope. Assumptions above are proposals, not independently confirmed decisions.
-- Current UI references: `app/store-assets/real-screenshots/01-explore.png` and `02-detail.png`; saved screenshots may predate current source styling. Proposed mockups must be labeled and compared at the same viewport and interaction state.
-- Visual review is pending: produce and inspect current/proposed mobile and admin images before requesting implementation approval. A saved screenshot alone does not establish current running UI.
-- Deployment prerequisites: official API key and tested response, scheduler capability at selected cadence, a reviewed venue/area mapping list, and credit migration/old-client rollout. No secret values are required in this document.
-- No feature implementation or implementation verification has occurred. Only glossary and planning artifacts have been created.
+The current release is current-condition-only, free after login. History, historical references, access entitlements and credit changes are fully isolated in the deferred document. The review corrected the nonexistent-teaser wording, review/implementation ordering, public-versus-authenticated API boundaries, source-time/stale semantics, snapshot races and rollout prerequisites. No new product decision was required by these corrections. Implementation followed the user's authorization; the results and remaining verification gaps are recorded below.
+
+## Implementation result
+
+- Added a current-crowding module with application ports, source adapter, Prisma persistence, user/admin controllers and a dedicated secret-protected collection endpoint. Event responses add only verified-area metadata, never observations.
+- Added a migration for area/catalog/collection/snapshot state, verified event mappings and admin audit. Fingerprints invalidate moved/import-changed venues and updated boundary versions automatically at read time. No production migration was applied.
+- Collector defaults: 30-minute area interval, five concurrent due areas per invocation, 4-second provider timeout, 4-MiB response cap, 30-second lease, 60-second shared refresh cooldown and failure backoff up to 15 minutes. The initial implementation did not archive observations; archival is now implemented under the separately authorized storage plan. No credit storage was added.
+- Admin now supports catalog create/edit, per-area or selected/all interval changes, explicit optional status changes, health, boundary-reference review, evidence-backed event assignment and unmapping. Interval-only bulk edits preserve each area's existing statuses. Event editor links to the mapping page.
+- Mobile now shows the supported-area teaser and compact current card, direct authenticated free reads, login return, expired-session reauthentication, last-known/unavailable/retry states, replacement-quality disclosure and source attribution. State identity/request generations prevent logout/account/venue response leakage.
+- Added scheduler runner and [operation/runbook](../current_crowding.md). It is ready for an externally configured recurring job; no production scheduler or credentials were installed.
+
+## Verification result and gaps
+
+- Prisma generated successfully; Nest server build and server TypeScript pass.
+- Server suite: 30 pass, zero failures, one Postgres integration test skipped because no dedicated BABYROO_CROWDING_TEST_DATABASE_URL was supplied. The isolated test covers concurrent leases, stale completion and atomic bulk rollback when run against a migrated test database.
+- Mobile: 14 focused detail/card tests pass; full suite 79 pass and 12 fail. Compared failed names against unchanged HEAD's App suite: exact same 12 failures, no new failures. Mobile TypeScript and full ESLint pass.
+- Admin TypeScript passes. Admin bundle build is blocked before source compilation because the bundled Node runtime rejects the existing Rolldown native binding's signing identity; the installed alternative Node runtime is inaccessible. Dependencies/lockfile were not altered to work around the environment.
+- [Component HTML preview](previews/app-current-crowding.html) is generated from actual test-renderer output for guest/current/last-known/unavailable/replacement states with illustrative fixtures. It is a DOM reconstruction, not a native screenshot. Regenerate by running the focused card tests with BABYROO_CROWDING_PREVIEW_DIR set, then the preview converter in that directory.
+- Native/browser preview runtime failed to start. Neither mobile nor admin rendered visual approval is claimed. Inspect compactness, timestamps, source/refresh touch targets, normal/narrow/large text, detail safe areas and admin bulk/mapping interactions on a running environment.
+- Live authenticated Seoul payload compatibility, production migration, actual scheduler cadence and initial manually verified mappings remain rollout tasks. Public sample retrieval was attempted but the web tool could not resolve the endpoint. No secret/live production data was used for fixture tests.
+- Whitespace checks pass. Initial stage-2 implementation/review fixes are committed as f059368 and 9643883; the subsequent archival change remains local. Nothing deployed. Deferred history UI/payment specification remains preserved.

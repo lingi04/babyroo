@@ -24,6 +24,7 @@ export type BabyrooEvent = {
   tags: string[];
   summary: string;
   sourceUrl: string;
+  crowdingArea?: { id: string; name: string; revision: string };
 };
 
 const eventsByCsvOrder: BabyrooEvent[] = [];

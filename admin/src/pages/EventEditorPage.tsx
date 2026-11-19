@@ -136,6 +136,9 @@ export function EventEditorPage({
           {'publicationStatus' in event && event.publicationStatus && <StatusBadge status={event.publicationStatus} />}
         </div>
         <div className="editor-actions">
+          {mode === 'edit' && eventId && (
+            <a className="button-link" href={`#/crowding?eventId=${encodeURIComponent(eventId)}`}>주변 지역 연결</a>
+          )}
           {'sourceUrl' in event && event.sourceUrl && (
             <a className="button-link" href={event.sourceUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={18} />

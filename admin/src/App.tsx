@@ -6,8 +6,10 @@ import { LoginPage } from './pages/LoginPage';
 import { EventEditorPage } from './pages/EventEditorPage';
 import { EventListPage } from './pages/EventListPage';
 import { AppPolicyPage } from './pages/AppPolicyPage';
+import { CrowdingPage } from './pages/CrowdingPage';
 
 type Route =
+  | { name: 'crowding'; eventId?: string }
   | { name: 'policy' }
   | { name: 'list' }
   | { name: 'new' }
@@ -26,13 +28,16 @@ export function App() {
 
   const navigate = useCallback((next: Route) => {
     window.location.hash =
-      next.name === 'policy' ? '#/app-policies' : next.name === 'new' ? '#/events/new' : next.name === 'edit' ? `#/events/${next.id}/edit` : '#/events';
+      next.name === 'crowding' ? '#/crowding' : next.name === 'policy' ? '#/app-policies' : next.name === 'new' ? '#/events/new' : next.name === 'edit' ? `#/events/${next.id}/edit` : '#/events';
     setRoute(next);
   }, []);
 
   const page = useMemo(() => {
     if (!session) {
       return <LoginPage onLogin={setSession} />;
+    }
+    if (route.name === 'crowding') {
+      return <CrowdingPage key={session.accessToken} accessToken={session.accessToken} refreshToken={refreshToken} initialEventId={route.eventId} />;
     }
     if (route.name === 'new') {
       return <EventEditorPage accessToken={session.accessToken} mode="new" onDone={() => navigate({ name: 'list' })} />;
@@ -71,12 +76,13 @@ export function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow">Babyroo Admin</p>
-          <h1>{route.name === 'policy' ? '앱 업데이트 정책' : '이벤트 관리'}</h1>
+          <h1>{route.name === 'crowding' ? '주변 혼잡도' : route.name === 'policy' ? '앱 업데이트 정책' : '이벤트 관리'}</h1>
         </div>
         {session && (
           <div className="header-actions">
             <button type="button" onClick={() => navigate({ name: 'list' })}>이벤트 관리</button>
             <button type="button" onClick={() => navigate({ name: 'policy' })}>앱 업데이트 정책</button>
+            <button type="button" onClick={() => navigate({ name: 'crowding' })}>주변 혼잡도</button>
             <span className="admin-email">{session.adminUser.email}</span>
             <button type="button" className="icon-button" onClick={() => setRefreshToken(value => value + 1)} title="새로고침">
               <RefreshCw size={18} />
@@ -98,6 +104,9 @@ export function App() {
 
 function parseRoute(): Route {
   const hash = window.location.hash || '#/events';
+  if (hash === '#/crowding' || hash.startsWith('#/crowding?')) {
+    return { name: 'crowding', eventId: new URLSearchParams(hash.split('?')[1]).get('eventId') ?? undefined };
+  }
   if (hash === '#/app-policies') return { name: 'policy' };
   if (hash === '#/events/new') {
     return { name: 'new' };

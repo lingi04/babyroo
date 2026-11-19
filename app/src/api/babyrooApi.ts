@@ -1,4 +1,5 @@
 import type { AuthSession } from '../auth/types';
+import type { CurrentCrowding } from '../crowding/types';
 import type { BabyrooEvent, ReservationStatus } from '../data/events';
 import type { Child, User, UserHomeAddress } from '../data/user';
 
@@ -49,6 +50,7 @@ type BabyrooApiEvent = {
   tags: string[];
   summary: string;
   sourceUrl: string;
+  crowdingArea?: { id: string; name: string; revision: string };
 };
 
 type BabyrooApiEventListResponse = {
@@ -181,6 +183,13 @@ export async function getEventFromBabyrooApi(
     ...event,
     tags: event.tags ?? [],
   };
+}
+
+export function getCurrentCrowdingFromBabyrooApi(eventId: string, accessToken: string): Promise<CurrentCrowding> {
+  return getJson<CurrentCrowding>({
+    path: `/events/${encodeURIComponent(eventId)}/crowding`,
+    accessToken,
+  });
 }
 
 export async function getCurrentUserFromBabyrooApi(
