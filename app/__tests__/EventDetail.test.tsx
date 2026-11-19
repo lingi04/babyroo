@@ -3,6 +3,17 @@ import ReactTestRenderer from 'react-test-renderer';
 import { Alert, Image, Linking, StyleSheet, Text } from 'react-native';
 import { EventDetail } from '../App';
 import { BabyrooEvent } from '../src/data/events';
+import { getEventFromBabyrooApi } from '../src/api/babyrooApi';
+
+jest.mock('../src/api/babyrooApi', () => ({
+  ...jest.requireActual('../src/api/babyrooApi'),
+  getEventFromBabyrooApi: jest.fn(),
+}));
+
+beforeEach(() => {
+  jest.mocked(getEventFromBabyrooApi).mockReset();
+  jest.mocked(getEventFromBabyrooApi).mockRejectedValue(new Error('offline'));
+});
 
 jest.mock('react-native-iap', () => ({
   useIAP: () => ({ connected: false, products: [] }),
@@ -42,6 +53,80 @@ async function renderEvent(overrides: Partial<BabyrooEvent> = {}) {
   });
   return { renderer: renderer!, onBack };
 }
+
+test('shows a newly mapped area even when the Explore event has no crowding metadata', async () => {
+  jest.mocked(getEventFromBabyrooApi).mockResolvedValue({
+    ...event,
+    crowdingArea: { id: 'POI008', name: '경복궁', revision: 'new-mapping' },
+  });
+  const { renderer } = await renderEvent();
+  expect(getEventFromBabyrooApi).toHaveBeenCalledWith(event.id);
+  expect(renderer.root.findByProps({ children: '주변 혼잡도' })).toBeTruthy();
+  expect(renderer.root.findByProps({ children: '경복궁' })).toBeTruthy();
+  await ReactTestRenderer.act(() => renderer.unmount());
+  const reopened = await renderEvent();
+  expect(getEventFromBabyrooApi).toHaveBeenCalledTimes(2);
+  await ReactTestRenderer.act(() => reopened.renderer.unmount());
+});
+
+test.each(['removed', 'offline', 'not_found'] as const)(
+  'handles a stale mapped event when fresh lookup is %s',
+  async outcome => {
+    const crowdingArea = { id: 'POI008', name: '경복궁', revision: 'old' };
+    if (outcome === 'removed') {
+      jest.mocked(getEventFromBabyrooApi).mockResolvedValue(event);
+    } else {
+      jest.mocked(getEventFromBabyrooApi).mockRejectedValue(
+        Object.assign(new Error(outcome), {
+          statusCode: outcome === 'not_found' ? 404 : 503,
+        }),
+      );
+    }
+    const { renderer } = await renderEvent({ crowdingArea });
+    expect(
+      renderer.root.findAllByProps({ children: '주변 혼잡도' }).length > 0,
+    ).toBe(outcome === 'offline');
+    expect(renderer.root.findByProps({ children: event.summary })).toBeTruthy();
+    await ReactTestRenderer.act(() => renderer.unmount());
+  },
+);
+
+test('late detail responses cannot show a previous venue’s crowding area', async () => {
+  let resolveFirst!: (value: BabyrooEvent) => void;
+  jest
+    .mocked(getEventFromBabyrooApi)
+    .mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveFirst = resolve;
+        }),
+    )
+    .mockResolvedValueOnce({
+      ...event,
+      id: 'second',
+      crowdingArea: { id: 'POI101', name: '서울숲공원', revision: 'second' },
+    });
+  const { renderer } = await renderEvent();
+  await ReactTestRenderer.act(() =>
+    renderer.update(
+      <EventDetail
+        event={{ ...event, id: 'second' }}
+        bottomInset={24}
+        topInset={32}
+        onBack={() => {}}
+      />,
+    ),
+  );
+  await ReactTestRenderer.act(() =>
+    resolveFirst({
+      ...event,
+      crowdingArea: { id: 'POI008', name: '경복궁', revision: 'first' },
+    }),
+  );
+  expect(renderer.root.findByProps({ children: '서울숲공원' })).toBeTruthy();
+  expect(renderer.root.findAllByProps({ children: '경복궁' })).toHaveLength(0);
+  await ReactTestRenderer.act(() => renderer.unmount());
+});
 
 test('missing facts stay blank without inventing hours, age or reservation requirements', async () => {
   const { renderer } = await renderEvent({ startsAt: '', endsAt: '' });

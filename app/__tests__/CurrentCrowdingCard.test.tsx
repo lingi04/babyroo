@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Text } from 'react-native';
+import { Alert, Linking, Text } from 'react-native';
+import * as ReactNative from 'react-native';
 import { CurrentCrowdingCard } from '../src/crowding/CurrentCrowdingCard';
 import { getCurrentCrowdingFromBabyrooApi } from '../src/api/babyrooApi';
 import type { CurrentCrowding } from '../src/crowding/types';
@@ -42,7 +43,11 @@ function capture(name: string, renderer: ReactTestRenderer.ReactTestRenderer) {
 beforeEach(() => {
   read.mockReset();
   props.onSignIn.mockClear();
+  jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+    width: 390, height: 844, scale: 1, fontScale: 1,
+  });
 });
+afterEach(() => jest.restoreAllMocks());
 
 test('guest sees login entry without fetching or showing crowding data', async () => {
   let renderer: ReactTestRenderer.ReactTestRenderer;
@@ -219,4 +224,117 @@ test('source replacement average is labeled as a reference, not current observat
   expect(labels(renderer!)).toContain('최근 4주 같은 요일·시간 평균');
   capture('replacement', renderer!);
   await ReactTestRenderer.act(() => renderer!.unmount());
+});
+
+test('header area explains scope on tap without a duplicate footer label', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  read.mockResolvedValue(observation);
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  try {
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <CurrentCrowdingCard {...props} accessToken="user-1" />,
+      );
+    });
+    expect(labels(renderer!)).toContain('광화문·덕수궁');
+    expect(labels(renderer!)).not.toContain('지역 기준');
+    expect(labels(renderer!)).not.toContain('시설 내부 혼잡도');
+    expect(labels(renderer!)).not.toContain('원본 무료 제공');
+    await ReactTestRenderer.act(() =>
+      renderer!.root
+        .findByProps({
+          accessibilityLabel: '광화문·덕수궁 지역 기준 안내',
+        })
+        .props.onPress(),
+    );
+    expect(alert).toHaveBeenCalledWith(
+      '광화문·덕수궁 지역 기준',
+      '해당 지역의 혼잡도예요. 시설 내부 혼잡도와 다를 수 있어요.',
+    );
+    expect(read).toHaveBeenCalledTimes(1);
+  } finally {
+    alert.mockRestore();
+    await ReactTestRenderer.act(() => renderer?.unmount());
+  }
+});
+
+test('source action discloses attribution/free original data before opening and reports link failure', async () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const openURL = jest
+    .spyOn(Linking, 'openURL')
+    .mockRejectedValue(new Error('offline'));
+  read.mockResolvedValue(observation);
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  try {
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <CurrentCrowdingCard {...props} accessToken="user-1" />,
+      );
+    });
+    await ReactTestRenderer.act(() =>
+      renderer!.root
+        .findByProps({
+          accessibilityLabel: '서울시 제공 데이터 출처',
+        })
+        .props.onPress(),
+    );
+    expect(openURL).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(
+      '데이터 출처',
+      '서울특별시 공공데이터\n원본 데이터 무료 제공',
+      expect.any(Array),
+    );
+    const buttons = alert.mock.calls.at(-1)![2]!;
+    await ReactTestRenderer.act(async () =>
+      buttons.find(button => button.text === '원본 보기')!.onPress!(),
+    );
+    expect(openURL).toHaveBeenCalledWith(
+      'https://data.seoul.go.kr/dataList/OA-21285/A/1/datasetView.do',
+    );
+    expect(labels(renderer!)).toContain('출처 페이지를 열 수 없어요');
+    expect(labels(renderer!)).toContain('여유');
+  } finally {
+    openURL.mockRestore();
+    alert.mockRestore();
+    await ReactTestRenderer.act(() => renderer?.unmount());
+  }
+});
+
+test.each([
+  { name: 'narrow-current', width: 320, fontScale: 1 },
+  { name: 'large-current', width: 390, fontScale: 1.6 },
+])('preserves readings and footer actions in $name', async dimensions => {
+  const window = jest
+    .spyOn(ReactNative, 'useWindowDimensions')
+    .mockReturnValue({
+      width: dimensions.width,
+      height: 844,
+      scale: 1,
+      fontScale: dimensions.fontScale,
+    });
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  read.mockResolvedValue(observation);
+  let renderer: ReactTestRenderer.ReactTestRenderer;
+  try {
+    await ReactTestRenderer.act(async () => {
+      renderer = ReactTestRenderer.create(
+        <CurrentCrowdingCard {...props} accessToken="user-1" />,
+      );
+    });
+    capture(dimensions.name, renderer!);
+    expect(labels(renderer!)).toContain('여유');
+    expect(labels(renderer!)).toContain('14:30');
+    await ReactTestRenderer.act(() =>
+      renderer!.root
+        .findByProps({
+          accessibilityLabel: '광화문·덕수궁 지역 기준 안내',
+        })
+        .props.onPress(),
+    );
+    expect(alert).toHaveBeenCalled();
+  } finally {
+    alert.mockRestore();
+    window.mockRestore();
+    await ReactTestRenderer.act(() => renderer?.unmount());
+  }
 });

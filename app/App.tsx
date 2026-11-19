@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
+import { useFreshCrowdingArea } from './src/crowding/useFreshCrowdingArea';
 import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
 import {
   type RecommendationCtaScrollState,
@@ -3634,6 +3635,7 @@ export function EventDetail({
   onBack: () => void;
 }) {
   const [failedImageUrl, setFailedImageUrl] = useState<string>();
+  const crowdingArea = useFreshCrowdingArea(event);
   const { width, fontScale } = useWindowDimensions();
   const [detailWidth, setDetailWidth] = useState(width);
   const heroWidth = Math.max(0, detailWidth - spacing.xl * 2);
@@ -3742,10 +3744,10 @@ export function EventDetail({
             />
           </View>
 
-          {event.crowdingArea ? (
+          {crowdingArea ? (
             <CurrentCrowdingCard
               eventId={event.id}
-              area={event.crowdingArea}
+              area={crowdingArea}
               accessToken={accessToken}
               onSignIn={onSignIn ?? (async () => undefined)}
             />
