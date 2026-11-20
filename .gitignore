@@ -9,3 +9,5 @@ dist/
 server/src/generated/
 assets/generated
 app/android/app/google-services.json
+.artifacts
+.task-cache
