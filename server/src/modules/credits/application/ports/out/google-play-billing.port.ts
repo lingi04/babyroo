@@ -15,6 +15,7 @@ export type GooglePlayProductPurchaseRequest = {
 };
 
 export interface GooglePlayBillingPort {
+  getReadiness(): { ready: boolean };
   getProductPurchase(
     request: GooglePlayProductPurchaseRequest,
   ): Promise<GooglePlayProductPurchase>;

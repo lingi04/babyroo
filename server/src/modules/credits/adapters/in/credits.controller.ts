@@ -52,6 +52,11 @@ export class CreditsController {
     return this.getCreditBalanceUseCase.getBalance(user.id);
   }
 
+  @Get('google-play/readiness')
+  getBillingReadiness() {
+    return this.getCreditStatusUseCase.getBillingReadiness();
+  }
+
   @Get('ledger')
   listLedger(@CurrentUser() user: RequestUser) {
     return this.listCreditLedgerUseCase.listLedger(user.id);

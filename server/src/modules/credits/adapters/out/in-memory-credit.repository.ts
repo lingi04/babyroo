@@ -94,11 +94,49 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
     ledgerEntry: CreditLedgerEntry;
     purchase: GooglePlayPurchaseRecord;
   }> {
+    const previous = this.pendingPurchases.get(input.purchaseToken);
+    if (previous) {
+      const result = await previous;
+      if (result.purchase.userId !== input.userId) {
+        throw new ApplicationError(
+          'GOOGLE_PLAY_PURCHASE_ALREADY_CREDITED',
+          'Purchase belongs to another user',
+          409,
+        );
+      }
+      return result;
+    }
+    const pending = this.recordPurchase(input);
+    this.pendingPurchases.set(input.purchaseToken, pending);
+    try {
+      return await pending;
+    } finally {
+      this.pendingPurchases.delete(input.purchaseToken);
+    }
+  }
+
+  private readonly pendingPurchases = new Map<
+    string,
+    Promise<{
+      balance: CreditBalance;
+      ledgerEntry: CreditLedgerEntry;
+      purchase: GooglePlayPurchaseRecord;
+    }>
+  >();
+
+  private async recordPurchase(input: GooglePlayPurchaseRecordInput) {
     const existingPurchase = await this.findGooglePlayPurchaseByToken(
       input.purchaseToken,
     );
 
     if (existingPurchase) {
+      if (existingPurchase.userId !== input.userId) {
+        throw new ApplicationError(
+          'GOOGLE_PLAY_PURCHASE_ALREADY_CREDITED',
+          'Purchase belongs to another user',
+          409,
+        );
+      }
       const balance = await this.getBalance(existingPurchase.userId);
       const ledgerEntry =
         this.ledger.find(entry => entry.id === existingPurchase.creditedLedgerEntryId) ??

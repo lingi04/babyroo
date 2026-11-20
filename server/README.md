@@ -194,6 +194,7 @@ Credit APIs:
 GET /api/credits/status
 GET /api/credits/balance
 GET /api/credits/ledger
+GET /api/credits/google-play/readiness
 POST /api/credits/purchases
 POST /api/credits/google-play/verify
 ```
@@ -203,6 +204,41 @@ production purchases should use `POST /api/credits/google-play/verify` after the
 app receives a Google Play purchase token. The endpoint verifies the token with
 the Android Publisher API, records the token once, grants the matching credit
 package, and returns the updated balance.
+
+`GET /api/credits/google-play/readiness` requires authentication and returns
+`{ "ready": true }` only when the configured service-account email and RSA private
+key can be parsed. It uses the same credential parser as purchase verification;
+it does not call Google or guarantee API permissions, product availability, or
+license-tester status. Balance and ledger reads remain available when it returns
+`{ "ready": false }`.
+
+The updated Android app checks readiness before each new checkout. An unavailable
+or older backend without this endpoint blocks checkout. Deploy the backend before
+distributing the updated Android build; older app builds do not have this gate.
+The app reconciles unfinished purchases on screen entry, resume, and already-owned
+errors. A recovery action never automatically opens a second checkout. Credits
+are recorded once per token; consumption happens in the app only after successful
+verification, and can be retried using the same credited token. Google-reported
+canceled or pending purchases are not granted or blindly consumed. This flow does
+not implement a credit clawback for purchases refunded after credits were granted.
+
+For billing setup, configure `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` with the complete
+service-account JSON as a backend secret, or configure both the email and private
+key variables listed above. Enable the Google Play Android Developer API in its
+Cloud project and grant the service account access to this app in Play Console,
+including **View financial data, orders, and cancellation survey responses** and
+**Manage orders and subscriptions**. Redeploy/restart the backend after updating
+secrets. Never bundle the private key into the app.
+
+On a device, verify the installed app/backend versions and test successful credit
+delivery, a verification outage followed by recovery, pending payment, a failed
+consumption retry, and refund ownership synchronization. Add the device's purchase
+account as a license tester and explicitly select **Test card, always approves**
+or **Test card, always declines**. Readiness does not make purchases free. Google
+may retain stale ownership while a refund propagates; the app cannot force-clear
+that ownership or consume a refunded purchase as a shortcut. See Google's
+[billing test guide](https://developer.android.com/google/play/billing/test) and
+[API setup guide](https://developers.google.com/android-publisher/getting_started).
 
 `GET /api/credits/status` returns the balance, recent ledger entries, and available packages for the app's credit status screen.
 

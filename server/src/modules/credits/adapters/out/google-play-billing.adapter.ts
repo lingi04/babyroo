@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { GoogleAuth } from 'google-auth-library';
+import { createPrivateKey } from 'node:crypto';
 import { ApplicationError } from '../../../../common/application-error';
 import { debugLog } from '../../../../common/debug-log';
 import {
@@ -21,6 +22,15 @@ const ANDROID_PUBLISHER_SCOPE =
 @Injectable()
 export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
   private auth?: GoogleAuth;
+
+  getReadiness() {
+    try {
+      this.credentials();
+      return { ready: true };
+    } catch {
+      return { ready: false };
+    }
+  }
 
   async getProductPurchase(
     request: GooglePlayProductPurchaseRequest,
@@ -46,7 +56,7 @@ export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
     } catch (error) {
       debugLog('credits.googlePlay.verify.failure', {
         productId: request.productId,
-        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.name : 'UnknownError',
       });
       throw new ApplicationError(
         'GOOGLE_PLAY_PURCHASE_VERIFICATION_FAILED',
@@ -69,7 +79,7 @@ export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
     } catch (error) {
       debugLog('credits.googlePlay.consume.failure', {
         productId: request.productId,
-        error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.name : 'UnknownError',
       });
       throw new ApplicationError(
         'GOOGLE_PLAY_PURCHASE_CONSUME_FAILED',
@@ -88,41 +98,42 @@ export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
   }
 
   private createAuth() {
+    return new GoogleAuth({
+      credentials: this.credentials(),
+      scopes: [ANDROID_PUBLISHER_SCOPE],
+    });
+  }
+
+  private credentials(): { client_email: string; private_key: string } {
     const serviceAccountJson = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
-
-    if (serviceAccountJson) {
-      try {
-        return new GoogleAuth({
-          credentials: JSON.parse(serviceAccountJson),
-          scopes: [ANDROID_PUBLISHER_SCOPE],
-        });
-      } catch {
-        throw new ApplicationError(
-          'GOOGLE_PLAY_BILLING_NOT_CONFIGURED',
-          'Google Play billing service account JSON is invalid',
-          503,
-        );
+    try {
+      const value = serviceAccountJson
+        ? JSON.parse(serviceAccountJson)
+        : {
+            client_email: process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
+            private_key: process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY,
+          };
+      if (
+        !value ||
+        (serviceAccountJson && value.type !== 'service_account') ||
+        typeof value.client_email !== 'string' ||
+        !/^[^\s@]+@[^\s@]+\.iam\.gserviceaccount\.com$/.test(value.client_email) ||
+        typeof value.private_key !== 'string'
+      ) {
+        throw new Error('Invalid service account');
       }
-    }
-
-    const clientEmail = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL;
-    const privateKey = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_PRIVATE_KEY;
-
-    if (!clientEmail || !privateKey) {
+      const privateKey = value.private_key.replace(/\\n/g, '\n');
+      if (createPrivateKey(privateKey).asymmetricKeyType !== 'rsa') {
+        throw new Error('Invalid signing key');
+      }
+      return { client_email: value.client_email, private_key: privateKey };
+    } catch {
       throw new ApplicationError(
         'GOOGLE_PLAY_BILLING_NOT_CONFIGURED',
-        'Google Play billing service account is not configured',
+        'Google Play billing service account is missing or invalid',
         503,
       );
     }
-
-    return new GoogleAuth({
-      credentials: {
-        client_email: clientEmail,
-        private_key: privateKey.replace(/\\n/g, '\n'),
-      },
-      scopes: [ANDROID_PUBLISHER_SCOPE],
-    });
   }
 
   private purchaseUrl({

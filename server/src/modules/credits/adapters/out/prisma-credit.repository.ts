@@ -141,6 +141,13 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
       });
 
       if (existingPurchase) {
+        if (existingPurchase.userId !== input.userId) {
+          throw new ApplicationError(
+            'GOOGLE_PLAY_PURCHASE_ALREADY_CREDITED',
+            'Purchase belongs to another user',
+            409,
+          );
+        }
         const [account, ledgerEntry] = await Promise.all([
           this.ensureAccount(existingPurchase.userId, tx),
           tx.creditLedgerEntry.findUniqueOrThrow({

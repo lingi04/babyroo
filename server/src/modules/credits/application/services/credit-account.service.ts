@@ -58,6 +58,10 @@ export class CreditAccountService
     return this.credits.getBalance(userId);
   }
 
+  getBillingReadiness() {
+    return this.googlePlayBilling.getReadiness();
+  }
+
   async getStatus(userId: string) {
     debugLog('credits.status.start', { userId });
     const balance = await this.credits.getBalance(userId);
@@ -165,15 +169,46 @@ export class CreditAccountService
       input.purchaseToken,
     );
 
-    if (existingPurchase) {
-      if (existingPurchase.userId !== userId) {
-        throw new ApplicationError(
-          'GOOGLE_PLAY_PURCHASE_ALREADY_CREDITED',
-          'Google Play purchase was already credited',
-          409,
-        );
-      }
+    if (existingPurchase && existingPurchase.userId !== userId) {
+      throw new ApplicationError(
+        'GOOGLE_PLAY_PURCHASE_ALREADY_CREDITED',
+        'Google Play purchase was already credited',
+        409,
+      );
+    }
 
+    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME ?? 'com.babyroo';
+    if (
+      (input.packageName && input.packageName !== packageName) ||
+      (existingPurchase &&
+        (existingPurchase.productId !== creditPackage.googlePlayProductId ||
+          existingPurchase.packageName !== packageName))
+    ) {
+      throw new ApplicationError(
+        'INVALID_GOOGLE_PLAY_PURCHASE',
+        'Purchase does not match the product or app',
+        400,
+      );
+    }
+
+    // Revalidate even credited purchases: a later refund must never be consumed
+    // simply because the original credit grant was recorded successfully.
+    const googlePurchase = await this.googlePlayBilling.getProductPurchase({
+      packageName,
+      productId: creditPackage.googlePlayProductId,
+      purchaseToken: input.purchaseToken,
+    });
+    if (googlePurchase.purchaseState !== 0) {
+      throw new ApplicationError(
+        googlePurchase.purchaseState === 1
+          ? 'GOOGLE_PLAY_PURCHASE_CANCELED'
+          : 'GOOGLE_PLAY_PURCHASE_NOT_PURCHASED',
+        'Google Play purchase is not completed',
+        409,
+      );
+    }
+
+    if (existingPurchase) {
       const balance = await this.credits.getBalance(userId);
       const ledger = await this.credits.listLedger(userId);
       const ledgerEntry = ledger.find(
@@ -196,27 +231,10 @@ export class CreditAccountService
         ledgerEntry,
       };
     }
-
-    const packageName = input.packageName ?? process.env.GOOGLE_PLAY_PACKAGE_NAME ?? 'com.babyroo';
-
     debugLog('credits.googlePlay.verify.start', {
       userId,
       productId: creditPackage.googlePlayProductId,
     });
-    const googlePurchase = await this.googlePlayBilling.getProductPurchase({
-      packageName,
-      productId: creditPackage.googlePlayProductId,
-      purchaseToken: input.purchaseToken,
-    });
-
-    if (googlePurchase.purchaseState !== 0) {
-      throw new ApplicationError(
-        'GOOGLE_PLAY_PURCHASE_NOT_PURCHASED',
-        'Google Play purchase is not completed',
-        409,
-      );
-    }
-
     if (googlePurchase.consumptionState === 1) {
       throw new ApplicationError(
         'GOOGLE_PLAY_PURCHASE_ALREADY_CONSUMED',
