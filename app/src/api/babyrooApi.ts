@@ -296,6 +296,13 @@ export async function createCreditPurchaseInBabyrooApi({
   });
 }
 
+export function getGooglePlayBillingReadiness(accessToken: string) {
+  return getJson<{ ready: boolean }>({
+    accessToken,
+    path: '/credits/google-play/readiness',
+  });
+}
+
 export async function verifyGooglePlayPurchaseInBabyrooApi({
   accessToken,
   purchase,
