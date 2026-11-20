@@ -216,11 +216,22 @@ The updated Android app checks readiness before each new checkout. An unavailabl
 or older backend without this endpoint blocks checkout. Deploy the backend before
 distributing the updated Android build; older app builds do not have this gate.
 The app reconciles unfinished purchases on screen entry, resume, and already-owned
-errors. A recovery action never automatically opens a second checkout. Credits
+errors. Its purchase card keeps **결제 대기 중** visible for a confirmed pending
+payment and **구매 확인 지연** for verification failure. **다시 확인** refreshes
+the existing purchase without starting checkout; failed refreshes retain the
+previous status. If credits were delivered but consumption failed, the card
+instead explains that purchase processing needs another check. A recovery action
+never automatically opens a second checkout. Credits
 are recorded once per token; consumption happens in the app only after successful
 verification, and can be retried using the same credited token. Google-reported
 canceled or pending purchases are not granted or blindly consumed. This flow does
 not implement a credit clawback for purchases refunded after credits were granted.
+
+Verification returns `GOOGLE_PLAY_PURCHASE_PENDING` only for Google's purchase
+state `2`. Canceled purchases use `GOOGLE_PLAY_PURCHASE_CANCELED`; unknown or
+otherwise invalid states retain `GOOGLE_PLAY_PURCHASE_NOT_PURCHASED`. The updated
+app does not interpret that older generic error as proof of a pending payment.
+No database migration is needed for these status changes.
 
 For billing setup, configure `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` with the complete
 service-account JSON as a backend secret, or configure both the email and private

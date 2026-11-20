@@ -3,6 +3,7 @@ import { GoogleAuth } from 'google-auth-library';
 import { createPrivateKey } from 'node:crypto';
 import { ApplicationError } from '../../../../common/application-error';
 import { debugLog } from '../../../../common/debug-log';
+import { googlePlayErrorFields } from './google-play-error-fields';
 import {
   GooglePlayBillingPort,
   GooglePlayProductPurchase,
@@ -56,7 +57,7 @@ export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
     } catch (error) {
       debugLog('credits.googlePlay.verify.failure', {
         productId: request.productId,
-        errorType: error instanceof Error ? error.name : 'UnknownError',
+        ...googlePlayErrorFields(error),
       });
       throw new ApplicationError(
         'GOOGLE_PLAY_PURCHASE_VERIFICATION_FAILED',
@@ -79,7 +80,7 @@ export class GooglePlayBillingAdapter implements GooglePlayBillingPort {
     } catch (error) {
       debugLog('credits.googlePlay.consume.failure', {
         productId: request.productId,
-        errorType: error instanceof Error ? error.name : 'UnknownError',
+        ...googlePlayErrorFields(error),
       });
       throw new ApplicationError(
         'GOOGLE_PLAY_PURCHASE_CONSUME_FAILED',

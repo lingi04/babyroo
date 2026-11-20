@@ -15,6 +15,9 @@ const {
   CreditsController,
 } = require("../dist/modules/credits/adapters/in/credits.controller");
 const { AuthGuard } = require("../dist/common/auth.guard");
+const {
+  googlePlayErrorFields,
+} = require("../dist/modules/credits/adapters/out/google-play-error-fields");
 
 const credentials = {
   type: "service_account",
@@ -187,7 +190,8 @@ test("concurrent users cannot receive each other’s purchase grant", async () =
 test("canceled, pending, consumed, and unverifiable new purchases receive no credits", async () => {
   for (const [purchaseState, consumptionState, code] of [
     [1, 0, "GOOGLE_PLAY_PURCHASE_CANCELED"],
-    [2, 0, "GOOGLE_PLAY_PURCHASE_NOT_PURCHASED"],
+    [2, 0, "GOOGLE_PLAY_PURCHASE_PENDING"],
+    [99, 0, "GOOGLE_PLAY_PURCHASE_NOT_PURCHASED"],
     [undefined, 0, "GOOGLE_PLAY_PURCHASE_NOT_PURCHASED"],
     [0, 1, "GOOGLE_PLAY_PURCHASE_ALREADY_CONSUMED"],
   ]) {
@@ -226,4 +230,133 @@ test("rejects a different account, package, or product for an existing token", a
     { code: "INVALID_GOOGLE_PLAY_PURCHASE" }
   );
   assert.equal(calls.length, 1);
+});
+
+test("verification logs HTTP status and permission reason without token, URL, key, or Google message", async (t) => {
+  const previous = process.env.BABYROO_DEBUG_LOGS;
+  process.env.BABYROO_DEBUG_LOGS = "true";
+  const logs = [];
+  t.mock.method(console, "log", (line) => logs.push(line));
+  const token = "secret-purchase-token";
+  const privateKey = "secret-private-key";
+  const message = "private Google diagnostic";
+  const requestError = Object.assign(new Error(message), {
+    config: {
+      url: `https://example.com/tokens/${token}`,
+      headers: { Authorization: privateKey },
+    },
+    response: {
+      status: 403,
+      data: {
+        error: {
+          message,
+          status: "PERMISSION_DENIED",
+          errors: [{ reason: "insufficientPermissions" }],
+        },
+      },
+    },
+  });
+  const adapter = new GooglePlayBillingAdapter();
+  adapter.auth = {
+    getClient: async () => ({
+      request: async () => {
+        throw requestError;
+      },
+    }),
+  };
+  try {
+    await assert.rejects(
+      adapter.getProductPurchase({
+        packageName: "com.babyroo",
+        productId: "starter_5",
+        purchaseToken: token,
+      }),
+      { code: "GOOGLE_PLAY_PURCHASE_VERIFICATION_FAILED" }
+    );
+    await assert.rejects(
+      adapter.consumeProductPurchase({
+        packageName: "com.babyroo",
+        productId: "starter_5",
+        purchaseToken: token,
+      }),
+      { code: "GOOGLE_PLAY_PURCHASE_CONSUME_FAILED" }
+    );
+    assert.equal(logs.length, 2);
+    for (const line of logs) {
+      assert.match(line, /httpStatus=403/);
+      assert.match(line, /googleStatus=PERMISSION_DENIED/);
+      assert.match(line, /googleReason=insufficientPermissions/);
+      for (const secret of [token, privateKey, message, "https://"])
+        assert.equal(line.includes(secret), false);
+    }
+  } finally {
+    if (previous === undefined) delete process.env.BABYROO_DEBUG_LOGS;
+    else process.env.BABYROO_DEBUG_LOGS = previous;
+  }
+});
+
+test("safe diagnostics distinguish disabled API, auth, network, and purchase lookup failures", () => {
+  assert.equal(
+    googlePlayErrorFields({
+      response: {
+        status: 404,
+        data: { error: { errors: [{ reason: "notFound" }] } },
+      },
+    }).httpStatus,
+    404
+  );
+  assert.equal(
+    googlePlayErrorFields({
+      response: {
+        status: 403,
+        data: {
+          error: {
+            details: [
+              { reason: "SERVICE_DISABLED", metadata: { secret: "never log" } },
+            ],
+          },
+        },
+      },
+    }).googleReason,
+    "SERVICE_DISABLED"
+  );
+  assert.equal(
+    googlePlayErrorFields({
+      response: {
+        status: 400,
+        data: { error: "invalid_grant", error_description: "secret details" },
+      },
+    }).authError,
+    "invalid_grant"
+  );
+  assert.equal(
+    googlePlayErrorFields({ code: "ENOTFOUND" }).networkCode,
+    "ENOTFOUND"
+  );
+});
+
+test("diagnostics never log arbitrary strings in otherwise valid error properties", () => {
+  for (const error of [
+    null,
+    "secret",
+    undefined,
+    42,
+    {
+      code: "secret",
+      status: "secret",
+      response: {
+        status: "secret",
+        data: {
+          error: {
+            status: "secret",
+            errors: [{ reason: "secret" }],
+            details: [{ reason: "secret" }],
+          },
+        },
+      },
+    },
+  ]) {
+    const fields = googlePlayErrorFields(error);
+    assert.equal(JSON.stringify(fields).includes("secret"), false);
+  }
 });

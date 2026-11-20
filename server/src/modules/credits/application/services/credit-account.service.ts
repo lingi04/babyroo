@@ -202,7 +202,9 @@ export class CreditAccountService
       throw new ApplicationError(
         googlePurchase.purchaseState === 1
           ? 'GOOGLE_PLAY_PURCHASE_CANCELED'
-          : 'GOOGLE_PLAY_PURCHASE_NOT_PURCHASED',
+          : googlePurchase.purchaseState === 2
+            ? 'GOOGLE_PLAY_PURCHASE_PENDING'
+            : 'GOOGLE_PLAY_PURCHASE_NOT_PURCHASED',
         'Google Play purchase is not completed',
         409,
       );
