@@ -1131,16 +1131,11 @@ function AuthRequiredScreen({
   );
 }
 
-function BabyrooBrandMark() {
+function BrandHeader({ onOpenSettings }: { onOpenSettings: () => void }) {
   return (
-    <View style={styles.babyrooBrandMark}>
-      <Image
-        source={brandIcon}
-        resizeMode="cover"
-        style={styles.babyrooBrandIcon}
-        accessibilityIgnoresInvertColors
-      />
-      <Text style={styles.babyrooBrandText}>babyroo</Text>
+    <View style={styles.brandHeader}>
+      <Text style={styles.brandWordmark}>babyroo</Text>
+      <HeaderActions compact onOpenSettings={onOpenSettings} />
     </View>
   );
 }
@@ -1845,10 +1840,7 @@ function HomeScreen({
         ]}
       >
         <View style={styles.homeMasthead}>
-          <View style={styles.mastheadTopRow}>
-            <BabyrooBrandMark />
-            <HeaderActions onOpenSettings={onOpenSettings} />
-          </View>
+          <BrandHeader onOpenSettings={onOpenSettings} />
         </View>
 
         <View style={styles.recommendationSetupCard}>
@@ -3086,10 +3078,7 @@ function ExploreScreen({
           style={[styles.exploreFullHeader, { opacity: fullOpacity }]}
           onLayout={event => setFullHeight(event.nativeEvent.layout.height)}
         >
-          <View style={styles.exploreTopHeader}>
-            <Text style={styles.exploreWordmark}>babyroo</Text>
-            <HeaderActions compact onOpenSettings={onOpenSettings} />
-          </View>
+          <BrandHeader onOpenSettings={onOpenSettings} />
           <View style={styles.eventTypeSelector}>
             {exploreEventTypeOptions.map(option => {
               const selected = filters.exploreEventTypes.includes(option.value);
@@ -6246,7 +6235,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
-  exploreWordmark: {
+  brandWordmark: {
     color: colors.primaryStrong,
     fontFamily: 'Dosis-ExtraBold',
     fontSize: 26,
@@ -6491,12 +6480,8 @@ const styles = StyleSheet.create({
   },
   homeMasthead: {
     backgroundColor: colors.background,
-    paddingTop: spacing.sm,
-  },
-  mastheadTopRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginTop: -spacing.xl,
+    marginHorizontal: 16 - layout.screenPadding,
   },
   headerActions: {
     alignItems: 'center',
@@ -6523,32 +6508,12 @@ const styles = StyleSheet.create({
     height: 20,
     width: 20,
   },
-  exploreTopHeader: {
+  brandHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
     minHeight: 56,
     marginBottom: 8,
-  },
-  babyrooBrandMark: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.sm,
-    minWidth: 0,
-  },
-  babyrooBrandIcon: {
-    borderColor: 'rgba(232, 94, 37, 0.16)',
-    borderRadius: 11,
-    borderWidth: 1,
-    height: 34,
-    width: 34,
-  },
-  babyrooBrandText: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0,
-    lineHeight: 22,
   },
   eyebrow: {
     ...typography.caption,

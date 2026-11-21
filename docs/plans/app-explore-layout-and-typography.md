@@ -59,6 +59,8 @@ Set additional letter spacing to zero and retain system text scaling. Bundle the
 
 ## Implementation and verification record
 
+- Applied the expanded Explore brand header to the recommendation tab at the user's request. Both now render the same BrandHeader, with Dosis ExtraBold 26/32, a 56 dp minimum row, 16 dp side alignment and standalone mail/settings icons in 44 dp touch targets. TypeScript, lint and three targeted header/Explore checks pass. On-phone comparison remains pending.
+
 - Fixed the reported Android font task configuration failure by resolving ReactExtension explicitly from the project before entering the Exec task closure. This avoids resolving react against the task delegate. Direct font staging succeeds. Gradle verification is still blocked here by access to the wrapper cache lock.
 
 - Downloaded fonts were supplied in the workspace. Copied the four selected static faces and license notices to app/assets/fonts and staged them successfully in the shared native font directory. Verified internal PostScript names match all configured fontFamily values. Removed font package dependencies in favor of these local assets. Native rebuild attempt is blocked by access to the Gradle cache lock.
