@@ -1,8 +1,23 @@
 import {
   formatVisitRange,
   isPastVisitRange,
+  isPastRecommendationSession,
   recommendationVisitRange,
 } from './visitDates';
+
+test('session past status matches history badges, including undated and pending records', () => {
+  const past = {
+    status: 'success' as const,
+    createdAt: '2020-01-01T00:00:00Z',
+    preferences: { visitWindow: 'soon' as const },
+  };
+  const today = new Date(2026, 10, 21);
+  expect(isPastRecommendationSession(past, today)).toBe(true);
+  expect(isPastRecommendationSession({...past,status:'loading'},today)).toBe(false);
+  expect(isPastRecommendationSession({...past,status:'failed'},today)).toBe(false);
+  expect(isPastRecommendationSession({...past,preferences:{visitWindow:'flexible'}},today)).toBe(false);
+  expect(isPastRecommendationSession({...past,createdAt:'2026-11-20T00:00:00Z'},today)).toBe(false);
+});
 
 test('anchors a saved weekend to its request and keeps Sunday current', () => {
   const range = recommendationVisitRange('this_weekend', new Date(2026, 10, 12, 18));

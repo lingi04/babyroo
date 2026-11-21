@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildQuestionnaire } from './src/recommendation/questionnaire';
 import { QuestionnaireCard } from './src/recommendation/QuestionnaireCard';
+import { RecommendationWelcome } from './src/recommendation/RecommendationWelcome';
 import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
 import { useFreshCrowdingArea } from './src/crowding/useFreshCrowdingArea';
 import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
@@ -75,9 +76,8 @@ import {
 } from './src/recommendation';
 import { useLocalToday } from './src/recommendation/useLocalToday';
 import {
-  formatVisitDate,
   formatVisitRange,
-  isPastVisitRange,
+  isPastRecommendationSession,
   recommendationVisitRange,
 } from './src/recommendation/visitDates';
 import { AuthSession } from './src/auth/types';
@@ -1571,9 +1571,12 @@ function HomeScreen({
   const hasLoadedCreditStatus = !creditStatusLoading && creditStatus !== null;
   const shouldTopUpBeforeRecommendation =
     hasLoadedCreditStatus && availableCredits <= 0;
-  let recommendationCtaLabel = latestRecommendationSession
-    ? '다시 추천 받기'
-    : '추천 받기';
+  const hasCurrentRecommendation = visibleRecommendationSessions.some(
+    session => !isPastRecommendationSession(session, today),
+  );
+  let recommendationCtaLabel = hasCurrentRecommendation
+    ? '다시 추천받기'
+    : '추천 시작하기';
 
   if (creditStatusLoading) {
     recommendationCtaLabel = '추천권 확인 중...';
@@ -1880,10 +1883,7 @@ function HomeScreen({
         ]}
       >
         <View
-          style={[
-            styles.recommendationSetupCard,
-            recommendationFlowStep !== 'idle' && styles.questionnaireSurface,
-          ]}
+          style={[styles.recommendationSetupCard, styles.questionnaireSurface]}
         >
           {recommendationFlowStep === 'interview' &&
           currentRecommendationQuestion ? (
@@ -1912,72 +1912,25 @@ function HomeScreen({
               onEditAnswer={editRecommendationAnswer}
             />
           ) : (
-            <>
-              <View>
-                <Text style={styles.recommendationSetupTitle}>
-                  아이랑 어디 갈까요?
-                </Text>
-                <Text style={styles.recommendationSetupMeta}>
-                  조건을 입력해 보세요.
-                </Text>
-              </View>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.recommendationContextRow,
-                  pressed && styles.outlineControlPressed,
-                ]}
-                onPress={onOpenSettings}
-                accessibilityLabel="Edit recommendation children"
-                accessibilityRole="button"
-              >
-                <View style={styles.recommendationQuestionTitleGroup}>
-                  <Text style={styles.recommendationContextLabel}>
-                    아이 기준
-                  </Text>
-                  <Text style={styles.recommendationContextValue}>
-                    {formatRecommendationCriteriaSummary(selectedChildren)}
-                  </Text>
-                </View>
-                <Text style={styles.recommendationContextAction}>설정 ›</Text>
-              </Pressable>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.recommendationPrimaryButton,
-                  pressed && styles.recommendationPrimaryPressed,
-                  creditStatusLoading && styles.buttonDisabled,
-                ]}
-                onPress={startRecommendationInterview}
-                disabled={creditStatusLoading}
-                accessibilityLabel="Request recommendation"
-                accessibilityRole="button"
-                accessibilityState={{ disabled: creditStatusLoading }}
-              >
-                <Text style={styles.recommendationPrimaryButtonText}>
-                  {recommendationCtaLabel}
-                </Text>
-              </Pressable>
-              <Pressable
-                style={styles.creditStatusTextLink}
-                onPress={onOpenCredits}
-                accessibilityLabel="Open recommendation credit purchases and history"
-              >
-                <Text style={styles.creditStatusTextLinkText}>
-                  추천권 구매 및 사용 기록 보기
-                </Text>
-              </Pressable>
-            </>
+            <RecommendationWelcome
+              children={selectedChildren.map(child => ({
+                id: child.id,
+                name: child.nickname,
+                age: formatChildAge(child),
+              }))}
+              label={recommendationCtaLabel}
+              loading={creditStatusLoading}
+              onStart={startRecommendationInterview}
+              onEditChildren={onOpenSettings}
+              onCredits={onOpenCredits}
+            />
           )}
         </View>
 
         {recommendationFlowStep === 'idle' && (
           <View style={styles.recommendationHistorySection}>
             <View style={styles.recommendationHistoryHeading}>
-              <Text style={styles.sectionTitle}>추천 기록</Text>
-              <Text style={styles.recommendationHistoryMeta}>
-                오늘 {formatVisitDate(today)}
-              </Text>
+              <Text style={styles.welcomeHistoryHeading}>지난 추천</Text>
             </View>
             {visibleRecommendationSessions.length > 0 ? (
               <View style={styles.recommendationHistoryList}>
@@ -2310,8 +2263,38 @@ function RecommendationSessionCard({
     session.preferences.visitWindow,
     new Date(session.createdAt),
   );
-  const isPast = isSuccess && isPastVisitRange(range, today);
-  const title = formatRecommendationOutingTitle(session.preferences);
+  const isPast = isPastRecommendationSession(session, today);
+  const createdAt = new Date(session.createdAt);
+  const title = `${
+    createdAt.getMonth() + 1
+  }월 ${createdAt.getDate()}일의 나들이`;
+  const firstEventId = session.results[0]?.eventId;
+  const thumbnailUri =
+    session.eventSnapshots?.find(event => event.id === firstEventId)
+      ?.imageUrl || events.find(event => event.id === firstEventId)?.imageUrl;
+  const [failedThumbnail, setFailedThumbnail] = useState<string>();
+  const conditions = [
+    formatRecommendationSessionChildSummary(session),
+    session.preferences.place === 'indoor' ||
+    session.preferences.weatherPlan === 'prefer_indoor'
+      ? '실내'
+      : session.preferences.place === 'outdoor' ||
+        session.preferences.weatherPlan === 'prefer_outdoor'
+      ? '야외'
+      : undefined,
+    session.preferences.price === 'free'
+      ? '무료'
+      : session.preferences.price === 'low'
+      ? '저렴한 입장료'
+      : undefined,
+    session.preferences.reservation === 'no_reservation'
+      ? '예약 없이'
+      : session.preferences.reservation === 'reservation_ok'
+      ? '예약 가능'
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   const visitLabel = range
     ? `방문 예정 ${formatVisitRange(range)}`
     : '방문일 미정';
@@ -2328,27 +2311,44 @@ function RecommendationSessionCard({
       accessibilityRole="button"
       accessibilityState={{ disabled: isLoading, busy: isLoading }}
       disabled={isLoading}
+      accessibilityLabel={`${title}, ${conditions}, ${visitLabel}${resultCount}`}
     >
+      <View style={styles.welcomeHistoryThumbnail} accessible={false}>
+        {thumbnailUri && failedThumbnail !== thumbnailUri ? (
+          <Image
+            source={{ uri: thumbnailUri }}
+            style={styles.welcomeHistoryImage}
+            onError={() => setFailedThumbnail(thumbnailUri)}
+          />
+        ) : (
+          <Image
+            source={require('./assets/recommendation-interests.png')}
+            style={styles.welcomeHistoryFallback}
+          />
+        )}
+      </View>
       <View style={styles.recommendationHistoryBody}>
         <View style={styles.recommendationHistoryHeader}>
           <Text style={styles.recommendationHistoryTitle}>{title}</Text>
           {isPast ? (
             <View style={styles.recommendationHistoryBadge}>
-              <Text style={styles.recommendationHistoryBadgeText}>지난 일정</Text>
+              <Text style={styles.recommendationHistoryBadgeText}>
+                지난 일정
+              </Text>
             </View>
           ) : null}
         </View>
-        <Text style={styles.recommendationHistoryMeta}>
-          {visitLabel}
-          {resultCount}
-        </Text>
-        <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
-          {isLoading
-            ? '장소를 찾고 있어요'
-            : session.status === 'failed'
-            ? recommendationErrorMessage(session.error?.code ?? 'unknown').title
-            : formatRecommendationSessionEventPreview(session, events)}
-        </Text>
+        <Text style={styles.recommendationHistoryMeta}>{conditions}</Text>
+        {session.status !== 'success' && (
+          <Text style={styles.recommendationHistoryPreview} numberOfLines={2}>
+            {isLoading
+              ? '장소를 찾고 있어요'
+              : session.status === 'failed'
+              ? recommendationErrorMessage(session.error?.code ?? 'unknown')
+                  .title
+              : formatRecommendationSessionEventPreview(session, events)}
+          </Text>
+        )}
       </View>
       {isLoading ? null : (
         <View
@@ -3467,8 +3467,7 @@ function RecommendationSessionDetail({
     session.preferences.visitWindow,
     new Date(session.createdAt),
   );
-  const isPast =
-    session.status === 'success' && isPastVisitRange(visitRange, today);
+  const isPast = isPastRecommendationSession(session, today);
   const recommendedEvents = session.results
     .map(result =>
       [...(session.eventSnapshots ?? []), ...events].find(
@@ -5065,32 +5064,6 @@ function recommendationAnswerLabel(
   );
 }
 
-function formatRecommendationOutingTitle(preferences: Preferences) {
-  const { activity, place, visitWindow, weatherPlan } = preferences;
-  const preferredPlace =
-    place === 'indoor' || place === 'outdoor'
-      ? place
-      : weatherPlan === 'prefer_indoor'
-      ? 'indoor'
-      : weatherPlan === 'prefer_outdoor'
-      ? 'outdoor'
-      : undefined;
-  let setting = '';
-  if (preferredPlace === 'indoor') {
-    setting = '실내 ';
-  } else if (preferredPlace === 'outdoor') {
-    setting = '야외 ';
-  }
-  const outing =
-    activity === 'experience'
-      ? '체험'
-      : activity === 'exhibition'
-      ? '전시'
-      : '나들이';
-  const timing = visitWindow === 'this_weekend' ? '주말 ' : '';
-  return `${timing}${setting}${outing}`;
-}
-
 function formatRecommendationSessionChildSummary(
   session: RecommendationSession,
 ) {
@@ -5646,22 +5619,6 @@ function formatExploreIntentChildSubject(selectedChildren: Child[]) {
   return `${selectedChildren[0].nickname} 외 ${
     selectedChildren.length - 1
   }명과`;
-}
-
-function formatRecommendationCriteriaSummary(selectedChildren: Child[]) {
-  if (selectedChildren.length === 0) {
-    return '아이 정보 없음';
-  }
-
-  if (selectedChildren.length === 1) {
-    return `${selectedChildren[0].nickname} · ${formatChildAge(
-      selectedChildren[0],
-    )} 기준`;
-  }
-
-  return `${selectedChildren[0].nickname} 외 ${
-    selectedChildren.length - 1
-  }명 기준`;
 }
 
 function formatAge(event: BabyrooEvent) {
@@ -6798,6 +6755,26 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: spacing.md,
   },
+  welcomeHistoryHeading: {
+    fontFamily: 'Pretendard-Bold',
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.text,
+  },
+  welcomeHistoryThumbnail: {
+    width: 48,
+    height: 48,
+    overflow: 'hidden',
+    borderRadius: 8,
+  },
+  welcomeHistoryImage: { width: '100%', height: '100%' },
+  welcomeHistoryFallback: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    left: -6,
+    top: -6,
+  },
   recommendationHistorySection: {
     marginTop: spacing.xxxl,
   },
@@ -6819,9 +6796,6 @@ const styles = StyleSheet.create({
   },
   recommendationHistoryList: {
     backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.lg,
-    borderWidth: 1,
     marginTop: spacing.md,
     overflow: 'hidden',
   },
@@ -6829,7 +6803,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.md,
-    padding: spacing.lg,
+    paddingVertical: 14,
   },
   recommendationHistoryDivider: {
     borderTopColor: colors.borderSubtle,
@@ -6851,8 +6825,9 @@ const styles = StyleSheet.create({
   recommendationHistoryTitle: {
     color: colors.text,
     flexShrink: 1,
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: 'Pretendard-SemiBold',
   },
   recommendationHistoryMeta: {
     color: colors.muted,

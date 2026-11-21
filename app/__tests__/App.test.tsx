@@ -8,6 +8,7 @@ import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-nativ
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { RemoteRecommendationService } from '../src/recommendation/RemoteRecommendationService';
+import type { RecommendationSession } from '../src/recommendation/types';
 import * as babyrooApi from '../src/api/babyrooApi';
 import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
 import { currentUser, User } from '../src/data/user';
@@ -56,6 +57,35 @@ test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);
   });
+});
+
+test.each([
+  {records: [], label: '추천 시작하기'},
+  {records: ['past'], label: '추천 시작하기'},
+  {records: ['past', 'past'], label: '추천 시작하기'},
+  {records: ['past', 'current'], label: '다시 추천받기'},
+  {records: ['current', 'current'], label: '다시 추천받기'},
+])('recommendation action is $label for $records', async ({records,label}) => {
+  await saveAuthSession({...testAuthSession,apiAccessToken:'cta-test-token'});
+  const sessions: RecommendationSession[] = records.map((record,index)=>({
+    id: String(index), userId: completeUser.id, selectedChildIds: completeUser.activeChildIds,
+    createdAt: record === 'past' ? '2020-01-01T00:00:00Z' : new Date().toISOString(),
+    preferences:{visitWindow:'soon'}, status:'success',
+    results:[{eventId:'example-event',reasons:[]}],
+    credit:{policy:'none',cost:0,consumed:false},
+  }));
+  const list = jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue(sessions);
+  const credits = jest.spyOn(babyrooApi,'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
+    expect(renderer!.root.findByProps({accessibilityLabel:'Request recommendation'})
+      .findByProps({children:label})).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(()=>renderer?.unmount());
+    list.mockRestore();
+    credits.mockRestore();
+  }
 });
 
 test('fixes the recommendation header while preserving Explore collapsing headers', async () => {
@@ -532,7 +562,7 @@ test('completes eight UI questions and submits supported conditions without loca
         .props.onPress();
     });
     expect(
-      renderer!.root.findAllByProps({ children: '추천 기록' }),
+      renderer!.root.findAllByProps({ children: '지난 추천' }),
     ).toHaveLength(0);
     await ReactTestRenderer.act(() => {
       renderer!.root
@@ -575,7 +605,7 @@ test('completes eight UI questions and submits supported conditions without loca
       renderer!.root.findByProps({ children: '기차나 자동차를 좋아해요' }),
     ).toBeTruthy();
     expect(
-      renderer!.root.findAllByProps({ children: '추천 기록' }),
+      renderer!.root.findAllByProps({ children: '지난 추천' }),
     ).toHaveLength(0);
     await ReactTestRenderer.act(() => {
       renderer!.root
@@ -606,7 +636,7 @@ test('completes eight UI questions and submits supported conditions without loca
       mobility: 'car',
       price: 'free',
     });
-    expect(renderer!.root.findByProps({ children: '추천 기록' })).toBeTruthy();
+    expect(renderer!.root.findByProps({ children: '지난 추천' })).toBeTruthy();
   } finally {
     await ReactTestRenderer.act(() => renderer?.unmount());
     jest.useRealTimers();

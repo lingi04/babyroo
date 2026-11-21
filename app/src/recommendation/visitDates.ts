@@ -1,4 +1,4 @@
-import type { Preferences } from './types';
+import type { Preferences, RecommendationSession } from './types';
 
 function addDays(date: Date, days: number) {
   const next = new Date(date);
@@ -44,6 +44,16 @@ export function isPastVisitRange(
   today: Date,
 ) {
   return range !== null && localDayStart(range.end) < localDayStart(today);
+}
+
+export function isPastRecommendationSession(
+  session: Pick<RecommendationSession, 'status' | 'createdAt' | 'preferences'>,
+  today: Date,
+) {
+  return session.status === 'success' && isPastVisitRange(
+    recommendationVisitRange(session.preferences.visitWindow, new Date(session.createdAt)),
+    today,
+  );
 }
 
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
