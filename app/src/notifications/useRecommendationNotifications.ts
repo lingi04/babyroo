@@ -25,7 +25,7 @@ async function installationId(): Promise<string> {
 
 export function useRecommendationNotifications(
   session: AuthSession | null,
-  onOpen: (sessionId: string) => Promise<void>,
+  onOpen: (sessionId: string, status: string) => Promise<void>,
 ) {
   const openRef = useRef(onOpen);
   openRef.current = onOpen;
@@ -42,7 +42,7 @@ export function useRecommendationNotifications(
     const open = (message: PushMessage) => {
       const completion = recommendationFromPush(message, userId);
       if (!active || !completion) return;
-      openRef.current(completion.sessionId).catch(() => {
+      openRef.current(completion.sessionId, completion.status).catch(() => {
         if (active) Alert.alert('결과를 불러오지 못했어요', '잠시 후 홈에서 다시 확인해 주세요.');
       });
     };
@@ -61,6 +61,14 @@ export function useRecommendationNotifications(
       if (!active || AppState.currentState !== 'active' || !completion || seen.has(completion.sessionId)) return;
       seen.add(completion.sessionId);
       if (seen.size > 100) seen.delete(seen.values().next().value!);
+      if (completion.status !== 'success') {
+        Alert.alert(
+          '추천을 완료하지 못했어요',
+          '추천권은 차감되지 않았어요. 다시 시도해 추천이 완료되면 추천권 1회가 사용돼요. 지난 추천에서 요청을 확인하고 다시 시도해 주세요.',
+          [{ text: '확인' }],
+        );
+        return;
+      }
       Alert.alert(
         message.notification?.title ?? '추천 요청이 완료됐어요',
         message.notification?.body ?? '앱에서 처리 결과를 확인해 주세요.',

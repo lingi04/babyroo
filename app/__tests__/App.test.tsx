@@ -8,6 +8,7 @@ import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-nativ
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { RemoteRecommendationService } from '../src/recommendation/RemoteRecommendationService';
+import * as recommendationNotifications from '../src/notifications/useRecommendationNotifications';
 import type { RecommendationSession } from '../src/recommendation/types';
 import * as babyrooApi from '../src/api/babyrooApi';
 import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
@@ -57,6 +58,133 @@ test('renders correctly', async () => {
   await ReactTestRenderer.act(() => {
     ReactTestRenderer.create(<App />);
   });
+});
+
+const failedRecommendation: RecommendationSession = {
+  id: 'failed-record', userId: completeUser.id,
+  selectedChildIds: ['original-child'],
+  selectedChildrenSnapshot: [{...completeUser.children[0], id:'original-child', nickname:'원래 아이'}],
+  createdAt: '2026-11-21T10:02:00Z',
+  preferences: {visitWindow:'soon', price:'free', weatherPlan:'prefer_indoor',
+    departureAddress:'서울 성동구 원래 주소'},
+  status:'failed', results:[], credit:{policy:'on_success_with_results',cost:0,consumed:false},
+  error:{code:'llm_unavailable',message:'provider unavailable',retryable:true},
+};
+
+test('retains failed history without a duplicate panel and retries original inputs once', async () => {
+  await saveAuthSession({...testAuthSession,apiAccessToken:'failure-test-token'});
+  const list = jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue([failedRecommendation]);
+  const credits = jest.spyOn(babyrooApi,'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
+  let resolveRequest!: (session:RecommendationSession) => void;
+  const createRequest = jest.spyOn(RemoteRecommendationService.prototype,'createSession').mockImplementation(
+    () => new Promise(resolve => {resolveRequest=resolve;}),
+  );
+  let renderer:ReactTestRenderer.ReactTestRenderer|undefined;
+  try {
+    await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
+    const root=renderer!.root;
+    expect(root.findAllByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toHaveLength(0);
+    const row=root.findAll(node=>node.props.accessibilityRole==='button' &&
+      typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('원래 아이') &&
+      typeof node.props.onPress==='function')[0];
+    expect(row).toBeTruthy();
+    await ReactTestRenderer.act(()=>row.props.onPress());
+    expect(root.findByProps({children:'추천 요청 실패'})).toBeTruthy();
+    expect(root.findAllByProps({children:'조건에 맞춰 고른 후보 0개'})).toHaveLength(0);
+    expect(root.findByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toBeTruthy();
+    const retry=root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'});
+    await ReactTestRenderer.act(()=>{retry.props.onPress();retry.props.onPress();});
+    expect(createRequest).toHaveBeenCalledTimes(1);
+    expect(createRequest).toHaveBeenCalledWith(expect.objectContaining({
+      preferences:failedRecommendation.preferences,selectedChildIds:failedRecommendation.selectedChildIds,
+      selectedChildren:failedRecommendation.selectedChildrenSnapshot,
+    }));
+    await ReactTestRenderer.act(()=>resolveRequest({...failedRecommendation,id:'retry-record',status:'loading',error:undefined}));
+    expect(root.findAllByProps({children:'추천 요청 실패'})).toHaveLength(0);
+    expect(root.findAllByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toHaveLength(0);
+    const alert=jest.spyOn(Alert,'alert').mockImplementation(()=>{});
+    try {
+      createRequest.mockRejectedValueOnce(new Error('network unavailable'));
+      await ReactTestRenderer.act(()=>row.props.onPress());
+      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'}).props.onPress());
+      expect(createRequest).toHaveBeenCalledTimes(2);
+      expect(alert).toHaveBeenCalledWith('추천 요청 실패','network unavailable');
+      createRequest.mockResolvedValueOnce({...failedRecommendation,id:'retry-after-error',status:'loading',error:undefined});
+      await ReactTestRenderer.act(()=>row.props.onPress());
+      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'}).props.onPress());
+      expect(createRequest).toHaveBeenCalledTimes(3);
+    } finally {alert.mockRestore();}
+  } finally {
+    await ReactTestRenderer.act(()=>renderer?.unmount());
+    list.mockRestore();credits.mockRestore();createRequest.mockRestore();
+  }
+});
+
+test.each([
+  {push:'failed', saved:'failed', opensDetail:false},
+  {push:'timeout', saved:'failed', opensDetail:false},
+  {push:'success', saved:'failed', opensDetail:false},
+  {push:'success', saved:'success', opensDetail:true},
+])('notification $push with saved $saved routes by outcome', async ({push,saved,opensDetail})=>{
+  await saveAuthSession({...testAuthSession,apiAccessToken:'notification-test-token'});
+  let open!: (id:string,status:string)=>Promise<void>;
+  const hook=jest.spyOn(recommendationNotifications,'useRecommendationNotifications').mockImplementation((_session,onOpen)=>{
+    open=onOpen;return async()=>{};
+  });
+  const list=jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue([]);
+  const get=jest.spyOn(RemoteRecommendationService.prototype,'getSession').mockResolvedValue({
+    ...failedRecommendation,status:saved as 'failed'|'success',
+    results:saved==='success'?[{eventId:'event-1',reasons:[]}]:[],
+  });
+  const credits=jest.spyOn(babyrooApi,'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
+  let renderer:ReactTestRenderer.ReactTestRenderer|undefined;
+  try {
+    await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
+    await ReactTestRenderer.act(async()=>{await open('failed-record',push);});
+    expect(renderer!.root.findAllByProps({accessibilityLabel:'Go back to recommendations'}).length>0).toBe(opensDetail);
+    expect(renderer!.root.findAll(node=>node.props.accessibilityRole==='button' &&
+      typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('원래 아이')).length).toBeGreaterThan(0);
+  } finally {
+    await ReactTestRenderer.act(()=>renderer?.unmount());
+    hook.mockRestore();list.mockRestore();get.mockRestore();credits.mockRestore();
+  }
+});
+
+test.each(['nonretryable','missing-child','legacy-child'])('failed detail handles %s safely',async scenario=>{
+  await saveAuthSession({...testAuthSession,apiAccessToken:'failure-edge-token'});
+  const saved:RecommendationSession={...failedRecommendation,
+    selectedChildIds:scenario==='legacy-child'?completeUser.activeChildIds:failedRecommendation.selectedChildIds,
+    selectedChildrenSnapshot:scenario==='nonretryable'?failedRecommendation.selectedChildrenSnapshot:undefined,
+    error:{...failedRecommendation.error!,retryable:scenario!=='nonretryable'},
+  };
+  const list=jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue([saved]);
+  const credits=jest.spyOn(babyrooApi,'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
+  const createRequest=jest.spyOn(RemoteRecommendationService.prototype,'createSession').mockResolvedValue({...saved,id:'new-request',status:'loading'});
+  const alert=jest.spyOn(Alert,'alert').mockImplementation(()=>{});
+  let renderer:ReactTestRenderer.ReactTestRenderer|undefined;
+  try {
+    await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
+    const root=renderer!.root;
+    const row=root.findAll(node=>node.props.accessibilityRole==='button' &&
+      typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('방문 예정') &&
+      typeof node.props.onPress==='function')[0];
+    await ReactTestRenderer.act(()=>row.props.onPress());
+    const retries=root.findAllByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'});
+    if(scenario==='nonretryable') {
+      expect(retries).toHaveLength(0);
+    } else {
+      await ReactTestRenderer.act(()=>retries[0].props.onPress());
+      if(scenario==='missing-child') {
+        expect(createRequest).not.toHaveBeenCalled();
+        expect(alert).toHaveBeenCalledWith('아이 정보를 확인해 주세요',expect.stringContaining('새 추천'));
+      } else {
+        expect(createRequest).toHaveBeenCalledWith(expect.objectContaining({selectedChildren:completeUser.children}));
+      }
+    }
+  } finally {
+    await ReactTestRenderer.act(()=>renderer?.unmount());
+    list.mockRestore();credits.mockRestore();createRequest.mockRestore();alert.mockRestore();
+  }
 });
 
 test.each([

@@ -15,10 +15,12 @@ export class RecommendationNotificationService implements PushNotificationPort {
     const devices = (await this.devices.listByUser(completion.userId))
       .filter(device => device.provider === this.delivery.provider);
     const notification: PushNotification = {
-      title: '추천 요청이 완료됐어요',
+      title: completion.status === 'success'
+        ? '추천 요청이 완료됐어요'
+        : '추천을 완료하지 못했어요',
       body: completion.status === 'success'
         ? '추천 결과가 저장됐어요. 앱에서 확인해 주세요.'
-        : '추천 처리 결과가 저장됐어요. 앱에서 확인해 주세요.',
+        : '추천권은 차감되지 않았어요. 다시 시도해 추천이 완료되면 추천권 1회가 사용돼요.',
       data: {
         type: 'recommendation_completed',
         userId: completion.userId,

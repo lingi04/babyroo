@@ -374,6 +374,11 @@ function BabyrooApp() {
   );
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
+  const [notificationSession, setNotificationSession] =
+    useState<RecommendationSession | null>(null);
+  const [retryRequest, setRetryRequest] =
+    useState<RecommendationSession | null>(null);
+  const handleRetryStarted = useCallback(() => setRetryRequest(null), []);
   const [filterOpen, setFilterOpen] = useState(false);
   const [creditStatusOpen, setCreditStatusOpen] = useState(false);
   const [exploreFilters, setExploreFilters] = useState<ExploreFilters>(
@@ -385,18 +390,21 @@ function BabyrooApp() {
   const apiUserHydrationAttemptedRef = useRef(false);
   const notificationAuthRef = useRef(authSession);
   notificationAuthRef.current = authSession;
-  const unregisterNotifications = useRecommendationNotifications(authSession, async sessionId => {
+  const unregisterNotifications = useRecommendationNotifications(authSession, async (sessionId, status) => {
     const accessToken = authSession?.apiAccessToken;
     if (!accessToken) return;
     const session = await new RemoteRecommendationService({ accessToken }).getSession(sessionId);
     if (notificationAuthRef.current?.apiAccessToken !== accessToken) return;
     if (!session) throw new Error('Recommendation not found');
+    setNotificationSession(session);
     setSelectedEvent(null);
     setSettingsOpen(false);
     setFilterOpen(false);
     setCreditStatusOpen(false);
     setTab('home');
-    setSelectedRecommendationSession(session);
+    setSelectedRecommendationSession(
+      status === 'success' && session.status === 'success' ? session : null,
+    );
   });
   const renderTabScreen = (
     screenTab: Tab,
@@ -424,6 +432,9 @@ function BabyrooApp() {
           ) : (
             <HomeScreen
               active={tab === 'home'}
+              notificationSession={notificationSession}
+              retryRequest={retryRequest}
+              onRetryStarted={handleRetryStarted}
               authSession={authSession}
               events={events}
               user={user}
@@ -718,6 +729,8 @@ function BabyrooApp() {
     apiLoginAttemptedRef.current = false;
     apiUserHydrationAttemptedRef.current = false;
     setAuthSession(null);
+    setNotificationSession(null);
+    setRetryRequest(null);
     setUser(cloneUser(currentUser));
     setBrowsingAsGuest(false);
     setSettingsOpen(false);
@@ -1057,6 +1070,10 @@ function BabyrooApp() {
               topInset={topInset}
               onBack={closeRecommendationDetail}
               onOpenEvent={openDetail}
+              onRetry={() => {
+                setRetryRequest(selectedRecommendationSession);
+                closeRecommendationDetail();
+              }}
             />
           ) : null}
           {selectedEvent ? (
@@ -1475,6 +1492,9 @@ function OnboardingScreen({
 
 function HomeScreen({
   active,
+  notificationSession,
+  retryRequest,
+  onRetryStarted,
   authSession,
   events,
   user,
@@ -1485,6 +1505,9 @@ function HomeScreen({
   bottomInset,
 }: {
   active: boolean;
+  notificationSession: RecommendationSession | null;
+  retryRequest: RecommendationSession | null;
+  onRetryStarted: () => void;
   authSession: AuthSession;
   events: BabyrooEvent[];
   user: User;
@@ -1510,6 +1533,7 @@ function HomeScreen({
   >('idle');
   const [creatingRecommendationSession, setCreatingRecommendationSession] =
     useState(false);
+  const submissionLock = useRef(false);
   const [recommendationQuestionIndex, setRecommendationQuestionIndex] =
     useState(0);
   const [returnToConfirmationAfterAnswer, setReturnToConfirmationAfterAnswer] =
@@ -1567,6 +1591,19 @@ function HomeScreen({
       session.status === 'failed' ||
       (session.status === 'success' && session.results.length > 0),
   );
+  useEffect(() => {
+    if (!notificationSession) return;
+    setRecommendationSessions(previous => {
+      const exists = previous.some(
+        session => session.id === notificationSession.id,
+      );
+      return exists
+        ? previous.map(session =>
+            session.id === notificationSession.id ? notificationSession : session,
+          )
+        : [notificationSession, ...previous];
+    });
+  }, [notificationSession]);
   const availableCredits = creditStatus?.balance.available ?? 0;
   const hasLoadedCreditStatus = !creditStatusLoading && creditStatus !== null;
   const shouldTopUpBeforeRecommendation =
@@ -1723,11 +1760,14 @@ function HomeScreen({
     setRecommendationFlowStep('interview');
   };
 
-  const requestRecommendation = async (answers: RecommendationAnswerMap) => {
-    if (creatingRecommendationSession) {
+  const requestRecommendation = async (
+    answers: RecommendationAnswerMap,
+    source?: RecommendationSession,
+  ) => {
+    if (submissionLock.current) {
       return;
     }
-
+    submissionLock.current = true;
     setCreatingRecommendationSession(true);
     let apiSession = authSession;
 
@@ -1749,11 +1789,31 @@ function HomeScreen({
             : 'Babyroo 서버에 로그인하지 못했습니다.',
         );
         setCreatingRecommendationSession(false);
+        submissionLock.current = false;
         return;
       }
     }
 
-    const preferences = answersToPreferences(answers, departureAddress);
+    const requestChildren = source
+      ? source.selectedChildrenSnapshot?.length
+        ? source.selectedChildrenSnapshot
+        : user.children.filter(child => source.selectedChildIds.includes(child.id))
+      : selectedChildren;
+    if (
+      source && source.selectedChildIds.some(
+        id => !requestChildren.some(child => child.id === id),
+      )
+    ) {
+      Alert.alert(
+        '아이 정보를 확인해 주세요',
+        '이 요청의 아이 정보를 다시 확인할 수 없어요. 아이를 선택하고 새 추천을 시작해 주세요.',
+      );
+      submissionLock.current = false;
+      setCreatingRecommendationSession(false);
+      return;
+    }
+    const preferences = source?.preferences ??
+      answersToPreferences(answers, departureAddress);
     // Interest is a UI preview until backend ranking supports it.
     const submittedAnswers = { ...answers };
     delete submittedAnswers.interest;
@@ -1761,15 +1821,16 @@ function HomeScreen({
 
     const recommendationService = new RemoteRecommendationService({
       accessToken: apiSession.apiAccessToken,
-      selectedChildren,
+      selectedChildren: requestChildren,
     });
 
     try {
       const createdSession = await recommendationService.createSession({
         sessionId: `recommendation-${Date.now()}`,
         userId: user.id,
-        selectedChildIds: selectedChildren.map(child => child.id),
-        selectedChildren,
+        selectedChildIds: source?.selectedChildIds ??
+          requestChildren.map(child => child.id),
+        selectedChildren: requestChildren,
         answers: submittedAnswers,
         preferences,
         client: {
@@ -1806,9 +1867,19 @@ function HomeScreen({
           : '추천 요청을 서버에 저장하지 못했습니다.',
       );
     } finally {
+      submissionLock.current = false;
       setCreatingRecommendationSession(false);
     }
   };
+  const retryHandler = useRef(requestRecommendation);
+  retryHandler.current = requestRecommendation;
+  useEffect(() => {
+    if (!retryRequest) return;
+    onRetryStarted();
+    retryHandler.current(
+      preferencesToAnswers(retryRequest.preferences), retryRequest,
+    ).catch(() => console.warn('[Babyroo] Could not retry recommendation.'));
+  }, [retryRequest, onRetryStarted]);
 
   const answerRecommendationQuestion = (
     questionId: RecommendationQuestionId,
@@ -1962,13 +2033,7 @@ function HomeScreen({
         )}
 
         {recommendationFlowStep !==
-        'idle' ? null : selectedRecommendationSession?.status === 'failed' ? (
-          <RecommendationFailureState
-            errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
-            retryable={selectedRecommendationSession.error?.retryable ?? true}
-            onRetry={() => requestRecommendation(recommendationAnswers)}
-          />
-        ) : selectedRecommendationSession?.status === 'success' &&
+        'idle' ? null : selectedRecommendationSession?.status === 'success' &&
           selectedRecommendationSession.results.length === 0 ? (
           <View style={styles.recommendationEmptyState}>
             <Text style={styles.emptyStateTitle}>
@@ -2373,16 +2438,25 @@ function RecommendationFailureState({
 
   return (
     <View style={styles.recommendationEmptyState}>
-      <Text style={styles.emptyStateTitle}>{message.title}</Text>
+      <Text style={styles.emptyStateTitle}>추천을 완료하지 못했어요</Text>
       <Text style={styles.emptyStateText}>{message.body}</Text>
+      <Text style={styles.emptyStateText}>
+        이번 요청에는 추천권이 사용되지 않았어요.
+      </Text>
       {retryable ? (
-        <Pressable
-          style={styles.retryButton}
-          onPress={onRetry}
-          accessibilityLabel="Retry recommendation"
-        >
-          <Text style={styles.linkText}>다시 시도</Text>
-        </Pressable>
+        <>
+          <Pressable
+            style={[styles.primaryButton, styles.failureRetryButton]}
+            onPress={onRetry}
+            accessibilityRole="button"
+            accessibilityLabel="다시 시도, 추천 완료 시 추천권 1회 사용"
+          >
+            <Text style={styles.primaryButtonText}>다시 시도</Text>
+          </Pressable>
+          <Text style={[styles.emptyStateText, styles.failureCreditNotice]}>
+            추천 완료 시 추천권 1회 사용
+          </Text>
+        </>
       ) : null}
     </View>
   );
@@ -3450,6 +3524,7 @@ function RecommendationSessionDetail({
   events,
   onBack,
   onOpenEvent,
+  onRetry,
   questions,
   session,
   topInset,
@@ -3458,6 +3533,7 @@ function RecommendationSessionDetail({
   events: BabyrooEvent[];
   onBack: () => void;
   onOpenEvent: (event: BabyrooEvent) => void;
+  onRetry: () => void;
   questions: RecommendationQuestion[];
   session: RecommendationSession;
   topInset: number;
@@ -3493,12 +3569,23 @@ function RecommendationSessionDetail({
           >
             <Text style={styles.recommendationDetailBackText}>‹</Text>
           </Pressable>
-          <View style={styles.recommendationDetailHeaderText}>
-            <Text style={styles.recommendationDetailTitle}>추천 결과</Text>
-            <Text style={styles.recommendationDetailTime}>
-              {formatRecommendationSessionTime(session.createdAt)}에 저장된 추천
+          <View style={[
+            styles.recommendationDetailHeaderText,
+            session.status === 'failed' && styles.failureDetailHeaderText,
+          ]}>
+            <Text style={styles.recommendationDetailTitle}>
+              {session.status === 'failed' ? '추천 요청 실패' : '추천 결과'}
             </Text>
-            <Text style={styles.recommendationDetailTime}>
+            <Text style={[
+              styles.recommendationDetailTime,
+              session.status === 'failed' && styles.failureDetailTime,
+            ]}>
+              {formatRecommendationSessionTime(session.createdAt)}{session.status === 'failed' ? '에 요청' : '에 저장된 추천'}
+            </Text>
+            <Text style={[
+              styles.recommendationDetailTime,
+              session.status === 'failed' && styles.failureDetailTime,
+            ]}>
               {formatRecommendationSessionChildSummary(session)} 기준
             </Text>
           </View>
@@ -3528,22 +3615,21 @@ function RecommendationSessionDetail({
           <RecommendationDebugPrompt debug={session.debug} />
         ) : null}
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>추천 결과</Text>
-          <Text style={styles.sectionMeta}>
-            조건에 맞춰 고른 후보 {recommendedEvents.length}개
-          </Text>
-        </View>
-
-        {session.status === 'failed' ? (
-          <View style={styles.recommendationEmptyState}>
-            <Text style={styles.emptyStateTitle}>
-              {recommendationErrorMessage(session.error?.code ?? 'unknown').title}
-            </Text>
-            <Text style={styles.emptyStateText}>
-              {recommendationErrorMessage(session.error?.code ?? 'unknown').body}
+        {session.status !== 'failed' && (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>추천 결과</Text>
+            <Text style={styles.sectionMeta}>
+              조건에 맞춰 고른 후보 {recommendedEvents.length}개
             </Text>
           </View>
+        )}
+
+        {session.status === 'failed' ? (
+          <RecommendationFailureState
+            errorCode={session.error?.code ?? 'unknown'}
+            retryable={session.error?.retryable ?? true}
+            onRetry={onRetry}
+          />
         ) : recommendedEvents.length > 0 ? (
           recommendedEvents.map((event, index) => (
             <EventCard
@@ -6744,6 +6830,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
   },
+  failureRetryButton: {
+    marginTop: spacing.md,
+    minHeight: 48,
+    height: undefined,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+  },
+  failureCreditNotice: {
+    textAlign: 'center',
+  },
   emptyStateText: {
     color: colors.muted,
     fontSize: 13,
@@ -7712,6 +7808,14 @@ const styles = StyleSheet.create({
     ...typography.title,
     color: colors.text,
     flexShrink: 0,
+  },
+  failureDetailHeaderText: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+  },
+  failureDetailTime: {
+    textAlign: 'left',
   },
   recommendationDetailTime: {
     color: colors.muted,

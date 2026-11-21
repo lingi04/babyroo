@@ -63,6 +63,45 @@ test('push failure preserves saved results and credit cost', async () => {
   assert.equal(f.charges(), 1);
 });
 
+test('a failed request costs zero and a new successful retry costs exactly one', async () => {
+  const f = await fixture({ error: new Error('insufficient provider quota') });
+  await f.processor.process(f.job);
+  assert.equal(f.charges(), 0);
+  const failed = await f.sessions.findById('user-1', 'rec-1');
+  assert.equal(failed.creditCost, 0);
+  await f.sessions.create({ ...failed, id:'retry-1', status:'running', error:undefined });
+  const processor = new RecommendationJobProcessor(
+    f.sessions,
+    {getRequiredUser:async()=>({id:'user-1'})},
+    {list:async()=>({events:[]})},
+    {consumeRecommendationCredit:async()=>{ charges += 1; }},
+    {recommend:async()=>[{eventId:'event-1',reasons:[]}]},
+    {sendRecommendationCompleted:async()=>{}},
+  );
+  let charges=0;
+  await processor.process({...f.job,sessionId:'retry-1'});
+  await processor.process({...f.job,sessionId:'retry-1'});
+  await f.processor.process(f.job);
+  assert.equal(charges,1);
+  assert.equal((await f.sessions.findById('user-1','retry-1')).creditCost,1);
+  assert.equal((await f.sessions.findById('user-1','rec-1')).creditCost,0);
+});
+
+for (const status of ['success','failed','timeout']) {
+  test(`notification copy describes ${status} honestly`, async()=>{
+    const devices=new InMemoryPushDeviceRepository();
+    await devices.register({installationId:'device',userId:'user-1',token:'token',platform:'android',provider:'fcm'});
+    let sent;
+    await new RecommendationNotificationService(devices,{provider:'fcm',send:async(_device,notification)=>{sent=notification;}})
+      .sendRecommendationCompleted({userId:'user-1',sessionId:'rec-1',status});
+    assert.equal(sent.title,status==='success'?'추천 요청이 완료됐어요':'추천을 완료하지 못했어요');
+    if(status!=='success') {
+      assert.match(sent.body,/추천권은 차감되지 않았어요/);
+      assert.match(sent.body,/추천이 완료되면 추천권 1회/);
+    }
+  });
+}
+
 test('does not notify if saving the outcome fails', async () => {
   const f = await fixture({ saveError: new Error('database offline') });
   await assert.rejects(f.processor.process(f.job), /database offline/);

@@ -61,15 +61,30 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-test.each(['success', 'failed', 'timeout'])('foreground %s alerts once and opens saved outcome', async status => {
+test('foreground success alerts once and opens saved outcome', async () => {
   await mount();
-  foreground(message(status));
-  foreground(message(status));
-  foreground(message(status, 'different-user'));
+  foreground(message());
+  foreground(message());
+  foreground(message('success', 'different-user'));
   expect(Alert.alert).toHaveBeenCalledTimes(1);
   const buttons = jest.mocked(Alert.alert).mock.calls[0][2];
   await act(async () => { buttons?.[1].onPress?.(); });
-  expect(onOpen).toHaveBeenCalledWith('rec-1');
+  expect(onOpen).toHaveBeenCalledWith('rec-1', 'success');
+});
+
+test.each(['failed', 'timeout'])('foreground %s overrides old completion copy and cannot open results', async status => {
+  await mount();
+  const failed = {...message(status), notification: {title:'추천 요청이 완료됐어요', body:'추천 결과가 저장됐어요'}};
+  foreground(failed);
+  foreground(failed);
+  expect(Alert.alert).toHaveBeenCalledTimes(1);
+  expect(Alert.alert).toHaveBeenCalledWith(
+    '추천을 완료하지 못했어요',
+    expect.stringContaining('추천권은 차감되지 않았어요'),
+    [{text:'확인'}],
+  );
+  expect(jest.mocked(Alert.alert).mock.calls[0][1]).toContain('추천이 완료되면 추천권 1회');
+  expect(onOpen).not.toHaveBeenCalled();
 });
 
 test('background receipt produces no in-app alert; notification tap opens the result', async () => {
@@ -78,13 +93,13 @@ test('background receipt produces no in-app alert; notification tap opens the re
   foreground(message());
   expect(Alert.alert).not.toHaveBeenCalled();
   await act(async () => { opened(message()); });
-  expect(onOpen).toHaveBeenCalledWith('rec-1');
+  expect(onOpen).toHaveBeenCalledWith('rec-1', 'success');
 });
 
 test('cold-start notification opens after authenticated subscription', async () => {
   jest.mocked(client.getInitialNotification).mockResolvedValue(message('failed'));
   await mount();
-  expect(onOpen).toHaveBeenCalledWith('rec-1');
+  expect(onOpen).toHaveBeenCalledWith('rec-1', 'failed');
 });
 
 test('registers device and refreshed token; logout revokes token and stops callbacks', async () => {
