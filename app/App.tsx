@@ -14,7 +14,6 @@ import {
   FlatList,
   Image,
   Linking,
-  LayoutChangeEvent,
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -50,13 +49,10 @@ import {
 import { BabyrooEvent, eventsNewestFirst } from './src/data/events';
 import {
   bottomInsetPadding,
-  bottomTabsSafeArea,
   detailContentBottomPadding,
   FLOATING_RECOMMENDATION_BOTTOM,
-  floatingRecommendationBottomOffset,
   MobileLayoutProvider,
   SwipeableTabs,
-  TAB_BAR_HEIGHT,
   TAB_SCREEN_BOTTOM_PADDING,
   tabScreenBottomPadding,
   useBottomSafeAreaInset,
@@ -161,35 +157,30 @@ const exploreEventTypeOptions: Array<{
   value: ExploreEventType;
   label: string;
   summaryLabel: string;
-  icon: number;
   widthWeight: number;
 }> = [
   {
     value: 'limitedEvent',
     label: '이벤트',
     summaryLabel: '이벤트',
-    icon: require('./assets/icons/explore/ticket.png'),
-    widthWeight: 0.85,
+    widthWeight: 92,
   },
   {
     value: 'permanentVenue',
     label: '상설 전시',
     summaryLabel: '상설 전시',
-    icon: require('./assets/icons/explore/landmark.png'),
-    widthWeight: 1.05,
+    widthWeight: 106,
   },
   {
     value: 'seoulKidsCafe',
     label: '서울형 키즈카페',
     summaryLabel: '키즈카페',
-    icon: require('./assets/icons/explore/blocks.png'),
-    widthWeight: 1.5,
+    widthWeight: 144,
   },
 ];
 
-const EXPLORE_HEADER_FULL_HEIGHT = 230;
-const EXPLORE_HEADER_EXPANDED_FALLBACK_HEIGHT = 430;
 const EXPLORE_HEADER_COMPACT_HEIGHT = 92;
+const EXPLORE_RECOMMENDATION_BOTTOM = 64;
 const AGE_YEAR_DISPLAY_THRESHOLD_MONTHS = 48;
 
 const postcodeSearchHtml = `
@@ -437,8 +428,6 @@ function BabyrooApp() {
           events={events}
           onChangeEvents={setEvents}
           user={user}
-          isSignedIn={Boolean(authSession)}
-          canUseChildFilters={Boolean(authSession) && user.children.length > 0}
           filters={exploreFilters}
           onOpenEvent={openDetail}
           onOpenFilter={() => setFilterOpen(true)}
@@ -446,7 +435,6 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
-          onSignIn={handleGoogleSignIn}
           onToggleEventType={eventType =>
             setExploreFilters(previousFilters => ({
               ...previousFilters,
@@ -456,7 +444,6 @@ function BabyrooApp() {
               ),
             }))
           }
-          onToggleChild={toggleActiveChild}
           bottomInset={bottomInset}
         />
       );
@@ -1012,6 +999,11 @@ function BabyrooApp() {
           />
           {filterOpen ? (
             <FilterSheet
+              user={user}
+              isSignedIn={Boolean(authSession)}
+              onSignIn={handleGoogleSignIn}
+              onOpenSettings={openSettings}
+              onToggleChild={toggleActiveChild}
               filters={exploreFilters}
               bottomInset={bottomInset}
               onChangeFilters={setExploreFilters}
@@ -1139,24 +1131,16 @@ function AuthRequiredScreen({
   );
 }
 
-function BabyrooBrandMark({ compact = false }: { compact?: boolean }) {
+function BabyrooBrandMark() {
   return (
-    <View
-      style={[
-        styles.babyrooBrandMark,
-        compact && styles.babyrooBrandMarkCompact,
-      ]}
-    >
+    <View style={styles.babyrooBrandMark}>
       <Image
         source={brandIcon}
         resizeMode="cover"
-        style={[
-          styles.babyrooBrandIcon,
-          compact && styles.babyrooBrandIconCompact,
-        ]}
+        style={styles.babyrooBrandIcon}
         accessibilityIgnoresInvertColors
       />
-      {compact ? null : <Text style={styles.babyrooBrandText}>babyroo</Text>}
+      <Text style={styles.babyrooBrandText}>babyroo</Text>
     </View>
   );
 }
@@ -1185,10 +1169,10 @@ function HeaderActions({
     compact && styles.exploreCompactIconButton,
     pressed && styles.outlineControlPressed,
   ];
-  const hitSlop = compact ? { top: 7, bottom: 7, left: 4, right: 4 } : 3;
+  const hitSlop = compact ? 2 : 3;
 
   return (
-    <View style={styles.headerActions}>
+    <View style={[styles.headerActions, compact && styles.exploreHeaderActions]}>
       <Pressable
         style={buttonStyle}
         hitSlop={hitSlop}
@@ -1198,7 +1182,7 @@ function HeaderActions({
       >
         <Image
           source={require('./assets/icons/header/mail.png')}
-          style={styles.mastheadIcon}
+          style={[styles.mastheadIcon, compact && styles.exploreActionGlyph]}
           accessible={false}
         />
       </Pressable>
@@ -1211,7 +1195,7 @@ function HeaderActions({
       >
         <Image
           source={require('./assets/icons/header/settings.png')}
-          style={styles.mastheadIcon}
+          style={[styles.mastheadIcon, compact && styles.exploreActionGlyph]}
           accessible={false}
         />
       </Pressable>
@@ -2879,47 +2863,36 @@ function ExploreScreen({
   events,
   onChangeEvents,
   user,
-  isSignedIn,
-  canUseChildFilters,
   filters,
   onOpenEvent,
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
-  onSignIn,
   onToggleEventType,
-  onToggleChild,
   bottomInset,
 }: {
   events: BabyrooEvent[];
   onChangeEvents: (events: BabyrooEvent[]) => void;
   user: User;
-  isSignedIn: boolean;
-  canUseChildFilters: boolean;
   filters: ExploreFilters;
   onOpenEvent: (event: BabyrooEvent) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
-  onSignIn: () => Promise<void>;
   onToggleEventType: (eventType: ExploreEventType) => void;
-  onToggleChild: (childId: string) => void;
   bottomInset: number;
 }) {
   const { width, fontScale } = useWindowDimensions();
-  const eventTypeAvailableWidth =
-    width - 2 * layout.screenPadding - 2 * spacing.sm;
-  const stackEventTypeContent = width < 360 || fontScale > 1;
+  const eventTypeAvailableWidth = Math.max(0, width - 48);
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
-  const childrenByAge = sortChildrenByAge(user.children);
   const searchQuery = '';
   const exploreScrollY = useRef(new Animated.Value(0)).current;
   const exploreListRef = useRef<FlatList<BabyrooEvent>>(null);
   const [backToTopVisible, setBackToTopVisible] = useState(false);
   // Momentum can otherwise move or unmount the target before a tap is released.
-  const [backToTopPressBottom, setBackToTopPressBottom] = useState<number | null>(
-    null,
-  );
+  const [backToTopPressBottom, setBackToTopPressBottom] = useState<
+    number | null
+  >(null);
   const [recommendationCtaHeight, setRecommendationCtaHeight] = useState(0);
   const recommendationCtaScrollRef = useRef<RecommendationCtaScrollState>({
     visible: false,
@@ -2929,30 +2902,39 @@ function ExploreScreen({
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
   const [compactHeaderTouchable, setCompactHeaderTouchable] = useState(false);
-  const [exploreControlsCollapsed, setExploreControlsCollapsed] =
-    useState(true);
-  const [exploreCollapsedHeaderHeight, setExploreCollapsedHeaderHeight] =
-    useState(EXPLORE_HEADER_FULL_HEIGHT);
-  const [exploreExpandedHeaderHeight, setExploreExpandedHeaderHeight] =
-    useState(EXPLORE_HEADER_EXPANDED_FALLBACK_HEIGHT);
-  const [signingInFromExplore, setSigningInFromExplore] = useState(false);
-  const [childFilterSignInPromptOpen, setChildFilterSignInPromptOpen] =
-    useState(false);
+  const [fullHeight, setFullHeight] = useState(160);
+  const [compactHeight, setCompactHeight] = useState(
+    EXPLORE_HEADER_COMPACT_HEIGHT,
+  );
+  const collapseDistance = Math.max(1, fullHeight - compactHeight);
+  const lastScrollOffset = useRef(0);
+  const updateHeaderTarget = useCallback(
+    (offset: number) => {
+      setCompactHeaderTouchable(
+        wasCompact => offset >= collapseDistance * (wasCompact ? 0.45 : 0.65),
+      );
+    },
+    [collapseDistance],
+  );
+  useEffect(() => {
+    updateHeaderTarget(lastScrollOffset.current);
+  }, [updateHeaderTarget]);
   const backToTopBottom =
     backToTopPressBottom ??
-    (FLOATING_RECOMMENDATION_BOTTOM +
-      bottomInset +
-      (recommendationCtaVisible ? recommendationCtaHeight + spacing.md : 0));
+    bottomInset +
+      (recommendationCtaVisible
+        ? EXPLORE_RECOMMENDATION_BOTTOM + recommendationCtaHeight + spacing.md
+        : FLOATING_RECOMMENDATION_BOTTOM);
   const filteredEvents = useMemo(
     () => filterEvents(events, searchQuery, filters, selectedChildren),
     [events, filters, searchQuery, selectedChildren],
   );
-  const activeFilterLabels = getActiveExploreFilterLabels(filters);
+  const activeFilterLabels = getOptionalExploreFilterLabels(filters);
   const exploreEventTypeSummary = formatExploreEventTypeSummary(
     filters.exploreEventTypes,
   );
   const exploreIntentSummary = formatExploreIntentSummary(
-    selectedChildren,
+    filters.ageFit ? selectedChildren : [],
     activeFilterLabels,
     exploreEventTypeSummary,
   );
@@ -3019,11 +3001,8 @@ function ExploreScreen({
     );
     const clampedOffset = Math.max(0, Math.min(scrollOffsetY, maxOffset));
     setBackToTopVisible(viewportHeight > 0 && clampedOffset > viewportHeight);
-    const nextCompactTouchable = compactHeaderTouchable
-      ? scrollOffsetY > 44
-      : scrollOffsetY > 78;
-    const shouldCollapseOpenControls =
-      !exploreControlsCollapsed && scrollOffsetY > 12;
+    lastScrollOffset.current = scrollOffsetY;
+    updateHeaderTarget(scrollOffsetY);
 
     const previousCtaState = recommendationCtaScrollRef.current;
     const nextCtaState = updateRecommendationCtaScroll(
@@ -3037,137 +3016,60 @@ function ExploreScreen({
     if (nextCtaState.visible !== previousCtaState.visible) {
       setRecommendationCtaVisible(nextCtaState.visible);
     }
-
-    if (nextCompactTouchable !== compactHeaderTouchable) {
-      setCompactHeaderTouchable(nextCompactTouchable);
-    }
-
-    if (shouldCollapseOpenControls) {
-      setExploreControlsCollapsed(true);
-    }
   };
-  const handleExploreSignIn = async () => {
-    setSigningInFromExplore(true);
-    await onSignIn().finally(() => {
-      setSigningInFromExplore(false);
-      setChildFilterSignInPromptOpen(false);
-    });
-  };
-  const handleExploreFullHeaderLayout = (event: LayoutChangeEvent) => {
-    const nextHeight = event.nativeEvent.layout.height + spacing.xl;
-
-    if (exploreControlsCollapsed) {
-      setExploreCollapsedHeaderHeight(previousHeight =>
-        Math.abs(previousHeight - nextHeight) > 1 ? nextHeight : previousHeight,
-      );
-    } else {
-      setExploreExpandedHeaderHeight(previousHeight =>
-        Math.abs(previousHeight - nextHeight) > 1 ? nextHeight : previousHeight,
-      );
-    }
-  };
-  const exploreHeaderCollapseDistance = Math.max(
-    exploreCollapsedHeaderHeight - EXPLORE_HEADER_COMPACT_HEIGHT,
-    1,
-  );
-  const animatedFixedHeaderHeight = exploreScrollY.interpolate({
-    inputRange: [0, 40, exploreHeaderCollapseDistance],
-    outputRange: [
-      exploreCollapsedHeaderHeight,
-      176,
-      EXPLORE_HEADER_COMPACT_HEIGHT,
-    ],
+  const headerHeight = exploreScrollY.interpolate({
+    inputRange: [0, collapseDistance],
+    outputRange: [Math.max(fullHeight, compactHeight), compactHeight],
     extrapolate: 'clamp',
   });
-  const brandRowOpacity = exploreScrollY.interpolate({
-    inputRange: [0, 16, 40],
-    outputRange: [1, 0.7, 0],
+  const fullOpacity = exploreScrollY.interpolate({
+    inputRange: [0, collapseDistance * 0.65],
+    outputRange: [1, 0],
     extrapolate: 'clamp',
   });
-  const brandRowTranslateY = exploreScrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, -8],
-    extrapolate: 'clamp',
-  });
-  const eventTypeOpacity = exploreScrollY.interpolate({
-    inputRange: [12, 44, 64],
-    outputRange: [1, 0.45, 0],
-    extrapolate: 'clamp',
-  });
-  const eventTypeTranslateY = exploreScrollY.interpolate({
-    inputRange: [12, 64],
-    outputRange: [0, -10],
-    extrapolate: 'clamp',
-  });
-  const mastheadOpacity = exploreScrollY.interpolate({
-    inputRange: [36, 72, exploreHeaderCollapseDistance],
-    outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
-  });
-  const mastheadTranslateY = exploreScrollY.interpolate({
-    inputRange: [36, exploreHeaderCollapseDistance],
-    outputRange: [0, -14],
-    extrapolate: 'clamp',
-  });
-  const compactHeaderOpacity = exploreScrollY.interpolate({
-    inputRange: [48, 76, exploreHeaderCollapseDistance],
-    outputRange: [0, 0.45, 1],
-    extrapolate: 'clamp',
-  });
-  const compactHeaderTranslateY = exploreScrollY.interpolate({
-    inputRange: [48, exploreHeaderCollapseDistance],
-    outputRange: [8, 0],
-    extrapolate: 'clamp',
-  });
-  const compactHeaderScale = exploreScrollY.interpolate({
-    inputRange: [48, exploreHeaderCollapseDistance],
-    outputRange: [0.98, 1],
+  const compactOpacity = exploreScrollY.interpolate({
+    inputRange: [collapseDistance * 0.4, collapseDistance],
+    outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   return (
     <View style={styles.exploreRoot}>
       <Animated.View
-        style={[
-          styles.exploreFixedHeader,
-          {
-            height: exploreControlsCollapsed
-              ? animatedFixedHeaderHeight
-              : exploreExpandedHeaderHeight,
-          },
-        ]}
+        style={[styles.exploreFixedHeader, { height: headerHeight }]}
       >
         <Animated.View
-          pointerEvents={
-            exploreControlsCollapsed && compactHeaderTouchable ? 'auto' : 'none'
+          testID="explore-compact-header"
+          pointerEvents={compactHeaderTouchable ? 'auto' : 'none'}
+          accessibilityElementsHidden={!compactHeaderTouchable}
+          importantForAccessibility={
+            compactHeaderTouchable ? 'auto' : 'no-hide-descendants'
           }
-          style={[
-            styles.exploreCompactHeader,
-            {
-              opacity: compactHeaderOpacity,
-              transform: [
-                { translateY: compactHeaderTranslateY },
-                { scale: compactHeaderScale },
-              ],
-            },
-            !exploreControlsCollapsed && styles.exploreHiddenHeaderLayer,
-          ]}
+          onLayout={event =>
+            setCompactHeight(event.nativeEvent.layout.height + 24)
+          }
+          style={[styles.exploreCompactHeader, { opacity: compactOpacity }]}
         >
-          <BabyrooBrandMark compact />
+          <View accessible={false} style={styles.exploreMonogram}>
+            <Text allowFontScaling={false} style={styles.exploreMonogramText}>
+              b
+            </Text>
+          </View>
           <Pressable
             style={styles.exploreCompactSummary}
-            onPress={() => setExploreControlsCollapsed(false)}
-            accessibilityLabel="Open exploration conditions"
+            onPress={() =>
+              exploreListRef.current?.scrollToOffset({
+                offset: 0,
+                animated: true,
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel={`${exploreIntentSummary.title}, ${exploreIntentSummary.meta}, 탐색 조건 펼치기`}
           >
-            <Text
-              style={styles.exploreCompactTitle}
-              numberOfLines={2}
-              adjustsFontSizeToFit
-              minimumFontScale={0.88}
-            >
+            <Text style={styles.exploreCompactTitle}>
               {exploreIntentSummary.title}
             </Text>
-            <Text style={styles.exploreCompactMeta} numberOfLines={1}>
+            <Text style={styles.exploreCompactMeta}>
               {exploreIntentSummary.meta}
             </Text>
           </Pressable>
@@ -3175,34 +3077,20 @@ function ExploreScreen({
         </Animated.View>
 
         <Animated.View
-          pointerEvents={
-            exploreControlsCollapsed && compactHeaderTouchable ? 'none' : 'auto'
+          testID="explore-expanded-header"
+          pointerEvents={compactHeaderTouchable ? 'none' : 'auto'}
+          accessibilityElementsHidden={compactHeaderTouchable}
+          importantForAccessibility={
+            compactHeaderTouchable ? 'no-hide-descendants' : 'auto'
           }
-          style={styles.exploreFullHeader}
-          onLayout={handleExploreFullHeaderLayout}
+          style={[styles.exploreFullHeader, { opacity: fullOpacity }]}
+          onLayout={event => setFullHeight(event.nativeEvent.layout.height)}
         >
-          <Animated.View
-            style={[
-              styles.exploreTopHeader,
-              exploreControlsCollapsed && {
-                opacity: brandRowOpacity,
-                transform: [{ translateY: brandRowTranslateY }],
-              },
-            ]}
-          >
-            <BabyrooBrandMark />
-            <HeaderActions onOpenSettings={onOpenSettings} />
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.eventTypeSelector,
-              exploreControlsCollapsed && {
-                opacity: eventTypeOpacity,
-                transform: [{ translateY: eventTypeTranslateY }],
-              },
-            ]}
-          >
+          <View style={styles.exploreTopHeader}>
+            <Text style={styles.exploreWordmark}>babyroo</Text>
+            <HeaderActions compact onOpenSettings={onOpenSettings} />
+          </View>
+          <View style={styles.eventTypeSelector}>
             {exploreEventTypeOptions.map(option => {
               const selected = filters.exploreEventTypes.includes(option.value);
 
@@ -3213,7 +3101,7 @@ function ExploreScreen({
                     styles.eventTypeOption,
                     {
                       flexBasis:
-                        eventTypeAvailableWidth * option.widthWeight / 3.4,
+                        (eventTypeAvailableWidth * option.widthWeight) / 342,
                     },
                   ]}
                   onPress={() => onToggleEventType(option.value)}
@@ -3224,20 +3112,14 @@ function ExploreScreen({
                   <View
                     style={[
                       styles.eventTypeOptionContent,
-                      stackEventTypeContent && styles.eventTypeOptionStacked,
                       selected && styles.eventTypeOptionSelected,
                     ]}
                   >
-                    <Image
-                      source={option.icon}
-                      style={[
-                        styles.eventTypeIcon,
-                        width >= 390 && styles.eventTypeIconLarge,
-                        selected && styles.eventTypeIconSelected,
-                      ]}
-                      accessible={false}
-                      importantForAccessibility="no"
-                    />
+                    {selected && (
+                      <Text allowFontScaling={false} accessible={false} style={styles.categoryCheck}>
+                        ✓
+                      </Text>
+                    )}
                     <Text
                       style={[
                         styles.eventTypeLabel,
@@ -3253,195 +3135,49 @@ function ExploreScreen({
                 </Pressable>
               );
             })}
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.exploreMasthead,
-              exploreControlsCollapsed && {
-                opacity: mastheadOpacity,
-                transform: [{ translateY: mastheadTranslateY }],
-              },
-            ]}
+          </View>
+          <Pressable
+            style={styles.exploreFilterEntry}
+            onPress={onOpenFilter}
+            accessibilityRole="button"
+            testID="explore-filter-entry"
+            accessibilityLabel={`필터 변경, ${exploreIntentSummary.filterText}`}
           >
-            <Pressable
-              style={styles.exploreControlsHeader}
-              onPress={() =>
-                setExploreControlsCollapsed(
-                  previousCollapsed => !previousCollapsed,
-                )
-              }
-              accessibilityLabel="Toggle exploration controls"
-              accessibilityRole="button"
-              accessibilityState={{ expanded: !exploreControlsCollapsed }}
-            >
-              <View style={styles.exploreControlsSummaryArea}>
-                <View style={styles.exploreControlsTitleRow}>
-                  <View style={styles.exploreCriteriaSummaryBlock}>
-                    <Text
-                      style={styles.exploreIntentTitle}
-                      numberOfLines={2}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.88}
-                    >
-                      {exploreIntentSummary.title}
-                    </Text>
-                    <Text style={styles.exploreIntentMeta} numberOfLines={1}>
-                      {exploreIntentSummary.meta}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.exploreControlsChevronButton}>
-                <View
-                  style={[
-                    styles.exploreControlsChevronGlyph,
-                    exploreControlsCollapsed
-                      ? styles.exploreControlsChevronGlyphDown
-                      : styles.exploreControlsChevronGlyphUp,
-                  ]}
-                />
-              </View>
-            </Pressable>
-
-            {exploreControlsCollapsed ? null : (
-              <View style={styles.exploreControlsInset}>
-                <View style={styles.exploreControlSection}>
-                  <Text
-                    style={[
-                      styles.exploreControlLabel,
-                      styles.exploreControlLabelInMasthead,
-                    ]}
-                  >
-                    아이 월령 기준
-                  </Text>
-                  {canUseChildFilters ? (
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      style={styles.childChipRow}
-                      contentContainerStyle={styles.childChipRowContent}
-                    >
-                      {childrenByAge.map(child => {
-                        const selected = user.activeChildIds.includes(child.id);
-
-                        return (
-                          <Pressable
-                            key={child.id}
-                            onPress={() => onToggleChild(child.id)}
-                            accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected }}
-                          >
-                            <ChildContextChip
-                              child={child}
-                              selected={selected}
-                            />
-                          </Pressable>
-                        );
-                      })}
-                      <Pressable
-                        style={styles.childContextAddButton}
-                        onPress={onOpenSettings}
-                        accessibilityLabel="Add child from settings"
-                      >
-                        <Text style={styles.childContextAddText}>
-                          ＋ 아이 추가
-                        </Text>
-                      </Pressable>
-                    </ScrollView>
-                  ) : (
-                    <Pressable
-                      style={styles.exploreChildFilterAddBox}
-                      onPress={() => {
-                        if (isSignedIn) {
-                          onOpenSettings();
-                        } else {
-                          setChildFilterSignInPromptOpen(true);
-                        }
-                      }}
-                      accessibilityLabel={
-                        isSignedIn
-                          ? 'Add child from settings'
-                          : 'Open child age filter sign in prompt'
-                      }
-                    >
-                      <Text style={styles.exploreChildFilterAddIcon}>＋</Text>
-                      <Text style={styles.exploreChildFilterAddText}>
-                        아이 정보 추가
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-
-                <ChildFilterSignInPrompt
-                  signingIn={signingInFromExplore}
-                  visible={childFilterSignInPromptOpen}
-                  onClose={() => setChildFilterSignInPromptOpen(false)}
-                  onSignIn={handleExploreSignIn}
-                />
-
-                <View style={styles.exploreControlDivider} />
-
-                <View
-                  style={[
-                    styles.exploreControlSection,
-                    styles.exploreFilterSection,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.exploreControlLabel,
-                      styles.exploreControlLabelInMasthead,
-                    ]}
-                  >
-                    적용한 필터
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.chipRow}
-                  >
-                    {activeFilterLabels.map(chip => (
-                      <Chip key={chip} label={chip} selected outline />
-                    ))}
-                    <Pressable
-                      onPress={onOpenFilter}
-                      accessibilityLabel="Open filters"
-                      accessibilityRole="button"
-                    >
-                      <Chip label="필터 편집" outline />
-                    </Pressable>
-                  </ScrollView>
-                </View>
-              </View>
-            )}
-          </Animated.View>
+            <Text style={styles.exploreFilterLabel}>필터</Text>
+            <Text style={styles.exploreFilterSummary}>
+              {exploreIntentSummary.filterText}
+            </Text>
+            <Text accessible={false} style={styles.exploreFilterLabel}>
+              ›
+            </Text>
+          </Pressable>
         </Animated.View>
       </Animated.View>
 
       <Animated.FlatList
         ref={exploreListRef}
-        style={styles.exploreList}
+        style={[
+          styles.exploreList,
+          {
+            marginBottom: 56 + bottomInset,
+          },
+        ]}
         data={filteredEvents}
         keyExtractor={event => event.id}
         renderItem={({ item, index }) => (
           <EventCard
             event={item}
             tone={index}
-            showSequence
+            explore
             onPress={() => onOpenEvent(item)}
           />
         )}
         contentContainerStyle={[
           styles.exploreListContent,
           {
-            paddingTop:
-              (exploreControlsCollapsed
-                ? exploreCollapsedHeaderHeight
-                : exploreExpandedHeaderHeight) + spacing.lg,
+            paddingTop: Math.max(fullHeight, compactHeight) + 16,
           },
-          tabScreenBottomPadding(bottomInset),
+          { paddingBottom: recommendationCtaVisible ? recommendationCtaHeight + 8 : 16 },
         ]}
         ListEmptyComponent={
           <View style={styles.noResultsCard}>
@@ -3472,7 +3208,7 @@ function ExploreScreen({
       <Pressable
         style={[
           styles.floatingRecommendationCta,
-          floatingRecommendationBottomOffset(bottomInset),
+          { bottom: EXPLORE_RECOMMENDATION_BOTTOM + bottomInset },
           !recommendationCtaVisible && styles.hiddenFloatingRecommendationCta,
         ]}
         onLayout={event =>
@@ -3504,7 +3240,10 @@ function ExploreScreen({
           onPressIn={() => setBackToTopPressBottom(backToTopBottom)}
           onPressOut={() => setBackToTopPressBottom(null)}
           onPress={() =>
-            exploreListRef.current?.scrollToOffset({ offset: 0, animated: true })
+            exploreListRef.current?.scrollToOffset({
+              offset: 0,
+              animated: true,
+            })
           }
           style={({ pressed }) => [
             styles.exploreBackToTop,
@@ -4551,16 +4290,38 @@ function PostcodeModal({
 }
 
 function FilterSheet({
+  user,
+  isSignedIn,
+  onOpenSettings,
+  onSignIn,
+  onToggleChild,
   filters,
   bottomInset,
   onChangeFilters,
   onClose,
 }: {
+  user: User;
+  isSignedIn: boolean;
+  onOpenSettings: () => void;
+  onSignIn: () => Promise<void>;
+  onToggleChild: (id: string) => void;
   filters: ExploreFilters;
   bottomInset: number;
   onChangeFilters: (filters: ExploreFilters) => void;
   onClose: () => void;
 }) {
+  const [signingInFromExplore, setSigningInFromExplore] = useState(false);
+  const [childFilterSignInPromptOpen, setChildFilterSignInPromptOpen] =
+    useState(false);
+  const handleExploreSignIn = async () => {
+    setSigningInFromExplore(true);
+    await onSignIn().finally(() => {
+      setSigningInFromExplore(false);
+      setChildFilterSignInPromptOpen(false);
+    });
+  };
+  const childrenByAge = sortChildrenByAge(user.children);
+  const canUseChildFilters = isSignedIn && childrenByAge.length > 0;
   const [draftFilters, setDraftFilters] = useState(filters);
   const updateFilter = <Key extends keyof ExploreFilters>(
     key: Key,
@@ -4597,6 +4358,76 @@ function FilterSheet({
           style={styles.sheetScroll}
           showsVerticalScrollIndicator={false}
         >
+          <View style={styles.exploreControlSection}>
+            <Text
+              style={[
+                styles.exploreControlLabel,
+                styles.exploreControlLabelInMasthead,
+              ]}
+            >
+              아이 월령 기준
+            </Text>
+            {canUseChildFilters ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.childChipRow}
+                contentContainerStyle={styles.childChipRowContent}
+              >
+                {childrenByAge.map(child => {
+                  const selected = user.activeChildIds.includes(child.id);
+
+                  return (
+                    <Pressable
+                      key={child.id}
+                      onPress={() => onToggleChild(child.id)}
+                      accessibilityLabel={`Toggle ${child.nickname} exploration age context`}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                    >
+                      <ChildContextChip child={child} selected={selected} />
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  style={styles.childContextAddButton}
+                  onPress={onOpenSettings}
+                  accessibilityLabel="Add child from settings"
+                >
+                  <Text style={styles.childContextAddText}>＋ 아이 추가</Text>
+                </Pressable>
+              </ScrollView>
+            ) : (
+              <Pressable
+                style={styles.exploreChildFilterAddBox}
+                onPress={() => {
+                  if (isSignedIn) {
+                    onOpenSettings();
+                  } else {
+                    setChildFilterSignInPromptOpen(true);
+                  }
+                }}
+                accessibilityLabel={
+                  isSignedIn
+                    ? 'Add child from settings'
+                    : 'Open child age filter sign in prompt'
+                }
+              >
+                <Text style={styles.exploreChildFilterAddIcon}>＋</Text>
+                <Text style={styles.exploreChildFilterAddText}>
+                  아이 정보 추가
+                </Text>
+              </Pressable>
+            )}
+          </View>
+
+          <ChildFilterSignInPrompt
+            signingIn={signingInFromExplore}
+            visible={childFilterSignInPromptOpen}
+            onClose={() => setChildFilterSignInPromptOpen(false)}
+            onSignIn={handleExploreSignIn}
+          />
+
           <Text style={styles.fieldLabel}>아이 월령</Text>
           <View style={styles.wrapRow}>
             <Pressable
@@ -4718,14 +4549,14 @@ function EventCard({
   event,
   compact,
   recommendationResult,
-  showSequence,
+  explore,
   tone,
   onPress,
 }: {
   event: BabyrooEvent;
   compact?: boolean;
   recommendationResult?: RecommendationResult;
-  showSequence?: boolean;
+  explore?: boolean;
   tone: number;
   onPress: () => void;
 }) {
@@ -4737,7 +4568,11 @@ function EventCard({
 
   return (
     <Pressable
-      style={[styles.eventCard, compact && styles.eventCardCompact]}
+      style={[
+        styles.eventCard,
+        compact && styles.eventCardCompact,
+        explore && styles.exploreCard,
+      ]}
       onPress={tabSwipePress.onPress}
       onTouchStart={tabSwipePress.onTouchStart}
       onTouchMove={tabSwipePress.onTouchMove}
@@ -4748,6 +4583,7 @@ function EventCard({
         style={[
           styles.thumbnail,
           !compact && styles.thumbnailFeature,
+          explore && styles.exploreThumbnail,
           { backgroundColor: color },
         ]}
       >
@@ -4762,61 +4598,111 @@ function EventCard({
           <EventThumbnailFallback event={event} tone={tone} />
         )}
       </View>
-      <View style={[styles.cardBody, !compact && styles.cardBodyFeature]}>
-        {!compact ? (
-          <View style={styles.cardKickerRow}>
-            <Text style={styles.cardKickerText} numberOfLines={1}>
-              {event.locality || '지역 확인'}
-            </Text>
-            <Text style={styles.cardKickerDivider}>/</Text>
-            <Text style={styles.cardKickerText} numberOfLines={1}>
-              {thumbnailCategoryLabel(event)}
-            </Text>
-          </View>
-        ) : null}
-        <Text style={styles.cardTitle} numberOfLines={compact ? 2 : 3}>
-          {event.title}
-        </Text>
-        <Text style={styles.cardMeta} numberOfLines={2}>
-          {event.venueName} · {formatAge(event)}
-        </Text>
-        {event.crowdingArea ? (
-          <Text style={styles.detailCrowdingTeaser}>주변 혼잡도 확인 ›</Text>
-        ) : null}
-        {(showSequence || compact) && chipLabels.length > 0 ? (
-          <View style={styles.cardTagRow}>
-            {chipLabels.map(label => (
-              <Chip key={label} label={label} dense />
-            ))}
-          </View>
-        ) : null}
-        {compact ? (
-          <View style={styles.cardFooter}>
-            <Text style={styles.cardDate}>
-              {formatShortDate(event.startsAt)}
-            </Text>
-          </View>
-        ) : null}
-        {recommendationResult ? (
-          <View style={styles.recommendationReasonBox}>
-            <Text style={styles.recommendationReasonTitle}>추천 이유</Text>
-            {recommendationResult.reasons.map(reason => (
-              <Text key={reason} style={styles.recommendationReasonText}>
-                {reason}
+      {explore ? (
+        <ExploreListingText event={event} />
+      ) : (
+        <View style={[styles.cardBody, !compact && styles.cardBodyFeature]}>
+          {!compact ? (
+            <View style={styles.cardKickerRow}>
+              <Text style={styles.cardKickerText} numberOfLines={1}>
+                {event.locality || '지역 확인'}
               </Text>
-            ))}
-            {recommendationResult.caution ? (
-              <>
-                <Text style={styles.recommendationCautionTitle}>확인할 점</Text>
-                <Text style={styles.recommendationReasonText}>
-                  {recommendationResult.caution}
+              <Text style={styles.cardKickerDivider}>/</Text>
+              <Text style={styles.cardKickerText} numberOfLines={1}>
+                {thumbnailCategoryLabel(event)}
+              </Text>
+            </View>
+          ) : null}
+          <Text style={styles.cardTitle} numberOfLines={compact ? 2 : 3}>
+            {event.title}
+          </Text>
+          <Text style={styles.cardMeta} numberOfLines={2}>
+            {event.venueName} · {formatAge(event)}
+          </Text>
+          {event.crowdingArea ? (
+            <Text style={styles.detailCrowdingTeaser}>주변 혼잡도 확인 ›</Text>
+          ) : null}
+          {compact && chipLabels.length > 0 ? (
+            <View style={styles.cardTagRow}>
+              {chipLabels.map(label => (
+                <Chip key={label} label={label} dense />
+              ))}
+            </View>
+          ) : null}
+          {compact ? (
+            <View style={styles.cardFooter}>
+              <Text style={styles.cardDate}>
+                {formatShortDate(event.startsAt)}
+              </Text>
+            </View>
+          ) : null}
+          {recommendationResult ? (
+            <View style={styles.recommendationReasonBox}>
+              <Text style={styles.recommendationReasonTitle}>추천 이유</Text>
+              {recommendationResult.reasons.map(reason => (
+                <Text key={reason} style={styles.recommendationReasonText}>
+                  {reason}
                 </Text>
-              </>
-            ) : null}
-          </View>
-        ) : null}
-      </View>
+              ))}
+              {recommendationResult.caution ? (
+                <>
+                  <Text style={styles.recommendationCautionTitle}>
+                    확인할 점
+                  </Text>
+                  <Text style={styles.recommendationReasonText}>
+                    {recommendationResult.caution}
+                  </Text>
+                </>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+      )}
     </Pressable>
+  );
+}
+
+function ExploreListingText({ event }: { event: BabyrooEvent }) {
+  const normalize = (value: string) => value.trim().replace(/\s+/g, ' ');
+  const venue = normalize(event.venueName);
+  const guardian =
+    event.guardianRequired ??
+    event.tags.some(tag => tag.replace(/\s/g, '') === '보호자동반');
+  const reservation =
+    event.reservationRequired ??
+    event.tags.some(tag => tag.replace(/\s/g, '') === '예약필요');
+  const facts = [
+    event.priceText?.trim() || formatPriceType(event.priceType),
+    event.indoor == null ? undefined : event.indoor ? '실내' : '야외',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <View style={styles.listingText}>
+      <View style={styles.listingHeadingRow}>
+        <Text style={styles.listingKicker}>
+          {event.locality || '지역 확인'} · {thumbnailCategoryLabel(event)}
+        </Text>
+        {reservation && (
+          <View style={styles.reservationPill}>
+            <Text style={styles.reservationLabel}>예약 필요</Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.listingTitle}>{event.title}</Text>
+      {venue && !normalize(event.title).includes(venue) ? (
+        <Text style={styles.listingMeta}>{venue}</Text>
+      ) : null}
+      <Text style={styles.listingMeta}>
+        {[formatAge(event), guardian && '보호자 동반']
+          .filter(Boolean)
+          .join(' · ')}
+      </Text>
+      <Text style={styles.listingMeta}>{facts}</Text>
+      {event.crowdingArea && (
+        <Text style={styles.detailCrowdingTeaser}>주변 혼잡도 확인 ›</Text>
+      )}
+    </View>
   );
 }
 
@@ -4976,14 +4862,14 @@ function BottomTabs({
   bottomInset: number;
   onChange: (tab: Tab) => void;
 }) {
-  const tabs: Array<{ id: Tab; label: string; mark: string }> = [
-    { id: 'home', label: '추천', mark: '⌂' },
-    { id: 'explore', label: '탐색', mark: '⌕' },
+  const tabs: Array<{ id: Tab; label: string }> = [
+    { id: 'home', label: '추천' },
+    { id: 'explore', label: '탐색' },
   ];
 
   return (
     <View
-      style={[styles.bottomTabs, bottomTabsSafeArea(bottomInset)]}
+      style={[styles.bottomTabs, { paddingBottom: bottomInset }]}
       accessibilityLabel="Bottom navigation"
     >
       {tabs.map(tab => {
@@ -4993,13 +4879,47 @@ function BottomTabs({
             key={tab.id}
             style={styles.tabButton}
             onPress={() => onChange(tab.id)}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: active }}
           >
-            <Text style={[styles.tabMark, active && styles.tabMarkActive]}>
-              {tab.mark}
-            </Text>
+            <View accessible={false} style={styles.tabIcon}>
+              {tab.id === 'explore' ? (
+                <>
+                  <View
+                    style={[
+                      styles.searchIconLens,
+                      active && styles.activeIconStroke,
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.searchIconHandle,
+                      active && styles.activeIconFill,
+                    ]}
+                  />
+                </>
+              ) : (
+                <>
+                  <View
+                    style={[
+                      styles.homeIconRoof,
+                      active && styles.activeIconStroke,
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.homeIconWalls,
+                      active && styles.activeIconStroke,
+                    ]}
+                  />
+                </>
+              )}
+            </View>
             <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
               {tab.label}
             </Text>
+            {active && <View accessible={false} style={styles.tabUnderline} />}
           </Pressable>
         );
       })}
@@ -5716,12 +5636,8 @@ function eventMatchesReservationFilter(
   return event.reservationRequired === false;
 }
 
-function getActiveExploreFilterLabels(filters: ExploreFilters) {
+function getOptionalExploreFilterLabels(filters: ExploreFilters) {
   const labels: string[] = [];
-
-  if (filters.ageFit) {
-    labels.push('월령 맞춤');
-  }
 
   if (filters.date !== 'active') {
     labels.push(filters.date === 'scheduled' ? '예정' : '진행중');
@@ -5762,14 +5678,20 @@ function formatExploreIntentSummary(
   activeFilterLabels: string[],
   eventTypeSummary: string,
 ) {
-  const childSubject = formatExploreIntentChildSubject(selectedChildren);
-
+  const child =
+    selectedChildren.length === 1
+      ? formatChildAge(selectedChildren[0])
+      : selectedChildren.length > 1
+      ? `${selectedChildren[0].nickname} 외 ${selectedChildren.length - 1}명`
+      : '';
   return {
-    title: `${childSubject} 갈 ${eventTypeSummary}`,
-    meta:
-      activeFilterLabels.length > 0
-        ? activeFilterLabels.join(' · ')
-        : '기본 필터',
+    title: `${formatExploreIntentChildSubject(
+      selectedChildren,
+    )} 갈 ${eventTypeSummary}`,
+    meta: activeFilterLabels.join(' · ') || '추가 필터 없음',
+    filterText:
+      [child, ...activeFilterLabels].filter(Boolean).join(' · ') ||
+      '추가 필터 없음',
   };
 }
 
@@ -6324,40 +6246,119 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
+  exploreWordmark: {
+    color: colors.primaryStrong,
+    fontFamily: 'Dosis-ExtraBold',
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  categoryCheck: { color: colors.exploreSelectedLabel, fontSize: 14 },
+  exploreFilterEntry: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: colors.explorePanel,
+  },
+  exploreFilterLabel: {
+    fontFamily: 'Pretendard-SemiBold',
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  exploreFilterSummary: {
+    flex: 1,
+    fontFamily: 'Pretendard-Medium',
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.text,
+  },
+  exploreCard: {
+    minHeight: 132,
+    padding: 12,
+    borderRadius: 16,
+    marginTop: 0,
+    marginBottom: 10,
+    overflow: 'visible',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  exploreThumbnail: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    marginRight: 12,
+  },
+  listingText: { flex: 1, minWidth: 0, gap: 2 },
+  listingHeadingRow: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center',
+    justifyContent: 'space-between', columnGap: 6, rowGap: 2,
+  },
+  listingKicker: {
+    color: '#423C37',
+    flexShrink: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: 'Pretendard-Medium',
+  },
+  listingTitle: {
+    color: colors.text,
+    fontSize: 18,
+    lineHeight: 24,
+    fontFamily: 'Pretendard-Bold',
+  },
+  listingMeta: {
+    color: '#302B27',
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: 'Pretendard-Medium',
+    flexShrink: 1,
+  },
+  reservationPill: {
+    minHeight: 24,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+    backgroundColor: colors.explorePanel,
+  },
+  reservationLabel: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.exploreSelectedLabel,
+    fontFamily: 'Pretendard-SemiBold',
+  },
   exploreRoot: {
-    backgroundColor: colors.exploreResultsBackground,
+    backgroundColor: '#FCF9F5',
     flex: 1,
   },
   exploreFixedHeader: {
     backgroundColor: colors.background,
-    elevation: 4,
+    elevation: 0,
     left: 0,
-    overflow: 'hidden',
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: spacing.xl,
-    position: 'absolute',
     right: 0,
     top: 0,
+    overflow: 'hidden',
+    position: 'absolute',
     zIndex: 4,
   },
   exploreCompactHeader: {
     alignItems: 'center',
     backgroundColor: colors.explorePanel,
-    borderColor: colors.explorePanelBorder,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    borderRadius: 6,
     flexDirection: 'row',
     gap: spacing.sm,
     minHeight: 68,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: 16,
     paddingVertical: spacing.sm,
     position: 'absolute',
-    left: layout.screenPadding,
-    right: layout.screenPadding,
+    left: 0,
+    right: 0,
     top: spacing.md,
-  },
-  exploreHiddenHeaderLayer: {
-    opacity: 0,
   },
   exploreCompactSummary: {
     flex: 1,
@@ -6365,27 +6366,43 @@ const styles = StyleSheet.create({
   },
   exploreCompactTitle: {
     color: colors.text,
-    fontSize: 13,
-    fontWeight: '900',
-    lineHeight: 17,
+    fontFamily: 'Pretendard-Bold',
+    fontSize: 15,
+    lineHeight: 20,
   },
   exploreCompactMeta: {
     color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    lineHeight: 14,
-    marginTop: 1,
+    fontFamily: 'Pretendard-SemiBold',
+    fontSize: 13,
+    lineHeight: 18,
   },
+  exploreHeaderActions: { gap: 4 },
+  exploreActionGlyph: { width: 22, height: 22 },
   exploreCompactIconButton: {
-    height: 34,
+    width: 44,
+    height: 44,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+  },
+  exploreMonogram: {
     width: 34,
+    height: 34,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EB600D',
+  },
+  exploreMonogramText: {
+    fontFamily: 'Dosis-ExtraBold',
+    color: '#FFFFFF',
+    fontSize: 26,
+    lineHeight: 32,
   },
   exploreList: {
     flex: 1,
   },
   exploreListContent: {
-    paddingHorizontal: layout.screenPadding,
-    paddingTop: EXPLORE_HEADER_FULL_HEIGHT + spacing.lg,
+    paddingHorizontal: 16,
     paddingBottom: TAB_SCREEN_BOTTOM_PADDING,
   },
   floatingRecommendationCta: {
@@ -6449,9 +6466,7 @@ const styles = StyleSheet.create({
     borderColor: colors.foreground,
     transform: [{ rotate: '45deg' }],
   },
-  exploreFullHeader: {
-    paddingBottom: spacing.lg,
-  },
+  exploreFullHeader: { position: 'absolute', left: 16, right: 16, top: 0 },
   floatingRecommendationTitle: {
     ...typography.caption,
     color: colors.primarySoft,
@@ -6512,18 +6527,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-    paddingTop: spacing.sm,
+    minHeight: 56,
+    marginBottom: 8,
   },
   babyrooBrandMark: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
     minWidth: 0,
-  },
-  babyrooBrandMarkCompact: {
-    flexShrink: 0,
-    gap: spacing.xs,
   },
   babyrooBrandIcon: {
     borderColor: 'rgba(232, 94, 37, 0.16)',
@@ -6532,25 +6543,12 @@ const styles = StyleSheet.create({
     height: 34,
     width: 34,
   },
-  babyrooBrandIconCompact: {
-    borderRadius: 9,
-    height: 28,
-    width: 28,
-  },
   babyrooBrandText: {
     color: colors.text,
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0,
     lineHeight: 22,
-  },
-  exploreMasthead: {
-    backgroundColor: colors.explorePanel,
-    borderColor: colors.explorePanelBorder,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    marginTop: spacing.lg,
-    padding: spacing.lg,
   },
   eyebrow: {
     ...typography.caption,
@@ -7327,11 +7325,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
-  chipRow: {
-    marginHorizontal: -spacing.md,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
   chip: {
     alignSelf: 'flex-start',
     backgroundColor: colors.cream,
@@ -7395,11 +7388,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: 0,
   },
-  eventTypeOption: {
-    minHeight: layout.touchTarget,
-    minWidth: 0,
-    paddingVertical: spacing.xs,
-  },
+  eventTypeOption: { minHeight: 44, minWidth: 0 },
   eventTypeOptionContent: {
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -7409,7 +7398,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexDirection: 'row',
     gap: 6,
-    minHeight: 40,
+    minHeight: 44,
     justifyContent: 'center',
     minWidth: 0,
     paddingHorizontal: spacing.sm,
@@ -7417,29 +7406,14 @@ const styles = StyleSheet.create({
   },
   eventTypeOptionSelected: {
     borderColor: colors.primaryStrong,
-  },
-  eventTypeOptionStacked: {
-    flexDirection: 'column',
-  },
-  eventTypeIcon: {
-    flexShrink: 0,
-    height: 16,
-    width: 16,
-    tintColor: colors.text,
-  },
-  eventTypeIconSelected: {
-    tintColor: colors.primaryStrong,
-  },
-  eventTypeIconLarge: {
-    height: 20,
-    width: 20,
+    backgroundColor: colors.explorePanel,
   },
   eventTypeLabel: {
     color: colors.text,
     flexShrink: 1,
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
+    fontFamily: 'Pretendard-SemiBold',
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
   eventTypeLabelSelected: {
@@ -7451,59 +7425,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: spacing.md,
   },
-  exploreControlsHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'space-between',
-    minHeight: layout.touchTarget,
-  },
-  exploreControlsInset: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
-  },
-  exploreControlsSummaryArea: {
-    flex: 1,
-    minWidth: 0,
-  },
-  exploreControlsTitleRow: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  exploreCriteriaSummaryBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  exploreIntentTitle: {
-    color: colors.text,
-    fontSize: 17,
-    fontWeight: '900',
-    lineHeight: 22,
-  },
-  exploreIntentMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    marginTop: spacing.xs,
-  },
-  exploreControlsTitle: {
-    ...typography.caption,
-    color: colors.text,
-    flexShrink: 0,
-  },
   exploreControlsTitleInMasthead: {
     color: colors.text,
-  },
-  exploreControlsSummary: {
-    color: colors.muted,
-    flexShrink: 1,
-    fontSize: 12,
-    fontWeight: '700',
   },
   exploreControlsSummaryInMasthead: {
     color: colors.text,
@@ -7512,43 +7435,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
-  exploreControlsChevronButton: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    flexShrink: 0,
-    height: 34,
-    justifyContent: 'center',
-    width: 34,
-  },
-  exploreControlsChevronGlyph: {
-    borderBottomColor: colors.text,
-    borderBottomWidth: 2,
-    borderRightColor: colors.text,
-    borderRightWidth: 2,
-    height: 9,
-    width: 9,
-  },
-  exploreControlsChevronGlyphDown: {
-    marginTop: -3,
-    transform: [{ rotate: '45deg' }],
-  },
-  exploreControlsChevronGlyphUp: {
-    marginTop: 3,
-    transform: [{ rotate: '225deg' }],
-  },
   exploreControlSection: {
     minHeight: 58,
-  },
-  exploreFilterSection: {
-    minHeight: 50,
-  },
-  exploreControlDivider: {
-    backgroundColor: colors.borderSubtle,
-    height: 1,
-    marginVertical: spacing.md,
   },
   exploreControlLabel: {
     ...typography.caption,
@@ -8242,41 +8130,85 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   bottomTabs: {
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.xxl,
-    borderWidth: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
     bottom: 0,
     flexDirection: 'row',
-    height: TAB_BAR_HEIGHT,
-    left: spacing.lg,
-    paddingTop: spacing.sm,
-    position: 'absolute',
-    right: spacing.lg,
-    ...shadows.card,
+    borderTopWidth: 1,
+    borderColor: colors.borderSubtle,
+    backgroundColor: colors.surface,
   },
   tabButton: {
-    alignItems: 'center',
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 8,
+    minHeight: 56,
   },
-  tabMark: {
-    color: colors.muted,
-    fontSize: 22,
-    fontWeight: '900',
+  tabIcon: { width: 22, height: 22 },
+  activeIconFill: { backgroundColor: colors.primaryStrong },
+  activeIconStroke: { borderColor: colors.primaryStrong },
+  searchIconLens: {
+    position: 'absolute',
+    left: 1,
+    top: 1,
+    width: 16,
+    height: 16,
+    borderWidth: 2,
+    borderRadius: 8,
+    borderColor: '#57534E',
   },
-  tabMarkActive: {
-    color: colors.primary,
+  searchIconHandle: {
+    position: 'absolute',
+    left: 13,
+    top: 16,
+    width: 9,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#57534E',
+    transform: [{ rotate: '45deg' }],
+  },
+  homeIconRoof: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    width: 14,
+    height: 14,
+    borderTopWidth: 2,
+    borderLeftWidth: 2,
+    borderColor: '#57534E',
+    transform: [{ rotate: '45deg' }],
+  },
+  homeIconWalls: {
+    position: 'absolute',
+    top: 10,
+    left: 3,
+    width: 16,
+    height: 11,
+    borderWidth: 2,
+    borderTopWidth: 0,
+    borderColor: '#57534E',
+    borderRadius: 1,
+  },
+  tabUnderline: {
+    position: 'absolute',
+    bottom: 4,
+    width: '44%',
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: colors.primaryStrong,
   },
   tabLabel: {
     color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: 'Pretendard-Medium',
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 2,
   },
-  tabLabelActive: {
-    color: colors.text,
-  },
+  tabLabelActive: { color: colors.exploreSelectedLabel, fontFamily: 'Pretendard-SemiBold' },
 });
 
 export default function VersionedApp({ nativeBuild }: { nativeBuild?: string }) {

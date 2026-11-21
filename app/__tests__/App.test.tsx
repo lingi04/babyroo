@@ -7,6 +7,7 @@ import ReactTestRenderer from 'react-test-renderer';
 import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
+import * as babyrooApi from '../src/api/babyrooApi';
 import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
 import { currentUser, User } from '../src/data/user';
 import { clearAuthSession, saveAuthSession } from '../src/storage/authStorage';
@@ -68,7 +69,7 @@ test('Explore back-to-top follows the viewport and measured recommendation area'
     const topButtons = () =>
       root
         .findAllByProps({ accessibilityLabel: '맨 위로' })
-        .filter((node) => typeof node.props.onPress === 'function');
+        .filter(node => typeof node.props.onPress === 'function');
     const topButtonStyle = () => {
       const style = topButtons()[0].props.style;
       return StyleSheet.flatten(
@@ -76,7 +77,7 @@ test('Explore back-to-top follows the viewport and measured recommendation area'
       );
     };
     const list = root.findAll(
-      (node) =>
+      node =>
         node.props.scrollEventThrottle === 16 &&
         typeof node.props.onScroll === 'function',
     )[0];
@@ -95,28 +96,67 @@ test('Explore back-to-top follows the viewport and measured recommendation area'
       .findAllByProps({
         accessibilityLabel: 'Open recommendation page',
       })
-      .find((node) => typeof node.props.onLayout === 'function')!;
+      .find(node => typeof node.props.onLayout === 'function')!;
     await ReactTestRenderer.act(() => {
       recommendation.props.onLayout({
         nativeEvent: { layout: { height: 80 } },
       });
     });
 
+    const header = (mode: 'compact' | 'expanded') =>
+      root.findByProps({ testID: `explore-${mode}-header` });
+    const expectActiveHeader = (active: 'compact' | 'expanded') => {
+      const inactive = active === 'compact' ? 'expanded' : 'compact';
+      expect(header(active).props.pointerEvents).toBe('auto');
+      expect(header(active).props.accessibilityElementsHidden).toBe(false);
+      expect(header(inactive).props.pointerEvents).toBe('none');
+      expect(header(inactive).props.importantForAccessibility).toBe(
+        'no-hide-descendants',
+      );
+    };
+    expectActiveHeader('expanded');
+    await ReactTestRenderer.act(() => {
+      header('expanded').props.onLayout({
+        nativeEvent: { layout: { height: 240 } },
+      });
+      header('compact').props.onLayout({
+        nativeEvent: { layout: { height: 96 } },
+      });
+    });
+    await scroll(40);
+    expectActiveHeader('expanded');
+    await scroll(110);
+    expectActiveHeader('compact');
+    // Larger type can remeasure the header while the list is stationary.
+    await ReactTestRenderer.act(() => {
+      header('expanded').props.onLayout({
+        nativeEvent: { layout: { height: 400 } },
+      });
+    });
+    expectActiveHeader('expanded');
+    await scroll(220);
+    expectActiveHeader('compact');
+    await scroll(0);
+    expectActiveHeader('expanded');
     expect(topButtons()).toHaveLength(0);
     await scroll(700);
     expect(topButtons()).toHaveLength(0);
     await scroll(800);
+    expect(StyleSheet.flatten(list.props.style).marginBottom).toBe(56 + 34);
+    expect(StyleSheet.flatten(list.props.contentContainerStyle).paddingBottom).toBe(80 + 8);
+    expect(StyleSheet.flatten(recommendation.props.style).bottom).toBe(64 + 34);
     expect(topButtons().length).toBeGreaterThan(0);
     const raisedBottom = topButtonStyle().bottom;
-    expect(raisedBottom).toBe(96 + 34 + 80 + 12);
+    expect(raisedBottom).toBe(64 + 34 + 80 + 12);
     await ReactTestRenderer.act(() => {
       recommendation.props.onLayout({
         nativeEvent: { layout: { height: 128 } },
       });
     });
-    expect(topButtonStyle().bottom).toBe(96 + 34 + 128 + 12);
+    expect(topButtonStyle().bottom).toBe(64 + 34 + 128 + 12);
 
     await scroll(752);
+    expect(StyleSheet.flatten(list.props.style).marginBottom).toBe(56 + 34);
     expect(topButtonStyle().bottom).toBe(96 + 34);
     expect(recommendation.props.pointerEvents).toBe('none');
     expect(recommendation.props.importantForAccessibility).toBe(
@@ -360,8 +400,12 @@ test('keeps bottom navigation above the phone safe area', async () => {
     bottomNavigation.props.style,
   );
 
-  expect(bottomNavigationStyle.height).toBe(116);
   expect(bottomNavigationStyle.paddingBottom).toBe(34);
+  const exploreTab = bottomNavigation.findByProps({
+    accessibilityRole: 'tab',
+    accessibilityLabel: '탐색',
+  });
+  expect(StyleSheet.flatten(exploreTab.props.style).minHeight).toBe(56);
 });
 
 test('switches adjacent tabs with horizontal swipes', async () => {
@@ -852,13 +896,7 @@ test('shows simplified filters for schedule, region, and reservation', async () 
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
-      .props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Open filters' })
+      .findByProps({ testID: 'explore-filter-entry' })
       .props.onPress();
   });
 
@@ -898,16 +936,10 @@ test('hides bottom navigation while filters are open and restores it after apply
     renderer!.root.findAllByProps({ accessibilityLabel: 'Bottom navigation' });
   expect(navigation().length).toBeGreaterThan(0);
 
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
-      .props.onPress();
-  });
-
   for (const closeBy of ['apply', 'back']) {
     await ReactTestRenderer.act(() => {
       renderer!.root
-        .findByProps({ accessibilityLabel: 'Open filters' })
+        .findByProps({ testID: 'explore-filter-entry' })
         .props.onPress();
     });
 
@@ -941,13 +973,7 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Toggle exploration controls' })
-      .props.onPress();
-  });
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Open filters' })
+      .findByProps({ testID: 'explore-filter-entry' })
       .props.onPress();
   });
 
@@ -963,7 +989,7 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
       .props.onPress();
   });
 
-  expect(renderer!.root.findByProps({ children: '필터 편집' })).toBeTruthy();
+  expect(renderer!.root.findByProps({ testID: 'explore-filter-entry' }).props.accessibilityLabel).toContain('예정');
   expect(
     renderer!.root.findAllByProps({ children: '예정' }).length,
   ).toBeGreaterThan(0);
@@ -971,97 +997,88 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
   await ReactTestRenderer.act(() => renderer!.unmount());
 });
 
-test('uses explore content types to combine events, permanent venues, and Seoul kids cafes', async () => {
-  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
-  const isSeoulKidsCafeEvent = (event: BabyrooEvent) => {
-    const searchableText = [
-      event.title,
-      event.venueName,
-      event.summary,
-      ...event.tags,
-    ].join(' ');
-
-    return (
-      event.source === 'seoul_kids_cafe' ||
-      searchableText.includes('서울형 키즈카페') ||
-      searchableText.includes('서울형키즈카페')
-    );
+test('Explore combines categories and shows age, venue and booking facts on each card', async () => {
+  const event: BabyrooEvent = {
+    id: 'workshop',
+    csvSequence: 1,
+    title: '가족 놀이',
+    venueName: '놀이 센터',
+    region: '서울',
+    locality: '종로구',
+    source: 'test',
+    sourceUrl: '',
+    summary: '',
+    category: 'experience',
+    startsAt: '2020-01-01',
+    endsAt: '2099-12-31',
+    priceType: 'free',
+    ageMinMonths: 18,
+    indoor: true,
+    guardianRequired: true,
+    reservationStatus: 'available',
+    reservationRequired: true,
+    tags: ['예약필요'],
   };
-  const isPermanentVenueEvent = (event: BabyrooEvent) => {
-    const searchableText = [
-      event.title,
-      event.venueName,
-      event.summary,
-      event.sourceUrl,
-    ].join(' ');
-
-    return (
-      event.title.endsWith('관람') ||
-      event.title.endsWith('입장') ||
-      event.category === 'museum' ||
-      searchableText.includes('아쿠아리움 관람') ||
-      searchableText.includes('어린이박물관 관람') ||
-      searchableText.includes('체험관 관람')
+  const fetchList = jest
+    .spyOn(babyrooApi, 'listEventsFromBabyrooApi')
+    .mockResolvedValue([
+      event,
+      {
+        ...event,
+        id: 'museum',
+        title: '놀이 박물관 관람',
+        venueName: '놀이 박물관',
+        category: 'museum',
+        reservationRequired: false,
+      },
+      {
+        ...event,
+        id: 'cafe',
+        title: '서울형 키즈카페',
+        source: 'seoul_kids_cafe',
+      },
+    ]);
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    const root = renderer!.root;
+    const category = (name: string) =>
+      root.findByProps({
+        accessibilityLabel: 'Toggle explore event type ' + name,
+      });
+    const card = (title: string) =>
+      root.findByProps({ accessibilityLabel: 'Open ' + title });
+    expect(category('이벤트').props.accessibilityState.selected).toBe(true);
+    expect(category('상설 전시').props.accessibilityState.selected).toBe(true);
+    expect(
+      card('가족 놀이').findByProps({ children: '놀이 센터' }),
+    ).toBeTruthy();
+    expect(
+      card('가족 놀이').findByProps({ children: '18개월 이상 · 보호자 동반' }),
+    ).toBeTruthy();
+    expect(
+      card('가족 놀이').findByProps({ children: '예약 필요' }),
+    ).toBeTruthy();
+    expect(
+      card('놀이 박물관 관람').findAllByProps({ children: '놀이 박물관' }),
+    ).toHaveLength(0);
+    expect(
+      card('놀이 박물관 관람').findAllByProps({ children: '예약 필요' }),
+    ).toHaveLength(0);
+    await ReactTestRenderer.act(() => category('상설 전시').props.onPress());
+    expect(
+      root.findAllByProps({ accessibilityLabel: 'Open 놀이 박물관 관람' }),
+    ).toHaveLength(0);
+    await ReactTestRenderer.act(() =>
+      category('서울형 키즈카페').props.onPress(),
     );
-  };
-  const limitedEvent = eventsNewestFirst.find(event => {
-    return !isSeoulKidsCafeEvent(event) && !isPermanentVenueEvent(event);
-  });
-  const permanentVenueEvent = eventsNewestFirst.find(event => {
-    return !isSeoulKidsCafeEvent(event) && isPermanentVenueEvent(event);
-  });
-  const seoulKidsCafeEvent = eventsNewestFirst.find(isSeoulKidsCafeEvent);
-
-  expect(limitedEvent).toBeTruthy();
-  expect(permanentVenueEvent).toBeTruthy();
-  expect(seoulKidsCafeEvent).toBeTruthy();
-
-  await ReactTestRenderer.act(() => {
-    renderer = ReactTestRenderer.create(<App />);
-  });
-
-  expect(
-    renderer!.root.findAllByProps({ children: limitedEvent!.title }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title }),
-  ).toHaveLength(0);
-  expect(
-    renderer!.root.findAllByProps({ children: seoulKidsCafeEvent!.title }),
-  ).toHaveLength(0);
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({
-        accessibilityLabel: 'Toggle explore content type 상설 전시',
-      })
-      .props.onPress();
-  });
-
-  expect(
-    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title })
-      .length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAllByProps({ children: limitedEvent!.title }).length,
-  ).toBeGreaterThan(0);
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({
-        accessibilityLabel: 'Toggle explore content type 서울형 키즈카페',
-      })
-      .props.onPress();
-  });
-
-  expect(
-    renderer!.root.findAllByProps({ children: seoulKidsCafeEvent!.title })
-      .length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAllByProps({ children: permanentVenueEvent!.title })
-      .length,
-  ).toBeGreaterThan(0);
+    expect(card('서울형 키즈카페')).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+  }
 });
 
 async function selectPostcodeAddress(

@@ -59,6 +59,16 @@ react {
     autolinkLibrariesWithApp()
 }
 
+// Stage the static font faces even when dependency install hooks were skipped.
+def babyrooReactExtension = project.extensions.getByType(com.facebook.react.ReactExtension)
+def prepareBabyrooFonts = tasks.register("prepareBabyrooFonts", Exec) {
+    workingDir rootProject.file("..")
+    commandLine(babyrooReactExtension.nodeExecutableAndArgs.get() + ["scripts/prepare-fonts.cjs"])
+}
+tasks.named("preBuild").configure {
+    dependsOn prepareBabyrooFonts
+}
+
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */

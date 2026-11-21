@@ -18,9 +18,24 @@
 - These preferences guide model selection. The active model and reasoning level are controlled by the client or runtime settings.
 - When a model change would materially help, suggest it briefly at a natural stage boundary and continue authorized work with the active model unless the user asks to pause.
 - Keep tool output and reports focused on the task. Reuse relevant context and avoid repeating checks unless changes or failures justify them.
-- Keep a `Model usage` table in each task's plan file with columns for workflow stage, model used, reasoning level, and evidence. Record the Plan, Review the plan, Implement, and Verify stages as they are performed; mark stages that have not started as `Pending`.
+- Keep a `Model usage` table in each task's plan file with columns for workflow stage, agent, plugin / skill used, model used, reasoning level, and evidence. Record the Plan, Review the plan, Implement, and Verify stages as they are performed; mark stages that have not started as `Pending`.
 - Use only model names and reasoning levels confirmed by runtime metadata or client settings supplied by the user. Record the source in the evidence column. If either value cannot be confirmed, write `Unknown` for that value; do not infer it from the preferences above or interrupt work to obtain it.
 - Update the table when the model or reasoning level changes within a stage, retaining earlier entries so the record shows all confirmed settings used during that stage.
+
+### Agent assignments
+
+- The main agent writes the plan and implements the approved changes.
+- Delegate plan review to a separate sub-agent. Record its findings and how the main agent addressed them.
+- Delegate verification to a separate sub-agent. Record the checks it ran, their results, and any remaining gaps.
+- Identify the intended agent and any assigned skill in the plan before each stage. In the usage table, record the actual main agent or sub-agent task name and its contribution. Give each contributor a separate row.
+
+### Plugin and skill assignments
+
+- For UI design reviews, use Product Design’s audit skill to compare the current screen and the proposed design. Tie findings to visible evidence.
+- When the user requests a Codex Council review, use the Codex Council skill. Present the panel and estimate, then obtain acceptance before dispatch.
+- Include the assigned skill and expected evidence in each delegated task. Record the skills actually followed and any plugin tool calls and outcomes. Identify evidence reported by a sub-agent.
+- For each stage, enter `None` if no plugin or skill was used, `Unknown` if usage cannot be established, and `Pending` until the stage starts. Record blocked attempts in the evidence column.
+- If a required plugin or skill is unavailable, record the blocker and ask before substituting another review method.
 
 ## Design quality and visual review
 
