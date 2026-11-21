@@ -179,7 +179,8 @@ const exploreEventTypeOptions: Array<{
   },
 ];
 
-const EXPLORE_HEADER_COMPACT_HEIGHT = 92;
+const EXPLORE_HEADER_BOTTOM_WHITE_HEIGHT = 8;
+const EXPLORE_HEADER_COMPACT_HEIGHT = 68 + spacing.md + EXPLORE_HEADER_BOTTOM_WHITE_HEIGHT;
 const EXPLORE_RECOMMENDATION_BOTTOM = 64;
 const AGE_YEAR_DISPLAY_THRESHOLD_MONTHS = 48;
 
@@ -363,6 +364,7 @@ function BabyrooApp() {
   const [authLoaded, setAuthLoaded] = useState(false);
   const [browsingAsGuest, setBrowsingAsGuest] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
+  const [exploreHeaderExpanded, setExploreHeaderExpanded] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [events, setEvents] = useState<BabyrooEvent[]>(eventsNewestFirst);
   const [publicEventCount, setPublicEventCount] = useState<number | null>(
@@ -399,26 +401,37 @@ function BabyrooApp() {
     navigateToTab: (tab: Tab) => void,
   ) => {
     if (screenTab === 'home') {
-      if (!authSession) {
-        return (
-          <AuthRequiredScreen
-            bottomInset={bottomInset}
-            onSignIn={handleGoogleSignIn}
-          />
-        );
-      }
-
       return (
-        <HomeScreen
-          authSession={authSession}
-          events={events}
-          user={user}
-          onChangeAuthSession={setAuthSession}
-          onOpenCredits={() => setCreditStatusOpen(true)}
-          onOpenRecommendationDetail={openRecommendationDetail}
-          onOpenSettings={openSettings}
-          bottomInset={bottomInset}
-        />
+        <View style={styles.recommendationPane}>
+          <View
+            style={styles.fixedBrandHeader}
+            testID="fixed-brand-header"
+            pointerEvents={filterOpen ? 'none' : 'auto'}
+            accessibilityElementsHidden={filterOpen}
+            importantForAccessibility={
+              filterOpen ? 'no-hide-descendants' : 'auto'
+            }
+          >
+            <BrandHeader hidden={exploreHeaderExpanded} onOpenSettings={openSettings} />
+          </View>
+          {!authSession ? (
+            <AuthRequiredScreen
+              bottomInset={bottomInset}
+              onSignIn={handleGoogleSignIn}
+            />
+          ) : (
+            <HomeScreen
+              authSession={authSession}
+              events={events}
+              user={user}
+              onChangeAuthSession={setAuthSession}
+              onOpenCredits={() => setCreditStatusOpen(true)}
+              onOpenRecommendationDetail={openRecommendationDetail}
+              onOpenSettings={openSettings}
+              bottomInset={bottomInset}
+            />
+          )}
+        </View>
       );
     }
 
@@ -435,6 +448,8 @@ function BabyrooApp() {
             navigateToTab('home');
           }}
           onOpenSettings={openSettings}
+          sharedBrandHeader={exploreHeaderExpanded}
+          onHeaderExpandedChange={setExploreHeaderExpanded}
           onToggleEventType={eventType =>
             setExploreFilters(previousFilters => ({
               ...previousFilters,
@@ -980,6 +995,7 @@ function BabyrooApp() {
         />
       ) : (
         <>
+          <View style={styles.tabShell} testID="tab-shell">
           <SwipeableTabs
             activeTab={tab}
             onChangeTab={setTab}
@@ -997,6 +1013,18 @@ function BabyrooApp() {
             }
             tabOrder={TAB_ORDER}
           />
+          {exploreHeaderExpanded && !selectedEvent && !selectedRecommendationSession && (
+            <View
+              testID="stationary-tab-header"
+              style={[styles.fixedBrandHeader, styles.stationaryTabHeader]}
+              pointerEvents={filterOpen ? 'none' : 'auto'}
+              accessibilityElementsHidden={filterOpen}
+              importantForAccessibility={filterOpen ? 'no-hide-descendants' : 'auto'}
+            >
+              <BrandHeader onOpenSettings={openSettings} />
+            </View>
+          )}
+          </View>
           {filterOpen ? (
             <FilterSheet
               user={user}
@@ -1131,9 +1159,11 @@ function AuthRequiredScreen({
   );
 }
 
-function BrandHeader({ onOpenSettings }: { onOpenSettings: () => void }) {
+function BrandHeader({ onOpenSettings, hidden = false }: { onOpenSettings: () => void; hidden?: boolean }) {
   return (
-    <View style={styles.brandHeader}>
+    <View style={[styles.brandHeader, hidden && styles.coveredBrandHeader]} pointerEvents={hidden ? 'none' : 'auto'}
+      accessibilityElementsHidden={hidden}
+      importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}>
       <Text style={styles.brandWordmark}>babyroo</Text>
       <HeaderActions compact onOpenSettings={onOpenSettings} />
     </View>
@@ -1836,13 +1866,10 @@ function HomeScreen({
       <ScrollView
         contentContainerStyle={[
           styles.screenWithTabs,
+          { paddingTop: 0 },
           tabScreenBottomPadding(bottomInset),
         ]}
       >
-        <View style={styles.homeMasthead}>
-          <BrandHeader onOpenSettings={onOpenSettings} />
-        </View>
-
         <View style={styles.recommendationSetupCard}>
           {recommendationFlowStep === 'interview' &&
           currentRecommendationQuestion ? (
@@ -2860,6 +2887,8 @@ function ExploreScreen({
   onOpenFilter,
   onOpenRecommendation,
   onOpenSettings,
+  sharedBrandHeader,
+  onHeaderExpandedChange,
   onToggleEventType,
   bottomInset,
 }: {
@@ -2871,6 +2900,8 @@ function ExploreScreen({
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
+  sharedBrandHeader: boolean;
+  onHeaderExpandedChange: (expanded: boolean) => void;
   onToggleEventType: (eventType: ExploreEventType) => void;
   bottomInset: number;
 }) {
@@ -2986,6 +3017,7 @@ function ExploreScreen({
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffsetY = event.nativeEvent.contentOffset.y;
+    onHeaderExpandedChange(scrollOffsetY <= 0);
     const viewportHeight = event.nativeEvent.layoutMeasurement.height;
     const maxOffset = Math.max(
       0,
@@ -3038,14 +3070,14 @@ function ExploreScreen({
             compactHeaderTouchable ? 'auto' : 'no-hide-descendants'
           }
           onLayout={event =>
-            setCompactHeight(event.nativeEvent.layout.height + 24)
+            setCompactHeight(
+              event.nativeEvent.layout.height + spacing.md + EXPLORE_HEADER_BOTTOM_WHITE_HEIGHT,
+            )
           }
           style={[styles.exploreCompactHeader, { opacity: compactOpacity }]}
         >
           <View accessible={false} style={styles.exploreMonogram}>
-            <Text allowFontScaling={false} style={styles.exploreMonogramText}>
-              b
-            </Text>
+            <Text allowFontScaling={false} style={styles.exploreMonogramText}>b</Text>
           </View>
           <Pressable
             style={styles.exploreCompactSummary}
@@ -3078,7 +3110,7 @@ function ExploreScreen({
           style={[styles.exploreFullHeader, { opacity: fullOpacity }]}
           onLayout={event => setFullHeight(event.nativeEvent.layout.height)}
         >
-          <BrandHeader onOpenSettings={onOpenSettings} />
+          <BrandHeader hidden={sharedBrandHeader} onOpenSettings={onOpenSettings} />
           <View style={styles.eventTypeSelector}>
             {exploreEventTypeOptions.map(option => {
               const selected = filters.exploreEventTypes.includes(option.value);
@@ -3140,6 +3172,10 @@ function ExploreScreen({
               ›
             </Text>
           </Pressable>
+          <View
+            testID="explore-filter-white-strip"
+            style={styles.exploreFilterWhiteStrip}
+          />
         </Animated.View>
       </Animated.View>
 
@@ -6353,6 +6389,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  exploreMonogram: { width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EB600D' },
+  exploreMonogramText: { fontFamily: 'Dosis-ExtraBold', color: '#FFFFFF', fontSize: 26, lineHeight: 32 },
   exploreCompactTitle: {
     color: colors.text,
     fontFamily: 'Pretendard-Bold',
@@ -6372,20 +6410,6 @@ const styles = StyleSheet.create({
     height: 44,
     backgroundColor: 'transparent',
     borderWidth: 0,
-  },
-  exploreMonogram: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EB600D',
-  },
-  exploreMonogramText: {
-    fontFamily: 'Dosis-ExtraBold',
-    color: '#FFFFFF',
-    fontSize: 26,
-    lineHeight: 32,
   },
   exploreList: {
     flex: 1,
@@ -6456,6 +6480,11 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
   },
   exploreFullHeader: { position: 'absolute', left: 16, right: 16, top: 0 },
+  exploreFilterWhiteStrip: {
+    height: EXPLORE_HEADER_BOTTOM_WHITE_HEIGHT,
+    marginHorizontal: -16,
+    backgroundColor: colors.surface,
+  },
   floatingRecommendationTitle: {
     ...typography.caption,
     color: colors.primarySoft,
@@ -6478,10 +6507,25 @@ const styles = StyleSheet.create({
   headerTitleGroup: {
     flex: 1,
   },
-  homeMasthead: {
+  fixedBrandHeader: {
+    paddingHorizontal: 16,
     backgroundColor: colors.background,
-    marginTop: -spacing.xl,
-    marginHorizontal: 16 - layout.screenPadding,
+  },
+  tabShell: {
+    flex: 1,
+  },
+  coveredBrandHeader: {
+    opacity: 0,
+  },
+  stationaryTabHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+  },
+  recommendationPane: {
+    flex: 1,
   },
   headerActions: {
     alignItems: 'center',
@@ -6550,7 +6594,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.lg,
     borderWidth: 1,
-    marginTop: spacing.lg,
+    marginTop: 0,
     padding: layout.cardPadding,
   },
   recommendationSetupTitle: {

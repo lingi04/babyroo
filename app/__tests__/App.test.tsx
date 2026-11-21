@@ -57,6 +57,74 @@ test('renders correctly', async () => {
   });
 });
 
+test('fixes the recommendation header while preserving Explore collapsing headers', async () => {
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  await ReactTestRenderer.act(() => {
+    renderer = ReactTestRenderer.create(<App />);
+  });
+  try {
+    for (const label of ['추천', '탐색']) {
+      await ReactTestRenderer.act(() => {
+        renderer!.root.findByProps({ accessibilityRole: 'tab', accessibilityLabel: label }).props.onPress();
+      });
+      const root = renderer!.root;
+      expect(root.findByProps({ testID: 'stationary-tab-header' })).toBeTruthy();
+      const shell = root.findByProps({ testID: 'tab-shell' });
+      expect(shell.findByProps({ testID: 'stationary-tab-header' })).toBeTruthy();
+      expect(StyleSheet.flatten(shell.props.style).flex).toBe(1);
+      const coveredBrand = root.findByProps({ testID: 'fixed-brand-header' })
+        .findAll(node => node.props.accessibilityElementsHidden === true &&
+          StyleSheet.flatten(node.props.style)?.opacity === 0);
+      expect(coveredBrand.length).toBeGreaterThan(0);
+      const strip = root.findByProps({ accessibilityLabel: 'Tab strip' });
+      if (label === '추천') {
+        const header = root.findByProps({ testID: 'fixed-brand-header' });
+        expect(header.findByProps({ children: 'babyroo' })).toBeTruthy();
+      } else {
+        expect(root.findByProps({ testID: 'fixed-brand-header' })).toBeTruthy();
+        expect(strip.findByProps({ testID: 'explore-expanded-header' }).findByProps({ children: 'babyroo' })).toBeTruthy();
+        expect(strip.findByProps({ testID: 'explore-compact-header' }).findByProps({ accessibilityLabel: '의견 보내기' })).toBeTruthy();
+      }
+      // Neither pane's vertical scroll view may own the fixed shell.
+      for (const scrollView of root.findAllByType(ScrollView)) {
+        expect(scrollView.findAllByProps({ testID: 'fixed-brand-header' })).toHaveLength(0);
+        expect(scrollView.findAllByProps({ accessibilityLabel: 'Bottom navigation' })).toHaveLength(0);
+      }
+      expect(strip.findByProps({ testID: 'fixed-brand-header' })).toBeTruthy();
+      expect(strip.findAllByProps({ accessibilityLabel: 'Bottom navigation' })).toHaveLength(0);
+    }
+    const root = renderer!.root;
+    const list = root.findAll(node =>
+      node.props.scrollEventThrottle === 16 && typeof node.props.onScroll === 'function',
+    )[0];
+    const scrollExplore = async (y: number) => {
+      await ReactTestRenderer.act(() => list.props.onScroll({
+        nativeEvent: {
+          contentOffset: { x: 0, y },
+          contentSize: { width: 390, height: 3000 },
+          layoutMeasurement: { width: 390, height: 700 },
+        },
+      }));
+    };
+    // Even a partially collapsed header switches the whole pane.
+    await scrollExplore(1);
+    expect(root.findAllByProps({ testID: 'stationary-tab-header' })).toHaveLength(0);
+    await ReactTestRenderer.act(() => {
+      root.findByProps({ accessibilityRole: 'tab', accessibilityLabel: '추천' }).props.onPress();
+    });
+    expect(root.findAllByProps({ testID: 'stationary-tab-header' })).toHaveLength(0);
+    await ReactTestRenderer.act(() => {
+      root.findByProps({ accessibilityRole: 'tab', accessibilityLabel: '탐색' }).props.onPress();
+    });
+    await scrollExplore(150);
+    expect(root.findAllByProps({ testID: 'stationary-tab-header' })).toHaveLength(0);
+    await scrollExplore(0);
+    expect(root.findByProps({ testID: 'stationary-tab-header' })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+  }
+});
+
 test('Explore back-to-top follows the viewport and measured recommendation area', async () => {
   const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo');
   let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
@@ -251,7 +319,7 @@ test('keeps a back-to-top tap active while upward momentum moves and hides its t
   }
 });
 
-test('opens a feedback draft from each header and shows the address on failure', async () => {
+test('opens a feedback draft from Explore headers and shows the address on failure', async () => {
   const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
   let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
@@ -260,17 +328,17 @@ test('opens a feedback draft from each header and shows the address on failure',
     await ReactTestRenderer.act(() => {
       renderer = ReactTestRenderer.create(<App />);
     });
-    const feedbackButtons = renderer!.root
+    const feedbackButtons = renderer!.root.findByProps({ testID: 'stationary-tab-header' })
       .findAllByProps({ accessibilityLabel: '의견 보내기' })
       .filter(node => typeof node.props.onPress === 'function');
-    expect(feedbackButtons).toHaveLength(3);
+    expect(feedbackButtons).toHaveLength(1);
     for (const button of feedbackButtons) {
       await ReactTestRenderer.act(async () => button.props.onPress());
     }
 
     const subject = encodeURIComponent('베이비루 앱 의견');
     expect(openURL.mock.calls).toEqual(
-      Array.from({ length: 3 }, () => [
+      Array.from({ length: 1 }, () => [
         `mailto:hans.tyranos@gmail.com?subject=${subject}`,
       ]),
     );
