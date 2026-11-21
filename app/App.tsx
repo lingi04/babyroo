@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { buildQuestionnaire } from './src/recommendation/questionnaire';
+import { QuestionnaireCard } from './src/recommendation/QuestionnaireCard';
 import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
 import { useFreshCrowdingArea } from './src/crowding/useFreshCrowdingArea';
 import { AppUpdateGate } from './src/appUpdate/AppUpdateGate';
@@ -421,6 +423,7 @@ function BabyrooApp() {
             />
           ) : (
             <HomeScreen
+              active={tab === 'home'}
               authSession={authSession}
               events={events}
               user={user}
@@ -1471,6 +1474,7 @@ function OnboardingScreen({
 }
 
 function HomeScreen({
+  active,
   authSession,
   events,
   user,
@@ -1480,6 +1484,7 @@ function HomeScreen({
   onOpenSettings,
   bottomInset,
 }: {
+  active: boolean;
   authSession: AuthSession;
   events: BabyrooEvent[];
   user: User;
@@ -1490,6 +1495,7 @@ function HomeScreen({
   bottomInset: number;
 }) {
   const today = useLocalToday();
+  const questionScroll = useRef<ScrollView>(null);
   const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
   const [recommendationSessions, setRecommendationSessions] = useState<
     RecommendationSession[]
@@ -1519,12 +1525,21 @@ function HomeScreen({
     useState(false);
   const recommendationQuestions = useMemo(
     () =>
-      buildRecommendationQuestions(
-        events,
-        selectedChildren,
-        recommendationAnswers,
-        user.homeAddress,
-        departureAddress,
+      buildQuestionnaire(
+        buildRecommendationQuestions(
+          events,
+          selectedChildren,
+          recommendationAnswers,
+          user.homeAddress,
+          departureAddress,
+        ),
+        selectedChildren.length
+          ? Math.min(
+              ...selectedChildren.map(child =>
+                calculateAgeMonths(child.birthDate),
+              ),
+            )
+          : null,
       ),
     [
       departureAddress,
@@ -1536,6 +1551,11 @@ function HomeScreen({
   );
   const currentRecommendationQuestion =
     recommendationQuestions[recommendationQuestionIndex];
+  useEffect(() => {
+    if (recommendationFlowStep !== 'idle') {
+      questionScroll.current?.scrollTo({ y: 0, animated: false });
+    }
+  }, [recommendationQuestionIndex, recommendationFlowStep]);
   const latestRecommendationSession = recommendationSessions[0];
   const selectedRecommendationSession =
     recommendationSessions.find(
@@ -1619,8 +1639,9 @@ function HomeScreen({
           ),
           ...sessions,
         ]);
-        setSelectedRecommendationSessionId(previousId =>
-          previousId ?? (sessions.length > 0 ? sessions[0].id : null),
+        setSelectedRecommendationSessionId(
+          previousId =>
+            previousId ?? (sessions.length > 0 ? sessions[0].id : null),
         );
       })
       .catch(error => {
@@ -1730,6 +1751,9 @@ function HomeScreen({
     }
 
     const preferences = answersToPreferences(answers, departureAddress);
+    // Interest is a UI preview until backend ranking supports it.
+    const submittedAnswers = { ...answers };
+    delete submittedAnswers.interest;
     const requestedAt = new Date().toISOString();
 
     const recommendationService = new RemoteRecommendationService({
@@ -1743,7 +1767,7 @@ function HomeScreen({
         userId: user.id,
         selectedChildIds: selectedChildren.map(child => child.id),
         selectedChildren,
-        answers,
+        answers: submittedAnswers,
         preferences,
         client: {
           locale: 'ko-KR',
@@ -1831,22 +1855,6 @@ function HomeScreen({
     commitRecommendationAnswer('startRegion', 'departure_input');
   };
 
-  const goToNextRecommendationQuestion = () => {
-    const question = currentRecommendationQuestion;
-
-    if (!question) {
-      return;
-    }
-
-    const selectedAnswer = recommendationAnswers[question.id];
-
-    if (!selectedAnswer) {
-      return;
-    }
-
-    commitRecommendationAnswer(question.id, selectedAnswer);
-  };
-
   const editRecommendationAnswer = (questionId: RecommendationQuestionId) => {
     const nextQuestionIndex = recommendationQuestions.findIndex(
       question => question.id === questionId,
@@ -1864,16 +1872,24 @@ function HomeScreen({
   return (
     <>
       <ScrollView
+        ref={questionScroll}
         contentContainerStyle={[
           styles.screenWithTabs,
           { paddingTop: 0 },
           tabScreenBottomPadding(bottomInset),
         ]}
       >
-        <View style={styles.recommendationSetupCard}>
+        <View
+          style={[
+            styles.recommendationSetupCard,
+            recommendationFlowStep !== 'idle' && styles.questionnaireSurface,
+          ]}
+        >
           {recommendationFlowStep === 'interview' &&
           currentRecommendationQuestion ? (
-            <RecommendationQuestionCard
+            <QuestionnaireCard
+              key={currentRecommendationQuestion.id}
+              active={active}
               answers={recommendationAnswers}
               question={currentRecommendationQuestion}
               questionIndex={recommendationQuestionIndex}
@@ -1885,14 +1901,6 @@ function HomeScreen({
                 )
               }
               onClose={() => setRecommendationFlowStep('idle')}
-              onNext={goToNextRecommendationQuestion}
-              nextLabel={
-                returnToConfirmationAfterAnswer ||
-                recommendationQuestionIndex >=
-                  recommendationQuestions.length - 1
-                  ? '확인하기'
-                  : '다음 질문'
-              }
             />
           ) : recommendationFlowStep === 'confirming' ? (
             <RecommendationConfirmationCard
@@ -1963,42 +1971,45 @@ function HomeScreen({
           )}
         </View>
 
-        <View style={styles.recommendationHistorySection}>
-          <View style={styles.recommendationHistoryHeading}>
-            <Text style={styles.sectionTitle}>추천 기록</Text>
-            <Text style={styles.recommendationHistoryMeta}>
-              오늘 {formatVisitDate(today)}
-            </Text>
+        {recommendationFlowStep === 'idle' && (
+          <View style={styles.recommendationHistorySection}>
+            <View style={styles.recommendationHistoryHeading}>
+              <Text style={styles.sectionTitle}>추천 기록</Text>
+              <Text style={styles.recommendationHistoryMeta}>
+                오늘 {formatVisitDate(today)}
+              </Text>
+            </View>
+            {visibleRecommendationSessions.length > 0 ? (
+              <View style={styles.recommendationHistoryList}>
+                {visibleRecommendationSessions.map((session, index) => (
+                  <RecommendationSessionCard
+                    key={session.id}
+                    events={events}
+                    session={session}
+                    today={today}
+                    separated={index > 0}
+                    onPress={() => {
+                      setSelectedRecommendationSessionId(session.id);
+                      onOpenRecommendationDetail(session);
+                    }}
+                  />
+                ))}
+              </View>
+            ) : (
+              <View style={styles.recommendationHistoryEmpty}>
+                <Text style={styles.emptyStateTitle}>
+                  아직 추천 기록이 없어요
+                </Text>
+                <Text style={styles.emptyStateText}>
+                  추천을 받으면 조건과 결과가 여기에 쌓입니다.
+                </Text>
+              </View>
+            )}
           </View>
-          {visibleRecommendationSessions.length > 0 ? (
-            <View style={styles.recommendationHistoryList}>
-              {visibleRecommendationSessions.map((session, index) => (
-                <RecommendationSessionCard
-                  key={session.id}
-                  events={events}
-                  session={session}
-                  today={today}
-                  separated={index > 0}
-                  onPress={() => {
-                    setSelectedRecommendationSessionId(session.id);
-                    onOpenRecommendationDetail(session);
-                  }}
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.recommendationHistoryEmpty}>
-              <Text style={styles.emptyStateTitle}>
-                아직 추천 기록이 없어요
-              </Text>
-              <Text style={styles.emptyStateText}>
-                추천을 받으면 조건과 결과가 여기에 쌓입니다.
-              </Text>
-            </View>
-          )}
-        </View>
+        )}
 
-        {selectedRecommendationSession?.status === 'failed' ? (
+        {recommendationFlowStep !==
+        'idle' ? null : selectedRecommendationSession?.status === 'failed' ? (
           <RecommendationFailureState
             errorCode={selectedRecommendationSession.error?.code ?? 'unknown'}
             retryable={selectedRecommendationSession.error?.retryable ?? true}
@@ -2023,122 +2034,6 @@ function HomeScreen({
         onSubmit={submitDepartureAddress}
       />
     </>
-  );
-}
-
-function RecommendationQuestionCard({
-  answers,
-  question,
-  questionIndex,
-  questionCount,
-  onAnswer,
-  onBack,
-  onClose,
-  onNext,
-  nextLabel = '다음 질문',
-}: {
-  answers: RecommendationAnswerMap;
-  question: RecommendationQuestion;
-  questionIndex: number;
-  questionCount: number;
-  onAnswer: (
-    questionId: RecommendationQuestionId,
-    value: RecommendationAnswerValue,
-  ) => void;
-  onBack: () => void;
-  onClose: () => void;
-  onNext?: () => void;
-  nextLabel?: string;
-}) {
-  const selectedValue = answers[question.id];
-
-  return (
-    <View>
-      <View style={styles.recommendationQuestionHeader}>
-        <View style={styles.recommendationQuestionTitleGroup}>
-          <Text style={styles.recommendationContextLabel}>
-            질문 {questionIndex + 1}/{questionCount}
-          </Text>
-          <Text style={styles.settingsTitle}>{question.prompt}</Text>
-        </View>
-        <Pressable
-          style={styles.recommendationQuestionCloseButton}
-          onPress={onClose}
-          accessibilityLabel="Close recommendation questions"
-        >
-          <Text style={styles.recommendationContextAction}>닫기</Text>
-        </Pressable>
-      </View>
-
-      <View
-        style={styles.recommendationOptionList}
-        accessibilityRole="radiogroup"
-      >
-        {question.options.map(option => {
-          const selected = option.value === selectedValue;
-
-          return (
-            <Pressable
-              key={option.value}
-              style={({ pressed }) => [
-                styles.recommendationOption,
-                selected && styles.recommendationOptionSelected,
-                pressed && styles.recommendationOptionPressed,
-              ]}
-              onPress={() => onAnswer(question.id, option.value)}
-              accessibilityLabel={`Answer recommendation ${option.label}`}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
-            >
-              <Text
-                style={[
-                  styles.recommendationOptionText,
-                  selected && styles.recommendationOptionTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-              <View
-                style={[
-                  styles.recommendationRadio,
-                  selected && styles.recommendationRadioSelected,
-                ]}
-                importantForAccessibility="no"
-              >
-                {selected ? (
-                  <View style={styles.recommendationRadioDot} />
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <View style={styles.recommendationQuestionActions}>
-        {questionIndex > 0 ? (
-          <Pressable
-            style={styles.recommendationBackButton}
-            onPress={onBack}
-            accessibilityLabel="Previous recommendation question"
-          >
-            <Text style={styles.recommendationContextAction}>이전 질문</Text>
-          </Pressable>
-        ) : null}
-
-        {selectedValue && onNext ? (
-          <Pressable
-            style={({ pressed }) => [
-              styles.recommendationNextButton,
-              pressed && styles.recommendationPrimaryPressed,
-            ]}
-            onPress={onNext}
-            accessibilityLabel="Go to next recommendation question"
-          >
-            <Text style={styles.recommendationNextButtonText}>{nextLabel}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-    </View>
   );
 }
 
@@ -5126,6 +5021,9 @@ function selectAdaptiveRecommendationQuestion(
 }
 
 function recommendationQuestionLabel(question: RecommendationQuestion) {
+  if (question.id === 'interest') {
+    return '이번 외출의 관심사';
+  }
   if (question.id === 'startRegion') {
     return '출발 지역';
   }
@@ -6589,6 +6487,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  questionnaireSurface: { borderWidth: 0, borderRadius: 0, padding: 0 },
   recommendationSetupCard: {
     backgroundColor: colors.surface,
     borderColor: colors.border,

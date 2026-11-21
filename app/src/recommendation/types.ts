@@ -29,6 +29,11 @@ export type Preferences = Partial<{
 }>;
 
 export type RecommendationAnswerValue =
+  | 'interest_transport'
+  | 'interest_animals'
+  | 'interest_water'
+  | 'interest_music'
+  | 'interest_any'
   | 'region_seoul'
   | 'region_gyeonggi'
   | 'region_other'
@@ -62,6 +67,7 @@ export type RecommendationAnswerValue =
   | 'activity_any';
 
 export type RecommendationQuestionId =
+  | 'interest'
   | 'startRegion'
   | 'visitDay'
   | 'weather'

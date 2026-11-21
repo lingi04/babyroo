@@ -7,6 +7,7 @@ import ReactTestRenderer from 'react-test-renderer';
 import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
+import { RemoteRecommendationService } from '../src/recommendation/RemoteRecommendationService';
 import * as babyrooApi from '../src/api/babyrooApi';
 import { BabyrooEvent, eventsNewestFirst } from '../src/data/events';
 import { currentUser, User } from '../src/data/user';
@@ -498,130 +499,119 @@ test('switches adjacent tabs with horizontal swipes', async () => {
   expect(renderer!.root.findByProps({ children: '맞춤 추천' })).toBeTruthy();
 });
 
-test('answers recommendation questions before requesting results', async () => {
-  let renderer: ReactTestRenderer.ReactTestRenderer | null = null;
-
-  await ReactTestRenderer.act(() => {
-    renderer = ReactTestRenderer.create(<App />);
+test('completes eight UI questions and submits supported conditions without local interest', async () => {
+  await saveAuthSession({
+    ...testAuthSession,
+    apiAccessToken: 'ui-test-token',
   });
-
-  await swipeTabs(renderer!, 96);
-
-  expect(renderer!.root.findByProps({ children: '오늘의 추천' })).toBeTruthy();
-  expect(renderer!.root.findAllByProps({ children: '질문' })).toHaveLength(0);
-  expect(renderer!.root.findAllByProps({ children: '출발 지역' })).toHaveLength(
-    0,
-  );
-  expect(renderer!.root.findAllByProps({ children: '이동 방식' })).toHaveLength(
-    0,
-  );
-  expect(renderer!.root.findAllByProps({ children: '실내 선호' })).toHaveLength(
-    0,
-  );
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Request recommendation' })
-      .props.onPress();
-  });
-
-  expect(
-    renderer!.root.findByProps({
-      children: '출발지를 선택해주세요',
-    }),
-  ).toBeTruthy();
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Answer recommendation 출발지 입력' })
-      .props.onPress();
-  });
-
-  await selectPostcodeAddress(renderer!, '서울 광진구 구의동');
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Use departure address' })
-      .props.onPress();
-  });
-
-  expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
-  expect(
-    renderer!.root.findAllByProps({ children: '출발 지역' }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAllByProps({ children: '광진구 구의동 기준' }).length,
-  ).toBeGreaterThan(0);
-
-  for (const answer of [
-    '1-2일 안에',
-    '날씨 괜찮으면 야외도 좋아요',
-    '가능해요',
-    '한적한 곳',
-    '무료 위주',
-    '예약 없이 가고 싶어요',
-    '직접 체험',
-  ]) {
+  const createSession = jest
+    .spyOn(RemoteRecommendationService.prototype, 'createSession')
+    .mockResolvedValue({
+      id: 'ui-session',
+      createdAt: '2026-11-21T00:00:00Z',
+      userId: completeUser.id,
+      selectedChildIds: completeUser.activeChildIds,
+      preferences: {},
+      status: 'loading',
+      results: [],
+      credit: { policy: 'on_success_with_results', cost: 1, consumed: false },
+    });
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => {
+      renderer = ReactTestRenderer.create(<App />);
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ accessibilityRole: 'tab', accessibilityLabel: '추천' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ accessibilityLabel: 'Request recommendation' })
+        .props.onPress();
+    });
+    expect(
+      renderer!.root.findAllByProps({ children: '추천 기록' }),
+    ).toHaveLength(0);
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({
-          accessibilityLabel: `Answer recommendation ${answer}`,
+          accessibilityLabel: 'Answer recommendation 출발지를 직접 입력할게요',
         })
         .props.onPress();
     });
+    await selectPostcodeAddress(renderer!, '서울 광진구 구의동');
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ accessibilityLabel: 'Use departure address' })
+        .props.onPress();
+    });
+    jest.useFakeTimers();
+    for (const answer of [
+      '이번 주말에 갈 거예요',
+      '기차나 자동차를 좋아해요',
+      '가능해요',
+      '날씨와 상관없이 실내로 가고 싶어요',
+      '무료인 곳을 위주로 보고 싶어요',
+      '예약 없이 갈 수 있는 곳이 좋아요',
+      '아이가 직접 체험하는 활동이 좋아요',
+    ]) {
+      await ReactTestRenderer.act(() => {
+        renderer!.root
+          .findByProps({
+            accessibilityLabel: 'Answer recommendation ' + answer,
+          })
+          .props.onPress();
+      });
+      await ReactTestRenderer.act(() => {
+        jest.advanceTimersByTime(250);
+      });
+    }
+    expect(
+      renderer!.root.findByProps({ children: '이 조건으로 추천 받을까요?' }),
+    ).toBeTruthy();
+    expect(
+      renderer!.root.findByProps({ children: '기차나 자동차를 좋아해요' }),
+    ).toBeTruthy();
+    expect(
+      renderer!.root.findAllByProps({ children: '추천 기록' }),
+    ).toHaveLength(0);
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({ accessibilityLabel: 'Edit answer 이번 외출의 관심사' })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      renderer!.root
+        .findByProps({
+          accessibilityLabel: 'Answer recommendation 특별히 떠오르는 건 없어요',
+        })
+        .props.onPress();
+    });
+    await ReactTestRenderer.act(() => {
+      jest.advanceTimersByTime(250);
+    });
+    await ReactTestRenderer.act(async () => {
+      await renderer!.root
+        .findByProps({ accessibilityLabel: 'Confirm recommendation request' })
+        .props.onPress();
+    });
+    expect(createSession).toHaveBeenCalledTimes(1);
+    const submitted = createSession.mock.calls[0][0];
+    expect(submitted.answers).not.toHaveProperty('interest');
+    expect(submitted.preferences).not.toHaveProperty('interest');
+    expect(submitted.preferences).toMatchObject({
+      visitWindow: 'this_weekend',
+      mobility: 'car',
+      price: 'free',
+    });
+    expect(renderer!.root.findByProps({ children: '추천 기록' })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    jest.useRealTimers();
+    createSession.mockRestore();
   }
-
-  expect(
-    renderer!.root.findByProps({ children: '이 조건으로 추천 받을까요?' }),
-  ).toBeTruthy();
-
-  await ReactTestRenderer.act(async () => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Confirm recommendation request' })
-      .props.onPress();
-  });
-
-  expect(
-    renderer!.root.findAllByProps({ children: '추천 결과' }).length,
-  ).toBeGreaterThan(0);
-  expect(renderer!.root.findByProps({ children: '선택한 답변' })).toBeTruthy();
-  expect(
-    renderer!.root.findAllByProps({ children: '예약 없이 가고 싶어요' }).length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findByProps({ children: 'Recommendation Debug' }),
-  ).toBeTruthy();
-
-  await ReactTestRenderer.act(() => {
-    renderer!.root
-      .findByProps({ accessibilityLabel: 'Toggle recommendation debug' })
-      .props.onPress();
-  });
-
-  expect(renderer!.root.findByProps({ children: 'DEBUG PROMPT' })).toBeTruthy();
-  expect(
-    renderer!.root.findAll(
-      node =>
-        typeof node.props.children === 'string' &&
-        node.props.children.includes(
-          'Rank the candidate events and explain why each one fits this family.',
-        ),
-    ).length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAll(
-      node =>
-        typeof node.props.children === 'string' &&
-        node.props.children.includes('- reservation: no_reservation'),
-    ).length,
-  ).toBeGreaterThan(0);
-  expect(
-    renderer!.root.findAll(
-      node =>
-        typeof node.props.children === 'string' &&
-        node.props.children.includes('- weatherPlan: outdoor_if_suitable'),
-    ).length,
-  ).toBeGreaterThan(0);
 });
 
 test('moves backward in the recommendation question flow', async () => {
@@ -641,7 +631,7 @@ test('moves backward in the recommendation question flow', async () => {
 
   await ReactTestRenderer.act(() => {
     renderer!.root
-      .findByProps({ accessibilityLabel: 'Answer recommendation 출발지 입력' })
+      .findByProps({ accessibilityLabel: 'Answer recommendation 출발지를 직접 입력할게요' })
       .props.onPress();
   });
 
@@ -665,7 +655,7 @@ test('moves backward in the recommendation question flow', async () => {
 
   expect(
     renderer!.root.findByProps({
-      children: '출발지를 선택해주세요',
+      children: '어디에서 출발하세요?',
     }),
   ).toBeTruthy();
 });
