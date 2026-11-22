@@ -3850,6 +3850,7 @@ function SettingsScreen({
               style={[
                 styles.childCard,
                 styles.settingsChildCard,
+                styles.settingsSavedChildCard,
                 selected && styles.settingsChildSelected,
               ]}
             >
@@ -7121,6 +7122,7 @@ const styles = StyleSheet.create({
   settingsHelp: { fontFamily: 'Pretendard-Medium', fontSize: 14, lineHeight: 20, color: '#57504A', marginTop: 6 },
   settingsNameInput: { backgroundColor: colors.surface, borderColor: colors.explorePanelBorder, fontFamily: 'Pretendard-Medium', fontWeight: 'normal' },
   settingsChildCard: { backgroundColor: colors.surface, borderColor: colors.borderSubtle, borderRadius: 16 },
+  settingsSavedChildCard: { paddingBottom: 4 },
   settingsChildSelected: { borderColor: colors.explorePanelBorder },
   settingsChildHeader: { flexWrap: 'wrap', gap: 8 },
   settingsChildSummary: { flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0 },
@@ -7145,8 +7147,8 @@ const styles = StyleSheet.create({
   settingsResidenceRegions: { columnGap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderColor: colors.borderSubtle },
   settingsAddressTitle: { fontFamily: 'Pretendard-Bold', fontWeight: 'normal', fontSize: 16, lineHeight: 22 },
   settingsAddressMeta: { fontFamily: 'Pretendard-Medium', fontWeight: 'normal', fontSize: 14, lineHeight: 20, marginTop: 6 },
-  settingsChildFooter: { flexDirection: 'row', borderTopWidth: 1, borderColor: colors.borderSubtle, marginTop: 12, paddingTop: 4 },
-  settingsChildFooterAction: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  settingsChildFooter: { flexDirection: 'row', borderTopWidth: 1, borderColor: colors.borderSubtle, marginTop: 12, paddingTop: 0 },
+  settingsChildFooterAction: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 },
   settingsChildDeleteAction: { borderLeftWidth: 1, borderColor: '#D9CBC2' },
   settingsSaveSelection: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: colors.primaryStrong },
   settingsSaveSelectionDisabled: { backgroundColor: '#E8E2DD' },
