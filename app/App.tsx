@@ -24,6 +24,7 @@ import {
   Pressable,
   ScrollView,
   StatusBar,
+  Switch,
   StyleSheet,
   Text,
   TextInput,
@@ -81,6 +82,8 @@ import {
   recommendationVisitRange,
 } from './src/recommendation/visitDates';
 import { AuthSession } from './src/auth/types';
+import { AuthWelcome } from './src/auth/AuthWelcome';
+import { useProfileSync } from './src/storage/useProfileSync';
 import { useRecommendationNotifications } from './src/notifications/useRecommendationNotifications';
 import {
   signInWithGoogle,
@@ -90,7 +93,6 @@ import {
   BabyrooEventListQuery,
   BabyrooCreditStatus,
   BabyrooApiError,
-  countEventsFromBabyrooApi,
   createChildInBabyrooApi,
   deleteChildFromBabyrooApi,
   getCreditStatusFromBabyrooApi,
@@ -347,7 +349,6 @@ function coreRecommendationQuestions(
 }
 
 const TAB_ORDER: Tab[] = ['home', 'explore'];
-const brandIcon = require('./assets/brand/babyroo-app-icon-1024.png');
 
 function App() {
   return (
@@ -361,6 +362,9 @@ function BabyrooApp() {
   const bottomInset = useBottomSafeAreaInset();
   const { top: topInset } = useSafeAreaInsets();
   const [user, setUser] = useState<User>(currentUser);
+  const latestUserRef = useRef(user);
+  latestUserRef.current = user;
+  const settingsCloseRef = useRef<(() => void) | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
   const [authSession, setAuthSession] = useState<AuthSession | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
@@ -369,9 +373,6 @@ function BabyrooApp() {
   const [exploreHeaderExpanded, setExploreHeaderExpanded] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
   const [events, setEvents] = useState<BabyrooEvent[]>(eventsNewestFirst);
-  const [publicEventCount, setPublicEventCount] = useState<number | null>(
-    eventsNewestFirst.length > 0 ? eventsNewestFirst.length : null,
-  );
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
   const [notificationSession, setNotificationSession] =
@@ -386,6 +387,8 @@ function BabyrooApp() {
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const skipNextUserSaveRef = useRef(false);
+  const selectionEditedRef = useRef(false);
+  const { enqueue: updateUserProfileOnBabyrooApi, save: saveProfilePatch } = useProfileSync(authSession?.apiAccessToken);
   const apiLoginAttemptedRef = useRef(false);
   const apiUserHydrationAttemptedRef = useRef(false);
   const notificationAuthRef = useRef(authSession);
@@ -502,26 +505,12 @@ function BabyrooApp() {
     };
   }, []);
 
+
   useEffect(() => {
-    let mounted = true;
-
-    countEventsFromBabyrooApi()
-      .then(count => {
-        if (mounted) {
-          setPublicEventCount(count);
-        }
-      })
-      .catch(error => {
-        console.warn('[Babyroo API] failed to load public event count', error);
-        if (mounted && events.length > 0) {
-          setPublicEventCount(events.length);
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [events.length]);
+    if (!selectionEditedRef.current) return;
+    selectionEditedRef.current = false;
+    updateUserProfileOnBabyrooApi({ activeChildIds: user.activeChildIds });
+  }, [user.activeChildIds, updateUserProfileOnBabyrooApi]);
 
   useEffect(() => {
     if (userLoaded && authSession) {
@@ -624,7 +613,7 @@ function BabyrooApp() {
         }
 
         if (settingsOpen) {
-          setSettingsOpen(false);
+          settingsCloseRef.current?.();
           return true;
         }
 
@@ -791,25 +780,6 @@ function BabyrooApp() {
     return serverUser;
   };
 
-  const updateUserProfileOnBabyrooApi = (
-    userPatch: Parameters<typeof updateCurrentUserInBabyrooApi>[0]['user'],
-  ) => {
-    if (!authSession?.apiAccessToken) {
-      return;
-    }
-
-    updateCurrentUserInBabyrooApi({
-      accessToken: authSession.apiAccessToken,
-      user: userPatch,
-    })
-      .then(serverUser => {
-        setUser(serverUser);
-        return saveUser(serverUser);
-      })
-      .catch(error => {
-        console.warn('[Babyroo API] failed to sync user profile', error);
-      });
-  };
 
   const updateHomeRegion = (homeRegion: string) => {
     setUser(previousUser => ({ ...previousUser, homeRegion }));
@@ -916,30 +886,32 @@ function BabyrooApp() {
     }
   };
 
-  const toggleActiveChild = (childId: string) => {
+  const toggleActiveChild = (childId: string, included?: boolean) => {
+    selectionEditedRef.current = true;
     setUser(previousUser => {
-      const isActive = previousUser.activeChildIds.includes(childId);
-      const activeChildIds = isActive
-        ? previousUser.activeChildIds.filter(id => id !== childId)
-        : [...previousUser.activeChildIds, childId];
-
-      return {
-        ...previousUser,
-        activeChildIds:
-          activeChildIds.length > 0
-            ? activeChildIds
-            : previousUser.activeChildIds,
-      };
+      const wasIncluded = previousUser.activeChildIds.includes(childId);
+      const nextIncluded = included ?? !wasIncluded;
+      if (nextIncluded === wasIncluded) return previousUser;
+      const activeChildIds = nextIncluded
+        ? [...previousUser.activeChildIds, childId]
+        : previousUser.activeChildIds.filter(id => id !== childId);
+      if (activeChildIds.length === 0) return previousUser;
+      return { ...previousUser, activeChildIds };
     });
+  };
 
-    const isActive = user.activeChildIds.includes(childId);
-    const activeChildIds = isActive
-      ? user.activeChildIds.filter(id => id !== childId)
-      : [...user.activeChildIds, childId];
-    updateUserProfileOnBabyrooApi({
-      activeChildIds:
-        activeChildIds.length > 0 ? activeChildIds : user.activeChildIds,
-    });
+  const saveActiveChildren = async (activeChildIds: string[]) => {
+    selectionEditedRef.current = false;
+    const accountId = authSession?.providerUserId;
+    const accessToken = authSession?.apiAccessToken;
+    if (activeChildIds.length === 0 || activeChildIds.some(id => !latestUserRef.current.children.some(child => child.id === id))) {
+      throw new Error('Invalid child selection');
+    }
+    if (accessToken) await saveProfilePatch({ activeChildIds });
+    if (notificationAuthRef.current?.providerUserId !== accountId) throw new Error('Login session changed');
+    await saveUser({ ...latestUserRef.current, activeChildIds });
+    if (notificationAuthRef.current?.providerUserId !== accountId) throw new Error('Login session changed');
+    setUser(previous => ({ ...previous, activeChildIds }));
   };
 
   const resetUser = () => {
@@ -979,7 +951,6 @@ function BabyrooApp() {
         </View>
       ) : !authSession && !browsingAsGuest ? (
         <AuthScreen
-          eventCount={publicEventCount}
           onBrowse={() => setBrowsingAsGuest(true)}
           onSignIn={handleGoogleSignIn}
         />
@@ -999,11 +970,12 @@ function BabyrooApp() {
         <SettingsScreen
           user={user}
           onBack={closeSettings}
+          closeRequestRef={settingsCloseRef}
+          onSaveChildren={saveActiveChildren}
           onAddChild={addChild}
           onRemoveChild={removeChild}
           onUpdateChild={updateChild}
           onUpdateDisplayName={updateDisplayName}
-          onToggleChild={toggleActiveChild}
           onUpdateHomeAddress={updateHomeAddress}
           onSelectRegion={updateHomeRegion}
           onResetUser={resetUser}
@@ -1092,91 +1064,19 @@ function BabyrooApp() {
   );
 }
 
-function AuthScreen({
-  eventCount,
-  onBrowse,
-  onSignIn,
-}: {
-  eventCount: number | null;
+function AuthScreen({ onBrowse, onSignIn }: {
   onBrowse?: () => void;
   onSignIn: () => Promise<void>;
 }) {
-  const [signingIn, setSigningIn] = useState(false);
-
-  const handleSignIn = async () => {
-    setSigningIn(true);
-    await onSignIn().finally(() => setSigningIn(false));
-  };
-
-  return (
-    <View style={styles.authScreen}>
-      <View style={styles.authBrandRow}>
-        <Image
-          source={brandIcon}
-          resizeMode="cover"
-          style={styles.authLogo}
-          accessibilityIgnoresInvertColors
-        />
-        <Text style={styles.authEyebrow}>Babyroo</Text>
-      </View>
-      <Text style={styles.authTitle}>아이와 갈 곳을 더 쉽게 고르세요</Text>
-      <View style={styles.authValuePanel}>
-        <View style={styles.authValueItem}>
-          <Text style={styles.authValueNumber}>{eventCount ?? '...'}</Text>
-          <Text style={styles.authValueLabel}>둘러볼 곳</Text>
-        </View>
-      </View>
-      <Pressable
-        style={[styles.primaryButton, signingIn && styles.buttonDisabled]}
-        onPress={handleSignIn}
-        disabled={signingIn}
-        accessibilityLabel="Continue with Google"
-      >
-        <Text style={styles.primaryButtonText}>
-          {signingIn ? '로그인 중...' : 'Google로 계속하기'}
-        </Text>
-      </Pressable>
-      {onBrowse ? (
-        <Pressable
-          style={styles.browseButton}
-          onPress={onBrowse}
-          accessibilityLabel="Browse without login"
-        >
-          <Text style={styles.linkText}>로그인 없이 둘러보기</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
+  const bottomInset = useBottomSafeAreaInset();
+  return <AuthWelcome bottomPadding={bottomInset + 24} onBrowse={onBrowse} onSignIn={onSignIn} />;
 }
 
-function AuthRequiredScreen({
-  bottomInset,
-  onSignIn,
-}: {
+function AuthRequiredScreen({ bottomInset, onSignIn }: {
   bottomInset: number;
   onSignIn: () => Promise<void>;
 }) {
-  return (
-    <View
-      style={[
-        styles.screenWithTabs,
-        tabScreenBottomPadding(bottomInset),
-        styles.emptyState,
-      ]}
-    >
-      <Text style={styles.pageTitle}>로그인이 필요해요</Text>
-      <Text style={styles.pageSubtitle}>
-        추천 기능은 Google 로그인 후 사용할 수 있어요.
-      </Text>
-      <Pressable
-        style={styles.authRequiredButton}
-        onPress={onSignIn}
-        accessibilityLabel="Sign in for personalization"
-      >
-        <Text style={styles.primaryButtonText}>Google로 계속하기</Text>
-      </Pressable>
-    </View>
-  );
+  return <AuthWelcome recommendation bottomPadding={bottomInset + TAB_SCREEN_BOTTOM_PADDING} onSignIn={onSignIn} />;
 }
 
 function BrandHeader({ onOpenSettings, hidden = false }: { onOpenSettings: () => void; hidden?: boolean }) {
@@ -3661,11 +3561,12 @@ function RecommendationSessionDetail({
 function SettingsScreen({
   user,
   onBack,
+  closeRequestRef,
+  onSaveChildren,
   onAddChild,
   onRemoveChild,
   onUpdateChild,
   onUpdateDisplayName,
-  onToggleChild,
   onUpdateHomeAddress,
   onSelectRegion,
   onResetUser,
@@ -3673,6 +3574,8 @@ function SettingsScreen({
 }: {
   user: User;
   onBack: () => void;
+  closeRequestRef: React.MutableRefObject<(() => void) | null>;
+  onSaveChildren: (ids: string[]) => Promise<void>;
   onAddChild: (child: Omit<Child, 'id'>) => Promise<string>;
   onRemoveChild: (childId: string) => void;
   onUpdateChild: (
@@ -3680,23 +3583,97 @@ function SettingsScreen({
     childPatch: Partial<Omit<Child, 'id'>>,
   ) => void;
   onUpdateDisplayName: (displayName: string) => void;
-  onToggleChild: (childId: string) => void;
   onUpdateHomeAddress: (homeAddress?: UserHomeAddress) => void;
   onSelectRegion: (region: string) => void;
   onResetUser: () => void;
   onSignOut: () => Promise<void>;
 }) {
-  const selectedChildren = sortChildrenByAge(getSelectedChildren(user));
+  const [draftChildIds, setDraftChildIds] = useState(user.activeChildIds);
+  const [savingSelection, setSavingSelection] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const savingSelectionRef = useRef(false);
+  const mountedRef = useRef(true);
+  const previousChildIds = useRef(user.children.map(child => child.id));
+  const previousSavedChildIds = useRef(user.activeChildIds);
+  const selectionChanged =
+    draftChildIds.length !== user.activeChildIds.length ||
+    draftChildIds.some(id => !user.activeChildIds.includes(id));
+  const selectedChildren = user.children.filter(child =>
+    draftChildIds.includes(child.id),
+  );
+  useEffect(() => {
+    const validIds = new Set(user.children.map(child => child.id));
+    const addedIds = user.activeChildIds.filter(
+      id => validIds.has(id) && !previousChildIds.current.includes(id),
+    );
+    previousChildIds.current = [...validIds];
+    const previousSaved = previousSavedChildIds.current;
+    previousSavedChildIds.current = user.activeChildIds;
+    setDraftChildIds(previous => {
+      // Refresh untouched drafts after hydration while retaining real edits.
+      if (previous.length === previousSaved.length && previous.every(id => previousSaved.includes(id))) {
+        return user.activeChildIds;
+      }
+      const next = [
+        ...new Set([...previous.filter(id => validIds.has(id)), ...addedIds]),
+      ];
+      const reconciled =
+        next.length > 0
+          ? next
+          : user.activeChildIds.filter(id => validIds.has(id));
+      return reconciled.length === previous.length &&
+        reconciled.every(id => previous.includes(id))
+        ? previous
+        : reconciled;
+    });
+  }, [user.children, user.activeChildIds]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const toggleDraftChild = (id: string, included: boolean) => {
+    if (savingSelectionRef.current) return;
+    setSelectionError(null);
+    setDraftChildIds(previous => {
+      if (included === previous.includes(id)) return previous;
+      const next = included
+        ? [...previous, id]
+        : previous.filter(childId => childId !== id);
+      return next.length > 0 ? next : previous;
+    });
+  };
+  const saveSelection = async () => {
+    if (
+      savingSelectionRef.current ||
+      !selectionChanged ||
+      draftChildIds.length === 0
+    )
+      return;
+    savingSelectionRef.current = true;
+    setSavingSelection(true);
+    setSelectionError(null);
+    try {
+      await onSaveChildren([...draftChildIds]);
+    } catch {
+      if (mountedRef.current)
+        setSelectionError('선택을 저장하지 못했어요. 다시 시도해 주세요.');
+    } finally {
+      savingSelectionRef.current = false;
+      if (mountedRef.current) setSavingSelection(false);
+    }
+  };
   const childrenByAge = sortChildrenByAge(user.children);
   const regions = ['서울', '경기', '기타 지역'];
   const [displayNameDraft, setDisplayNameDraft] = useState(user.displayName);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<string | null>(null);
   const [editingChildId, setEditingChildId] = useState<string | null>(null);
-  const [newChildDraft, setNewChildDraft] = useState<Omit<
-    Child,
-    'id'
-  > | null>(null);
+  const [newChildDraft, setNewChildDraft] = useState<Omit<Child, 'id'> | null>(
+    null,
+  );
   const [postcodeOpen, setPostcodeOpen] = useState(false);
   const displayNameInputRef = useRef<TextInput>(null);
   const newChildDraftDatePickerTarget = 'new-child-draft';
@@ -3715,10 +3692,32 @@ function SettingsScreen({
     }
   };
 
-  const handleBack = () => {
-    commitDisplayName();
-    onBack();
+  const requestLeave = (leave: () => void) => {
+    if (savingSelectionRef.current) return;
+    if (!selectionChanged) {
+      leave();
+      return;
+    }
+    Alert.alert(
+      '아이 선택 변경사항',
+      '아이 선택 변경사항이 저장되지 않았어요.',
+      [
+        { text: '계속 편집', style: 'cancel' },
+        { text: '변경사항 버리기', style: 'destructive', onPress: leave },
+      ],
+    );
   };
+  const handleBack = () =>
+    requestLeave(() => {
+      commitDisplayName();
+      onBack();
+    });
+  useEffect(() => {
+    closeRequestRef.current = handleBack;
+    return () => {
+      closeRequestRef.current = null;
+    };
+  });
 
   const handleAddChild = () => {
     setNewChildDraft({
@@ -3730,7 +3729,7 @@ function SettingsScreen({
   };
 
   const handleSaveNewChild = async () => {
-    if (!canSaveNewChild || !newChildDraft) {
+    if (savingSelectionRef.current || !canSaveNewChild || !newChildDraft) {
       return;
     }
 
@@ -3774,9 +3773,10 @@ function SettingsScreen({
   };
 
   const openBirthDatePicker = (target: string, birthDate?: string) => {
-    const value = birthDate && isValidDateInput(birthDate)
-      ? parseDateInput(birthDate)
-      : defaultBirthDate();
+    const value =
+      birthDate && isValidDateInput(birthDate)
+        ? parseDateInput(birthDate)
+        : defaultBirthDate();
 
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
@@ -3797,25 +3797,32 @@ function SettingsScreen({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.settingsScreen}>
+    <ScrollView
+      style={styles.settingsWarmRoot}
+      contentContainerStyle={styles.settingsScreen}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.pageTitle}>설정</Text>
+          <Text style={styles.settingsPageTitle}>설정</Text>
         </View>
         <Pressable
-          style={styles.iconButton}
+          style={styles.settingsCloseButton}
+          accessibilityRole="button"
           onPress={handleBack}
           accessibilityLabel="Close settings"
         >
-          <Text style={styles.iconButtonText}>×</Text>
+          <Text style={styles.settingsCloseText}>×</Text>
         </Pressable>
       </View>
 
-      <View style={styles.settingsCard}>
-        <Text style={styles.settingsLabel}>Parent</Text>
+      <View style={styles.settingsGuardian}>
+        <Text style={styles.settingsSectionHeading}>보호자</Text>
+        <Text style={styles.settingsHelp}>앱에서 사용할 이름이에요.</Text>
         <TextInput
           ref={displayNameInputRef}
-          style={styles.textInput}
+          style={[styles.textInput, styles.settingsNameInput]}
+          accessibilityLabel="보호자 이름"
           defaultValue={user.displayName}
           onChangeText={setDisplayNameDraft}
           onBlur={commitDisplayName}
@@ -3827,69 +3834,68 @@ function SettingsScreen({
           returnKeyType="done"
           textContentType="none"
         />
-        <Text style={styles.settingsMeta}>
-          앱 안에서 사용할 보호자 이름입니다.
-        </Text>
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>추천에 포함할 아이</Text>
-        <Text style={styles.sectionMeta}>
-          {formatChildrenNames(selectedChildren)} 기준으로 월령 필터를
-          계산합니다.
-        </Text>
+        <Text style={styles.settingsSectionHeading}>추천에 포함할 아이</Text>
+        <Text style={styles.settingsHelp}>추천받을 아이를 선택해 주세요.</Text>
 
         {childrenByAge.map(child => {
-          const selected = user.activeChildIds.includes(child.id);
+          const selected = draftChildIds.includes(child.id);
           const editing = editingChildId === child.id;
 
           return (
             <View
               key={child.id}
-              style={[styles.childCard, selected && styles.childCardSelected]}
+              style={[
+                styles.childCard,
+                styles.settingsChildCard,
+                selected && styles.settingsChildSelected,
+              ]}
             >
-              <View style={styles.childCardHeader}>
-                <View>
-                  <Text style={styles.childName}>{child.nickname}</Text>
-                  <Text style={styles.childMeta}>
-                    {child.birthDate} · {formatChildAge(child)} ·{' '}
-                    {formatGender(child.gender)}
+              <View
+                style={[styles.childCardHeader, styles.settingsChildHeader]}
+              >
+                <View style={styles.settingsChildSummary}>
+                  <Text style={[styles.childName, styles.settingsChildName]}>
+                    {child.nickname}
+                  </Text>
+                  <Text style={styles.settingsChildMeta}>
+                    {child.birthDate.replace(/-/g, '.')} ·{' '}
+                    {formatChildAge(child)} · {formatGender(child.gender)}
                   </Text>
                 </View>
-                <View style={styles.childActions}>
-                  <Pressable
-                    style={styles.editButton}
-                    onPress={() => setEditingChildId(editing ? null : child.id)}
-                    accessibilityLabel={`Edit ${child.nickname}`}
-                  >
-                    <Text style={styles.editButtonText}>
-                      {editing ? '완료' : '수정'}
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    style={[
-                      styles.checkCircle,
-                      selected && styles.checkCircleSelected,
-                    ]}
-                    onPress={() => onToggleChild(child.id)}
-                    accessibilityLabel={`Toggle ${child.nickname} recommendation`}
-                  >
-                    <Text
-                      style={[
-                        styles.checkText,
-                        selected && styles.checkTextSelected,
-                      ]}
-                    >
-                      ✓
-                    </Text>
-                  </Pressable>
+                <View
+                  style={[styles.childActions, styles.settingsChildActions]}
+                >
+                  <View style={styles.settingsChildToggle}>
+                    <Switch
+                      value={selected}
+                      onValueChange={included =>
+                        toggleDraftChild(child.id, included)
+                      }
+                      disabled={
+                        savingSelection ||
+                        (selected && selectedChildren.length === 1)
+                      }
+                      accessibilityLabel={`Toggle ${child.nickname} recommendation`}
+                      accessibilityHint="추천에 포함할 아이를 최소 한 명 유지해야 해요."
+                      trackColor={{ false: '#D8D1CC', true: colors.primary }}
+                      thumbColor={colors.surface}
+                      ios_backgroundColor="#D8D1CC"
+                    />
+                  </View>
                 </View>
               </View>
 
               {editing ? (
                 <View style={styles.childFormFields}>
                   <TextInput
-                    style={[styles.textInput, styles.childFormInput]}
+                    style={[
+                      styles.textInput,
+                      styles.childFormInput,
+                      styles.settingsNameInput,
+                    ]}
                     defaultValue={child.nickname}
                     onChangeText={nickname =>
                       onUpdateChild(child.id, { nickname })
@@ -3933,29 +3939,55 @@ function SettingsScreen({
                 </View>
               ) : null}
 
-              {user.children.length > 1 ? (
+              <View style={styles.settingsChildFooter}>
                 <Pressable
-                  style={styles.removeButton}
-                  onPress={() => onRemoveChild(child.id)}
-                  accessibilityLabel={`Remove ${child.nickname}`}
+                  style={styles.settingsChildFooterAction}
+                  disabled={savingSelection}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${child.nickname}`}
+                  onPress={() => setEditingChildId(editing ? null : child.id)}
                 >
-                  <Text style={styles.removeButtonText}>삭제</Text>
+                  <Text style={styles.settingsEditText}>
+                    {editing ? '완료' : '수정'}
+                  </Text>
                 </Pressable>
-              ) : null}
+                {user.children.length > 1 && (
+                  <Pressable
+                    style={[
+                      styles.settingsChildFooterAction,
+                      styles.settingsChildDeleteAction,
+                    ]}
+                    disabled={savingSelection}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove ${child.nickname}`}
+                    onPress={() => onRemoveChild(child.id)}
+                  >
+                    <Text style={styles.settingsResetText}>삭제</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           );
         })}
 
         {newChildDraft ? (
-          <View style={styles.childCard}>
-            <Text style={styles.childName}>새 아이</Text>
+          <View style={[styles.childCard, styles.settingsChildCard]}>
+            <Text style={[styles.childName, styles.settingsChildName]}>
+              새 아이
+            </Text>
             <View style={styles.childFormFields}>
               <TextInput
-                style={[styles.textInput, styles.childFormInput]}
+                style={[
+                  styles.textInput,
+                  styles.childFormInput,
+                  styles.settingsNameInput,
+                ]}
                 value={newChildDraft.nickname}
                 onChangeText={nickname =>
                   setNewChildDraft(previousDraft =>
-                    previousDraft ? { ...previousDraft, nickname } : previousDraft,
+                    previousDraft
+                      ? { ...previousDraft, nickname }
+                      : previousDraft,
                   )
                 }
                 placeholder="아이 이름 또는 별명"
@@ -3971,14 +4003,20 @@ function SettingsScreen({
                 <Text style={styles.settingsLabel}>생년월일</Text>
                 <View style={styles.birthDateInputRow}>
                   <TextInput
-                    style={[styles.textInput, styles.childFormInput, styles.birthDateInput]}
+                    style={[
+                      styles.textInput,
+                      styles.childFormInput,
+                      styles.birthDateInput,
+                    ]}
                     value={newChildDraft.birthDate}
                     onBlur={() =>
                       setNewChildDraft(previousDraft =>
                         previousDraft
                           ? {
                               ...previousDraft,
-                              birthDate: normalizeBirthDateInput(previousDraft.birthDate),
+                              birthDate: normalizeBirthDateInput(
+                                previousDraft.birthDate,
+                              ),
                             }
                           : previousDraft,
                       )
@@ -3986,7 +4024,10 @@ function SettingsScreen({
                     onChangeText={birthDate =>
                       setNewChildDraft(previousDraft =>
                         previousDraft
-                          ? { ...previousDraft, birthDate: formatBirthDateInput(birthDate) }
+                          ? {
+                              ...previousDraft,
+                              birthDate: formatBirthDateInput(birthDate),
+                            }
                           : previousDraft,
                       )
                     }
@@ -4025,23 +4066,25 @@ function SettingsScreen({
               </View>
 
               <View style={styles.wrapRow}>
-                {(['unknown', 'female', 'male'] as ChildGender[]).map(gender => (
-                  <Pressable
-                    key={gender}
-                    onPress={() =>
-                      setNewChildDraft(previousDraft =>
-                        previousDraft
-                          ? { ...previousDraft, gender }
-                          : previousDraft,
-                      )
-                    }
-                  >
-                    <Chip
-                      label={formatGender(gender)}
-                      selected={gender === newChildDraft.gender}
-                    />
-                  </Pressable>
-                ))}
+                {(['unknown', 'female', 'male'] as ChildGender[]).map(
+                  gender => (
+                    <Pressable
+                      key={gender}
+                      onPress={() =>
+                        setNewChildDraft(previousDraft =>
+                          previousDraft
+                            ? { ...previousDraft, gender }
+                            : previousDraft,
+                        )
+                      }
+                    >
+                      <Chip
+                        label={formatGender(gender)}
+                        selected={gender === newChildDraft.gender}
+                      />
+                    </Pressable>
+                  ),
+                )}
               </View>
             </View>
 
@@ -4060,7 +4103,7 @@ function SettingsScreen({
                   !canSaveNewChild && styles.buttonDisabled,
                 ]}
                 onPress={handleSaveNewChild}
-                disabled={!canSaveNewChild}
+                disabled={!canSaveNewChild || savingSelection}
                 accessibilityLabel="Save child"
               >
                 <Text style={styles.primaryButtonText}>저장</Text>
@@ -4069,12 +4112,13 @@ function SettingsScreen({
           </View>
         ) : (
           <Pressable
-            style={styles.addChildButton}
+            style={[styles.addChildButton, styles.settingsAddChild]}
             onPress={handleAddChild}
+            disabled={savingSelection}
             accessibilityLabel="Add child"
           >
-            <Text style={styles.addChildPlus}>＋</Text>
-            <Text style={styles.addChildText}>아이 추가</Text>
+            <Text style={styles.settingsAddChildPlus}>＋</Text>
+            <Text style={styles.settingsAddChildText}>아이 추가</Text>
           </Pressable>
         )}
         {datePickerOpen && Platform.OS === 'ios' && datePickerTarget ? (
@@ -4091,41 +4135,97 @@ function SettingsScreen({
             onChange={handleBirthDateChange}
           />
         ) : null}
+        {selectionError && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={styles.settingsSelectionError}
+          >
+            {selectionError}
+          </Text>
+        )}
+        <Pressable
+          style={[
+            styles.settingsSaveSelection,
+            (!selectionChanged || savingSelection) &&
+              styles.settingsSaveSelectionDisabled,
+          ]}
+          disabled={
+            !selectionChanged || savingSelection || draftChildIds.length === 0
+          }
+          accessibilityRole="button"
+          accessibilityLabel="Save child selection"
+          accessibilityState={{
+            disabled:
+              !selectionChanged ||
+              savingSelection ||
+              draftChildIds.length === 0,
+            busy: savingSelection,
+          }}
+          onPress={saveSelection}
+        >
+          <Text
+            style={[
+              styles.settingsSaveSelectionText,
+              (!selectionChanged || savingSelection) &&
+                styles.settingsSaveSelectionTextDisabled,
+            ]}
+          >
+            {savingSelection ? '저장 중…' : '선택 저장'}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>거주지</Text>
-        <Text style={styles.sectionMeta}>
-          추천과 탐색 필터에서 우선 참고하는 지역입니다.
-        </Text>
-        <AddressSummaryCard
-          homeAddress={user.homeAddress}
-          onOpenPostcode={() => setPostcodeOpen(true)}
-        />
-        {user.homeAddress ? (
-          <TextInput
-            style={styles.textInput}
-            value={user.homeAddress.detailAddress ?? ''}
-            onChangeText={detailAddress =>
-              onUpdateHomeAddress({
-                ...user.homeAddress!,
-                detailAddress,
-              })
-            }
-            placeholder="상세 주소 예: 101동 1203호"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-            textContentType="fullStreetAddress"
+        <Text style={styles.settingsSectionHeading}>거주지</Text>
+        <Text style={styles.settingsHelp}>추천과 탐색의 기준 지역이에요.</Text>
+        <View style={styles.settingsResidenceCard}>
+          <AddressSummaryCard
+            warm
+            homeAddress={user.homeAddress}
+            onOpenPostcode={() => setPostcodeOpen(true)}
           />
-        ) : null}
-        <View style={[styles.wrapRow, styles.settingsRegionRow]}>
-          {regions.map(region => (
-            <Pressable key={region} onPress={() => onSelectRegion(region)}>
-              <Chip label={region} selected={region === user.homeRegion} />
-            </Pressable>
-          ))}
+          {user.homeAddress ? (
+            <TextInput
+              style={[styles.textInput, styles.settingsNameInput]}
+              value={user.homeAddress.detailAddress ?? ''}
+              onChangeText={detailAddress =>
+                onUpdateHomeAddress({
+                  ...user.homeAddress!,
+                  detailAddress,
+                })
+              }
+              placeholder="상세 주소 예: 101동 1203호"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+              textContentType="fullStreetAddress"
+            />
+          ) : null}
+          <View style={[styles.wrapRow, styles.settingsResidenceRegions]}>
+            {regions.map(region => (
+              <Pressable
+                key={region}
+                style={[
+                  styles.settingsRegion,
+                  region === user.homeRegion && styles.settingsRegionOn,
+                ]}
+                onPress={() => onSelectRegion(region)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: region === user.homeRegion }}
+              >
+                <Text
+                  style={[
+                    styles.settingsRegionText,
+                    region === user.homeRegion &&
+                      styles.settingsSelectionLabelOn,
+                  ]}
+                >
+                  {region}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       </View>
 
@@ -4148,24 +4248,27 @@ function SettingsScreen({
         }}
       />
 
-      <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>초기화</Text>
-        <Text style={styles.sectionMeta}>
-          이 기기에 저장된 보호자 정보와 아이 정보를 처음 상태로 되돌립니다.
-        </Text>
+      <View style={styles.settingsAccountSection}>
+        <Text style={styles.settingsAccountHeading}>계정</Text>
         <Pressable
-          style={styles.resetUserButton}
-          onPress={onResetUser}
-          accessibilityLabel="Reset user information"
-        >
-          <Text style={styles.resetUserButtonText}>사용자 정보 초기화</Text>
-        </Pressable>
-        <Pressable
-          style={styles.resetUserButton}
-          onPress={onSignOut}
+          style={styles.settingsAccountAction}
+          onPress={() =>
+            requestLeave(() => {
+              void onSignOut();
+            })
+          }
+          accessibilityRole="button"
           accessibilityLabel="Sign out from Google"
         >
-          <Text style={styles.resetUserButtonText}>로그아웃</Text>
+          <Text style={styles.settingsAccountText}>로그아웃</Text>
+        </Pressable>
+        <Pressable
+          style={styles.settingsAccountAction}
+          onPress={() => requestLeave(onResetUser)}
+          accessibilityRole="button"
+          accessibilityLabel="Reset user information"
+        >
+          <Text style={styles.settingsResetText}>사용자 정보 초기화</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -4173,31 +4276,43 @@ function SettingsScreen({
 }
 
 function AddressSummaryCard({
+  warm = false,
   homeAddress,
   onOpenPostcode,
 }: {
+  warm?: boolean;
   homeAddress?: UserHomeAddress;
   onOpenPostcode: () => void;
 }) {
   return (
-    <View style={styles.addressCard}>
+    <View style={[styles.addressCard, warm && styles.settingsAddressCard]}>
       <View style={styles.addressTextGroup}>
-        <Text style={styles.addressTitle}>
+        <Text
+          style={[styles.addressTitle, warm && styles.settingsAddressTitle]}
+        >
           {homeAddress ? formatHomeAddress(homeAddress) : '주소 미설정'}
         </Text>
-        <Text style={styles.addressMeta}>
+        <Text style={[styles.addressMeta, warm && styles.settingsAddressMeta]}>
           {homeAddress?.zonecode
             ? `우편번호 ${homeAddress.zonecode}`
             : '도로명 주소 검색으로 기준 위치를 설정해요.'}
         </Text>
       </View>
       <Pressable
-        style={styles.addressSearchButton}
+        style={[
+          styles.addressSearchButton,
+          warm && styles.settingsAddressSearch,
+        ]}
         onPress={onOpenPostcode}
         accessibilityLabel="Open postcode search"
       >
-        <Text style={styles.addressSearchButtonText}>
-          {homeAddress ? '변경' : '검색'}
+        <Text
+          style={[
+            styles.addressSearchButtonText,
+            warm && styles.settingsAddressSearchText,
+          ]}
+        >
+          {homeAddress ? '변경' : warm ? '주소 검색' : '검색'}
         </Text>
       </Pressable>
     </View>
@@ -5783,14 +5898,6 @@ function sortChildrenByAge(children: Child[]) {
   });
 }
 
-function formatChildrenNames(children: Child[]) {
-  if (children.length === 0) {
-    return '아이를 추가하면';
-  }
-
-  return children.map(child => child.nickname).join(', ');
-}
-
 function formatRecommendationSessionTime(createdAt: string) {
   const createdDate = new Date(createdAt);
   const month = createdDate.getMonth() + 1;
@@ -7005,6 +7112,52 @@ const styles = StyleSheet.create({
   creditLedgerAmountPositive: {
     color: colors.mintText,
   },
+  settingsWarmRoot: { flex: 1, backgroundColor: '#FCF3EE' },
+  settingsPageTitle: { fontFamily: 'Pretendard-Bold', fontSize: 24, lineHeight: 30, color: colors.text },
+  settingsCloseButton: { minWidth: 44, minHeight: 44, borderRadius: 12, backgroundColor: colors.surfaceSoft, alignItems: 'center', justifyContent: 'center' },
+  settingsCloseText: { color: colors.text, fontSize: 28, lineHeight: 32 },
+  settingsGuardian: { marginTop: 24 },
+  settingsSectionHeading: { fontFamily: 'Pretendard-Bold', fontSize: 18, lineHeight: 24, color: colors.text },
+  settingsHelp: { fontFamily: 'Pretendard-Medium', fontSize: 14, lineHeight: 20, color: '#57504A', marginTop: 6 },
+  settingsNameInput: { backgroundColor: colors.surface, borderColor: colors.explorePanelBorder, fontFamily: 'Pretendard-Medium', fontWeight: 'normal' },
+  settingsChildCard: { backgroundColor: colors.surface, borderColor: colors.borderSubtle, borderRadius: 16 },
+  settingsChildSelected: { borderColor: colors.explorePanelBorder },
+  settingsChildHeader: { flexWrap: 'wrap', gap: 8 },
+  settingsChildSummary: { flexGrow: 1, flexShrink: 1, flexBasis: 140, minWidth: 0 },
+  settingsChildName: { fontFamily: 'Pretendard-Bold', fontWeight: 'normal', fontSize: 18, lineHeight: 24 },
+  settingsEditButton: { minHeight: 44, justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 0 },
+  settingsChildToggle: { minHeight: 44, minWidth: 52, justifyContent: 'center', alignItems: 'center' },
+  settingsSelectionLabel: { fontFamily: 'Pretendard-SemiBold', fontSize: 13, lineHeight: 18, color: '#57504A' },
+  settingsSelectionLabelOn: { color: colors.exploreSelectedLabel },
+  settingsAddChild: { minHeight: 48, borderStyle: 'solid', backgroundColor: colors.surface, borderRadius: 14 },
+  settingsRegion: { flexGrow: 1, alignItems: 'center', minHeight: 44, borderRadius: 24, borderWidth: 1, borderColor: '#C6BDB7', backgroundColor: colors.surface, paddingHorizontal: 20, paddingVertical: 11, justifyContent: 'center' },
+  settingsRegionOn: { backgroundColor: colors.explorePanel, borderColor: colors.exploreSelectedLabel },
+  settingsRegionText: { fontFamily: 'Pretendard-Medium', fontSize: 14, lineHeight: 20, color: colors.text },
+  settingsAddressCard: { backgroundColor: 'transparent', borderWidth: 0, padding: 0, marginTop: 0, flexWrap: 'wrap' },
+  settingsAddressSearch: { minHeight: 44, backgroundColor: colors.explorePanel, borderRadius: 12 },
+  settingsAddressSearchText: { fontFamily: 'Pretendard-SemiBold', fontWeight: 'normal', color: colors.exploreSelectedLabel, fontSize: 14, lineHeight: 20 },
+  settingsAddChildText: { fontFamily: 'Pretendard-SemiBold', fontSize: 16, lineHeight: 22, color: colors.text },
+  settingsAddChildPlus: { fontSize: 20, lineHeight: 24, color: colors.text },
+  settingsChildMeta: { fontFamily: 'Pretendard-Medium', fontSize: 13, lineHeight: 20, color: '#57504A', marginTop: 6 },
+  settingsChildActions: { gap: 4, flexShrink: 0 },
+  settingsEditText: { fontFamily: 'Pretendard-SemiBold', fontSize: 14, lineHeight: 20, color: colors.exploreSelectedLabel },
+  settingsResidenceCard: { marginTop: 16, padding: 16, backgroundColor: colors.surface, borderRadius: 16 },
+  settingsResidenceRegions: { columnGap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderColor: colors.borderSubtle },
+  settingsAddressTitle: { fontFamily: 'Pretendard-Bold', fontWeight: 'normal', fontSize: 16, lineHeight: 22 },
+  settingsAddressMeta: { fontFamily: 'Pretendard-Medium', fontWeight: 'normal', fontSize: 14, lineHeight: 20, marginTop: 6 },
+  settingsChildFooter: { flexDirection: 'row', borderTopWidth: 1, borderColor: colors.borderSubtle, marginTop: 12, paddingTop: 4 },
+  settingsChildFooterAction: { flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  settingsChildDeleteAction: { borderLeftWidth: 1, borderColor: '#D9CBC2' },
+  settingsSaveSelection: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: colors.primaryStrong },
+  settingsSaveSelectionDisabled: { backgroundColor: '#E8E2DD' },
+  settingsSaveSelectionText: { fontFamily: 'Pretendard-SemiBold', fontSize: 16, lineHeight: 24, color: colors.surface },
+  settingsSaveSelectionTextDisabled: { color: '#756B63' },
+  settingsSelectionError: { fontFamily: 'Pretendard-Medium', fontSize: 14, lineHeight: 20, color: '#A12920', marginTop: 12 },
+  settingsAccountSection: { marginTop: 32, paddingTop: 20, borderTopWidth: 1, borderColor: colors.borderSubtle },
+  settingsAccountHeading: { fontFamily: 'Pretendard-SemiBold', fontSize: 13, lineHeight: 18, color: '#57504A', marginBottom: 8 },
+  settingsAccountAction: { minHeight: 48, justifyContent: 'center', paddingVertical: 12, borderBottomWidth: 1, borderColor: colors.borderSubtle },
+  settingsAccountText: { fontFamily: 'Pretendard-Medium', fontSize: 15, lineHeight: 22, color: colors.text },
+  settingsResetText: { fontFamily: 'Pretendard-Medium', fontSize: 15, lineHeight: 22, color: '#A12920' },
   settingsScreen: {
     paddingHorizontal: layout.screenPadding,
     paddingTop: spacing.xl,

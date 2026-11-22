@@ -554,7 +554,7 @@ test('allows browsing explore without login and gates personalization', async ()
   await swipeTabs(renderer!, 96);
 
   expect(
-    renderer!.root.findAllByProps({ children: '로그인이 필요해요' }).length,
+    renderer!.root.findAllByProps({ children: '우리 아이에게 맞는\n나들이를 찾아볼까요?' }).length,
   ).toBeGreaterThan(0);
   expect(
     renderer!.root.findAllByProps({
@@ -1069,6 +1069,107 @@ test('accepts a typed birthday when adding a child and rejects invalid dates', a
     expect.objectContaining({ nickname: '둘째', birthDate: '2024-02-29' }),
   ]));
   await ReactTestRenderer.act(() => renderer!.unmount());
+});
+
+test('toggles recommendation children with native switches and retains one child', async () => {
+  const secondChild = { ...completeUser.children[0], id: 'switch-child-002', nickname: '둘째' };
+  await saveUser({ ...completeUser, children: [...completeUser.children, secondChild], activeChildIds: [completeUser.children[0].id, secondChild.id] });
+  let renderer!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => { renderer = ReactTestRenderer.create(<App />); });
+  await ReactTestRenderer.act(async () => {
+    renderer.root.findAllByProps({ accessibilityLabel: 'Open user settings' }).find(node => typeof node.props.onPress === 'function')!.props.onPress();
+  });
+  const toggle = (nickname: string) => renderer.root.findByProps({ accessibilityLabel: `Toggle ${nickname} recommendation` });
+  const saveSelection = () => renderer.root.findByProps({ accessibilityLabel: 'Save child selection' });
+  expect(saveSelection().props.disabled).toBe(true);
+  expect(toggle(secondChild.nickname).props.value).toBe(true);
+  await ReactTestRenderer.act(async () => {
+    const setIncluded = toggle(secondChild.nickname).props.onValueChange;
+    setIncluded(false);
+    setIncluded(false);
+  });
+  expect(toggle(secondChild.nickname).props.value).toBe(false);
+  expect(saveSelection().props.disabled).toBe(false);
+  expect((await loadUser()).activeChildIds).toEqual([completeUser.children[0].id, secondChild.id]);
+  expect(toggle(completeUser.children[0].nickname).props.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => { toggle(secondChild.nickname).props.onValueChange(true); });
+  expect(toggle(secondChild.nickname).props.value).toBe(true);
+  expect(toggle(completeUser.children[0].nickname).props.disabled).toBe(false);
+  expect(saveSelection().props.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => { toggle(secondChild.nickname).props.onValueChange(false); });
+  await ReactTestRenderer.act(async () => { await saveSelection().props.onPress(); });
+  expect((await loadUser()).activeChildIds).toEqual([completeUser.children[0].id]);
+  expect(saveSelection().props.disabled).toBe(true);
+  await ReactTestRenderer.act(async () => { renderer.unmount(); });
+});
+
+test('keeps unsaved child choices on failure, blocks duplicate saves, and retries', async () => {
+  const secondChild = { ...completeUser.children[0], id: 'save-child-002', nickname: '둘째' };
+  const profile = { ...completeUser, children: [...completeUser.children, secondChild], activeChildIds: [completeUser.children[0].id, secondChild.id] };
+  await saveUser(profile);
+  await saveAuthSession({ ...testAuthSession, apiAccessToken: 'explicit-save-token' });
+  const hydrate = jest.spyOn(babyrooApi, 'getCurrentUserFromBabyrooApi').mockResolvedValue(profile);
+  let fail!: (error: Error) => void;
+  const update = jest.spyOn(babyrooApi, 'updateCurrentUserInBabyrooApi').mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+  let renderer!: ReactTestRenderer.ReactTestRenderer;
+  try {
+    await ReactTestRenderer.act(async () => { renderer = ReactTestRenderer.create(<App />); });
+    await ReactTestRenderer.act(async () => { renderer.root.findAllByProps({ accessibilityLabel: 'Open user settings' }).find(node => typeof node.props.onPress === 'function')!.props.onPress(); });
+    const toggle = () => renderer.root.findByProps({ accessibilityLabel: 'Toggle 둘째 recommendation' });
+    const save = () => renderer.root.findByProps({ accessibilityLabel: 'Save child selection' });
+    await ReactTestRenderer.act(async () => { toggle().props.onValueChange(false); });
+    expect(update).not.toHaveBeenCalled();
+    let request!: Promise<void>;
+    await ReactTestRenderer.act(async () => {
+      const press = save().props.onPress;
+      request = press();
+      await press();
+    });
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(save().props.accessibilityState.busy).toBe(true);
+    expect(save().props.disabled).toBe(true);
+    expect(toggle().props.disabled).toBe(true);
+    await ReactTestRenderer.act(async () => { fail(new Error('offline')); await request; });
+    expect(toggle().props.value).toBe(false);
+    expect(save().props.disabled).toBe(false);
+    expect((await loadUser()).activeChildIds).toEqual(profile.activeChildIds);
+    expect(renderer.root.findAllByProps({ children: '선택을 저장하지 못했어요. 다시 시도해 주세요.' }).length).toBeGreaterThan(0);
+    update.mockResolvedValueOnce({ ...profile, activeChildIds: [completeUser.children[0].id] });
+    await ReactTestRenderer.act(async () => { await save().props.onPress(); });
+    expect(update).toHaveBeenCalledTimes(2);
+    expect((await loadUser()).activeChildIds).toEqual([completeUser.children[0].id]);
+    expect(save().props.disabled).toBe(true);
+  } finally {
+    if (renderer) await ReactTestRenderer.act(async () => { renderer.unmount(); });
+    hydrate.mockRestore();
+    update.mockRestore();
+  }
+});
+
+test('asks before discarding unsaved selection from close and hardware back', async () => {
+  const secondChild = { ...completeUser.children[0], id: 'discard-child-002', nickname: '둘째' };
+  const profile = { ...completeUser, children: [...completeUser.children, secondChild], activeChildIds: [completeUser.children[0].id, secondChild.id] };
+  await saveUser(profile);
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  const back = jest.spyOn(BackHandler, 'addEventListener');
+  let renderer!: ReactTestRenderer.ReactTestRenderer;
+  try {
+    await ReactTestRenderer.act(async () => { renderer = ReactTestRenderer.create(<App />); });
+    await ReactTestRenderer.act(async () => { renderer.root.findAllByProps({ accessibilityLabel: 'Open user settings' }).find(node => typeof node.props.onPress === 'function')!.props.onPress(); });
+    await ReactTestRenderer.act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Toggle 둘째 recommendation' }).props.onValueChange(false); });
+    await ReactTestRenderer.act(async () => { renderer.root.findByProps({ accessibilityLabel: 'Close settings' }).props.onPress(); });
+    expect(alert).toHaveBeenLastCalledWith('아이 선택 변경사항', expect.any(String), expect.arrayContaining([expect.objectContaining({ text: '계속 편집' }), expect.objectContaining({ text: '변경사항 버리기' })]));
+    const hardwareBack = back.mock.calls[back.mock.calls.length - 1][1];
+    await ReactTestRenderer.act(async () => { expect(hardwareBack({ type: 'hardwareBackPress', timeStamp: Date.now() })).toBe(true); });
+    const buttons = alert.mock.calls[alert.mock.calls.length - 1][2]!;
+    await ReactTestRenderer.act(async () => { buttons.find(button => button.text === '변경사항 버리기')!.onPress!(); });
+    expect(renderer.root.findAllByProps({ accessibilityLabel: 'Close settings' })).toHaveLength(0);
+    expect((await loadUser()).activeChildIds).toEqual(profile.activeChildIds);
+  } finally {
+    if (renderer) await ReactTestRenderer.act(async () => { renderer.unmount(); });
+    alert.mockRestore();
+    back.mockRestore();
+  }
 });
 
 test('shows residence choices in user settings', async () => {
