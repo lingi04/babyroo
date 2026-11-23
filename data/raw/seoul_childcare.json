@@ -1,28 +1,6 @@
 {
-  "captured_at": "2026-07-27",
-  "events": [
-    {
-      "captured_at": "2026-07-27",
-      "payload": {
-        "address": "서울특별시 마포구 서강로 75-16",
-        "age_text": null,
-        "category": "교육/체험",
-        "description": null,
-        "ends_at": "2026-07-15",
-        "external_url": null,
-        "notes": "접수기간 2026-06-01 ~ 2026-07-14. 시간 10:30 ~ 12:30",
-        "price_text": null,
-        "region": "서울",
-        "starts_at": "2026-07-15",
-        "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차",
-        "venue_name": "서울시육아종합지원센터 강당"
-      },
-      "source": "seoul_childcare",
-      "source_event_id": "51811",
-      "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차",
-      "url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51811"
-    }
-  ],
+  "captured_at": "2026-11-22",
+  "events": [],
   "source": "seoul_childcare",
   "source_url": "https://seoul.childcare.go.kr"
 }

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-11-23T00:00:00+00:00",
+  "source": "google_alerts_trend",
+  "count": 1,
+  "candidates": [
+    {
+      "venue_name": "서울백제어린이박물관 'DIMA' 특별전",
+      "locality": "서울 송파구 올림픽로 424",
+      "address": "서울특별시 송파구 올림픽로 424 (서울백제어린이박물관)",
+      "official_url": "https://baekjemuseum.seoul.go.kr/dreamvillage/",
+      "official_url_type": "official_website",
+      "discovery_url": "https://mediahub.seoul.go.kr/archives/2020125",
+      "keyword": "서울 무료 아이 체험 전시",
+      "status": "new_candidate",
+      "reason": "2026.11.17~2027.3.7 무료 실내 특별전(아기 매머드 디마+빙하기 생태). 운영시간 화~금 9:00~18:00, 주말·공휴일 9:30~17:30, 월요일 휴관. 5~13세 빙하기 생태·매머드 탐험. 문의 02-2152-5900. 공식 홈페이지(baekjemuseum.seoul.go.kr) 확인 — official_website."
+    }
+  ],
+  "curation": {
+    "raw_hits": 20,
+    "new_candidates_count": 1,
+    "reconfirms": [
+      {"venue_name": "아쿠아밸리 가산점", "status": "reconfirm_existing_candidate", "reason": "11-12 수집 신규 후보와 동일 장소 재확인"},
+      {"venue_name": "서울시청 '서울탐험대'", "status": "duplicate_existing", "reason": "11-19 승인 대기 후보와 동일 이벤트 재확인 (보도 3건)"}
+    ],
+    "duplicates": [],
+    "excluded": 15,
+    "unresolved": 0,
+    "notes": "11-23 crawl 신규 후보 1건: 서울백제어린이박물관 'DIMA' 특별전. 재확진 1건: 아쿠아밸리 가산점(11-12 신규 후보와 동일). 중복 4건. 나머지 15건은 집계·조언·계절 종료 등으로 제외. 앱 DB 미반영 (승인 대기)."
+  }
+}

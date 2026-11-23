@@ -141,6 +141,10 @@ def parse_card(card: str) -> dict[str, str | None]:
 
 def extract_title(card: str) -> str | None:
     match = re.search(r"<h5[^>]*>(?P<value>.*?)</h5>", card, re.DOTALL)
+    if match:
+        return clean_html(match.group("value"))
+    # Some pages put the title in h3/h2/h4 instead of h5.
+    match = re.search(r"<h[2-4][^>]*>(?P<value>.*?)</h[2-4]>", card, re.DOTALL)
     return clean_html(match.group("value")) if match else None
 
 

@@ -1,14 +1,14 @@
 {
-  "captured_at": "2026-08-05",
+  "captured_at": "2026-11-17",
   "events": [
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 송파구 올림픽로 300 롯데월드몰 B1",
         "age_text": "영유아 포함 전 연령 가족",
         "category": "전시",
         "description": "잠실 롯데월드몰 안에서 해양생물 전시와 생태설명을 볼 수 있는 실내 아쿠아리움 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": "https://aquarium.lotteworld.com/og/og_img_aquarium.jpg",
         "item_type": "venue_admission",
         "locality": "송파구",
@@ -17,7 +17,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "24개월이하",
           "보호자동반",
@@ -32,13 +32,13 @@
       "url": "https://aquarium.lotteworld.com/"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강남구 영동대로 513 씨라이프 코엑스 아쿠아리움",
         "age_text": "영유아 포함 전 연령 가족",
         "category": "전시",
         "description": "스타필드 코엑스몰 안에서 해양생물을 가까이 볼 수 있는 실내 아쿠아리움 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": null,
         "item_type": "venue_admission",
         "locality": "강남구",
@@ -47,7 +47,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "24개월이하",
           "보호자동반",
@@ -62,13 +62,13 @@
       "url": "https://www.visitsealife.com/coex-seoul/"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
         "age_text": "영유아 포함 어린이 및 보호자",
         "category": "체험",
         "description": "물재생과 환경을 놀이와 전시로 배우는 강서구 실내 체험관 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": null,
         "item_type": "venue_admission",
         "locality": "강서구",
@@ -77,7 +77,7 @@
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "24개월이하",
           "무료",
@@ -94,13 +94,13 @@
       "url": "https://swr.or.kr/museum/cpage.do"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 광진구 능동로 216 서울상상나라",
         "age_text": "영유아 포함 어린이 및 보호자",
         "category": "체험",
         "description": "어린이대공원 안에 있는 어린이 중심 복합체험놀이공간 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": "https://www.seoulchildrensmuseum.org/z00_images/common/sns_sImg.png",
         "item_type": "venue_admission",
         "locality": "광진구",
@@ -109,7 +109,7 @@
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "24개월이하",
           "보호자동반",
@@ -125,13 +125,13 @@
       "url": "https://www.seoulchildrensmuseum.org/"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 광진구 능동로 216 서울어린이대공원 내",
         "age_text": "3세~9세 어린이 및 보호자",
         "category": "체험",
         "description": "수돗물과 환경을 놀이로 배우는 서울어린이대공원 내 어린이 수돗물 체험홍보관 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": null,
         "item_type": "venue_admission",
         "locality": "광진구",
@@ -140,7 +140,7 @@
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "무료",
           "보호자동반",
@@ -156,13 +156,13 @@
       "url": "https://arisu.seoul.go.kr/home/sub?menukey=7530"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 용산구 이태원로 29",
         "age_text": "권장연령 4~10세 유아 및 어린이와 보호자",
         "category": "박물관",
         "description": "전쟁의 교훈과 나라사랑의 가치를 어린이 눈높이에 맞춰 배우는 용산구 실내 어린이박물관 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": "https://kr.object.gov-ncloudstorage.com/wmm-cdn/assets/kids/img/logo2.png",
         "item_type": "venue_admission",
         "locality": "용산구",
@@ -171,7 +171,7 @@
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "무료",
           "보호자동반",
@@ -187,13 +187,13 @@
       "url": "https://www.warmemo.or.kr:8443/Kids/index"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 용산구 서빙고로 137",
         "age_text": "어린이 및 보호자",
         "category": "박물관",
         "description": "국립중앙박물관 안에서 문화유산을 어린이 눈높이에 맞춰 체험하는 용산구 실내 어린이박물관 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": "https://www.museum.go.kr/design/common/images/nmk_sns_logo.png",
         "item_type": "venue_admission",
         "locality": "용산구",
@@ -202,7 +202,7 @@
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "무료",
           "보호자동반",
@@ -218,13 +218,13 @@
       "url": "https://www.museum.go.kr/CHILD/main/index.do"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 종로구 송월길 162",
         "age_text": "영유아 포함 어린이 및 보호자",
         "category": "박물관",
         "description": "경찰의 역사와 활동을 전시와 체험으로 살펴볼 수 있는 종로구 실내 박물관 관람.",
-        "ends_at": "2027-02-01",
+        "ends_at": "2027-05-16",
         "image_url": "https://www.policemuseum.go.kr/images_new/pm_og_image.jpg",
         "item_type": "venue_admission",
         "locality": "종로구",
@@ -233,7 +233,7 @@
         "region": "서울",
         "reservation_required": false,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-05",
+        "starts_at": "2026-11-17",
         "tags": [
           "24개월이하",
           "무료",
@@ -249,43 +249,12 @@
       "url": "https://www.policemuseum.go.kr/"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
         "age_text": "영유아 포함 어린이 및 보호자",
-        "category": "전시해설/견학",
-        "description": "전시해설/견학",
-        "ends_at": null,
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=956",
-        "item_type": "program",
-        "locality": "강서구",
-        "notes": null,
-        "price_text": "무료",
-        "region": "서울",
-        "reservation_required": true,
-        "reservation_status": "unknown",
-        "starts_at": null,
-        "tags": [
-          "무료",
-          "실내",
-          "예약필요",
-          "보호자동반"
-        ],
-        "title": "견학 프로그램 사전 예약",
-        "venue_name": "서울물재생체험관"
-      },
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-88250249a153",
-      "title": "견학 프로그램 사전 예약",
-      "url": "https://swr.or.kr/museum/cpage/contents/C0017.do?menu_cd=C0017"
-    },
-    {
-      "captured_at": "2026-08-05",
-      "payload": {
-        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "영유아 포함 어린이 및 보호자",
-        "category": "전시해설/견학",
-        "description": "전시해설/견학",
+        "category": "전시해설",
+        "description": "전시해설",
         "ends_at": null,
         "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=957",
         "item_type": "program",
@@ -311,45 +280,14 @@
       "url": "https://swr.or.kr/museum/cpage/contents/C0016.do?menu_cd=C0016"
     },
     {
-      "captured_at": "2026-08-05",
-      "payload": {
-        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "2016년생~2023년생 어린이",
-        "category": "행사",
-        "description": "행사",
-        "ends_at": "2026-08-30",
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1025",
-        "item_type": "program",
-        "locality": "강서구",
-        "notes": "접수기간 7.28.(화), 8.11(화) 14시 예약 오픈. 신청방법 서울시공공서비스예약 포털",
-        "price_text": "무료",
-        "region": "서울",
-        "reservation_required": true,
-        "reservation_status": "unknown",
-        "starts_at": "2026-08-04",
-        "tags": [
-          "무료",
-          "실내",
-          "예약필요",
-          "보호자동반"
-        ],
-        "title": "2026 서울물재생체험관 어린이 물놀이터 운영회차 변경 안내",
-        "venue_name": "서울물재생체험관"
-      },
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-06e8759f9fb9",
-      "title": "2026 서울물재생체험관 어린이 물놀이터 운영회차 변경 안내",
-      "url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=307&board_gb=event&menu_cd=C0018"
-    },
-    {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
         "age_text": "영유아 포함 어린이 및 보호자",
-        "category": "행사",
-        "description": "행사",
+        "category": "견학",
+        "description": "견학",
         "ends_at": null,
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1014",
+        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=956",
         "item_type": "program",
         "locality": "강서구",
         "notes": null,
@@ -364,88 +302,88 @@
           "예약필요",
           "보호자동반"
         ],
-        "title": "2026 물빛 반짝 여름 극장",
+        "title": "견학 프로그램 사전 예약",
         "venue_name": "서울물재생체험관"
       },
       "source": "seoul_family_venues",
-      "source_event_id": "swr-13dfd4eba45b",
-      "title": "2026 물빛 반짝 여름 극장",
-      "url": "https://yeyak.seoul.go.kr/web/reservation/selectReservView.do?rsv_svc_id=S260722141656967999&locale=ko"
+      "source_event_id": "swr-88250249a153",
+      "title": "견학 프로그램 사전 예약",
+      "url": "https://swr.or.kr/museum/cpage/contents/C0017.do?menu_cd=C0017"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "2016년생 ~ 2023년생 어린이",
-        "category": "행사",
-        "description": "행사",
-        "ends_at": "2026-08-30",
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1020",
-        "item_type": "program",
-        "locality": "강서구",
-        "notes": "접수기간 이용 시작일 기준, 약 1주 전 화요일 14시 오픈. 신청방법 서울시공공서비스예약 포털",
-        "price_text": "무료",
-        "region": "서울",
-        "reservation_required": true,
-        "reservation_status": "unknown",
-        "starts_at": "2026-07-07",
-        "tags": [
-          "무료",
-          "실내",
-          "예약필요",
-          "보호자동반"
-        ],
-        "title": "2026 서울물재생체험관 야외 물놀이터 개장",
-        "venue_name": "서울물재생체험관"
-      },
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-c6e12eaeb979",
-      "title": "2026 서울물재생체험관 야외 물놀이터 개장",
-      "url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=296&board_gb=event&menu_cd=C0018"
-    },
-    {
-      "captured_at": "2026-08-05",
-      "payload": {
-        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "초등학생 1~3학년",
+        "age_text": "1회차 전시 입장객",
         "category": "교육",
         "description": "교육",
-        "ends_at": "2026-08-30",
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1032",
+        "ends_at": "2026-11-28",
+        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1082",
         "item_type": "program",
         "locality": "강서구",
-        "notes": "접수기간 2026년 7월 28일 14시 ~. 신청방법 사전예약(서울시공공서비스예약). 교육시간 12:30, 15:00 시작(회당 90분). 문의전화 02-3660-2130",
+        "notes": "접수기간 10. 10. ~ 11. 28.(매주 토). 신청방법 당일 현장 신청(1층 로비). 교육시간 10:30-12:00. 문의전화 02-3660-2107",
         "price_text": "무료",
         "region": "서울",
         "reservation_required": true,
         "reservation_status": "unknown",
-        "starts_at": "2026-08-02",
+        "starts_at": "2026-10-10",
         "tags": [
           "무료",
           "실내",
           "예약필요",
           "보호자동반"
         ],
-        "title": "돌고 도는 물의 여행 야호!",
+        "title": "한 방울의 재생",
         "venue_name": "서울물재생체험관"
       },
       "source": "seoul_family_venues",
-      "source_event_id": "swr-6f917f1f9278",
-      "title": "돌고 도는 물의 여행 야호!",
-      "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=310&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
+      "source_event_id": "swr-72622034e02e",
+      "title": "한 방울의 재생",
+      "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=321&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
     },
     {
-      "captured_at": "2026-08-05",
+      "captured_at": "2026-11-17",
+      "payload": {
+        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
+        "age_text": "2, 3회차 전시 입장객",
+        "category": "교육",
+        "description": "교육",
+        "ends_at": "2026-11-28",
+        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=1084",
+        "item_type": "program",
+        "locality": "강서구",
+        "notes": "접수기간 10. 10. ~ 11. 28.(매주 토). 신청방법 당일 현장 신청(2층 교육실 앞). 교육시간 12:30-14:30 / 15:00-17:00. 문의전화 02-3660-2107",
+        "price_text": "무료",
+        "region": "서울",
+        "reservation_required": true,
+        "reservation_status": "unknown",
+        "starts_at": "2026-10-10",
+        "tags": [
+          "무료",
+          "실내",
+          "예약필요",
+          "보호자동반"
+        ],
+        "title": "물방울 크리에이터(하반기)",
+        "venue_name": "서울물재생체험관"
+      },
+      "source": "seoul_family_venues",
+      "source_event_id": "swr-862ed68d5143",
+      "title": "물방울 크리에이터(하반기)",
+      "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=320&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
+    },
+    {
+      "captured_at": "2026-11-17",
       "payload": {
         "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
         "age_text": "유아 동반 가족(2020~22년생)",
-        "category": "교육",
-        "description": "교육",
+        "category": "페이스북",
+        "description": "페이스북",
         "ends_at": "2026-06-28",
         "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=961",
         "item_type": "program",
         "locality": "강서구",
-        "notes": "접수기간 2026.06.01 14:00 ~. 신청방법 사전예약(서울시공공서비스예약). 교육시간 13:00, 15:00 시작(60분 내외). 문의전화 02-3660-2107",
+        "notes": "접수기간 2026.10.27 14:00 ~. 신청방법 사전예약(서울시공공서비스예약). 교육시간 13:00, 15:00 시작(60분 내외). 문의전화 02-3660-2107",
         "price_text": "무료",
         "region": "서울",
         "reservation_required": true,
@@ -464,68 +402,6 @@
       "source_event_id": "swr-92ee296b9f0d",
       "title": "물재생 병원으로 오세요",
       "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=289&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
-    },
-    {
-      "captured_at": "2026-08-05",
-      "payload": {
-        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "초등 개인(2~6학년)",
-        "category": "교육",
-        "description": "교육",
-        "ends_at": null,
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=937",
-        "item_type": "program",
-        "locality": "강서구",
-        "notes": "접수기간 04.02 14:00 ~. 신청방법 사전예약(서울시공공서비스예약). 교육시간 13:00, 15:00 시작(90분 내외). 문의전화 02-3660-2107",
-        "price_text": "무료",
-        "region": "서울",
-        "reservation_required": true,
-        "reservation_status": "unknown",
-        "starts_at": null,
-        "tags": [
-          "무료",
-          "실내",
-          "예약필요",
-          "보호자동반"
-        ],
-        "title": "다시 태어난 물의 여행",
-        "venue_name": "서울물재생체험관"
-      },
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-e51e77ab829f",
-      "title": "다시 태어난 물의 여행",
-      "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=281&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
-    },
-    {
-      "captured_at": "2026-08-05",
-      "payload": {
-        "address": "서울특별시 강서구 양천로 201 서남물재생센터 내",
-        "age_text": "2018-21년생 어린이",
-        "category": "페이스북",
-        "description": "페이스북",
-        "ends_at": "2026-04-25",
-        "image_url": "https://swr.or.kr/museum/common/nunFileDown.do?file_attach_seq=931",
-        "item_type": "program",
-        "locality": "강서구",
-        "notes": "접수기간 04.01 14:00 ~. 신청방법 사전예약(서울시공공서비스예약). 교육시간 11:00, 13:00 시작(60분 내외). 문의전화 02-3660-2107",
-        "price_text": "무료",
-        "region": "서울",
-        "reservation_required": true,
-        "reservation_status": "closed",
-        "starts_at": "2026-04-04",
-        "tags": [
-          "무료",
-          "실내",
-          "예약필요",
-          "보호자동반"
-        ],
-        "title": "미생물 파티 타임",
-        "venue_name": "서울물재생체험관"
-      },
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-9a6e57fd32b8",
-      "title": "미생물 파티 타임",
-      "url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=280&board_gb=edu_museum_press&menu_cd=C0015&currRow=1"
     }
   ],
   "source": "seoul_family_venues",

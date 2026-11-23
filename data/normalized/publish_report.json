@@ -208,15 +208,6 @@
       "title": "[2026년 상반기 주말 교육] 찾아라! 민속"
     },
     {
-      "id": "seoul-family-venues-69946d73bbbe",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_family_venues",
-      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=280&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
-      "title": "미생물 파티 타임"
-    },
-    {
       "id": "nfm-kids-f533809b0364",
       "reasons": [
         "ended"
@@ -235,13 +226,13 @@
       "title": "[2026년] 찾아가는 어린이박물관(지역박물관)"
     },
     {
-      "id": "manual-sample-bc8b1027d233",
+      "id": "nfm-kids-b44e49748984",
       "reasons": [
         "ended"
       ],
-      "source": "manual_sample",
-      "source_url": "https://example.com/events/sample-001",
-      "title": "아기와 함께하는 감각놀이 체험"
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13912",
+      "title": "[2026년 교과연계교육] K-FOOD 양념치킨"
     },
     {
       "id": "seoul-family-venues-d3934f1d2aef",
@@ -253,301 +244,85 @@
       "title": "물재생 병원으로 오세요"
     },
     {
-      "id": "seoul-culture-2789f7b346dc",
+      "id": "nfm-kids-5439d0e8d577",
       "reasons": [
         "ended"
       ],
-      "source": "seoul_culture",
-      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=157834&menuNo=200110",
-      "title": "아기상어 비밀 초대장: 비커밍 샤크"
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13917",
+      "title": "[2026년 문화나눔] 두근두근 소풍"
     },
     {
-      "id": "namu-228486285ce9",
+      "id": "manual-sample-bc8b1027d233",
+      "reasons": [
+        "ended"
+      ],
+      "source": "manual_sample",
+      "source_url": "https://example.com/events/sample-001",
+      "title": "아기와 함께하는 감각놀이 체험"
+    },
+    {
+      "id": "nfm-kids-1ba6be3101a8",
+      "reasons": [
+        "ended"
+      ],
+      "source": "nfm_kids",
+      "source_url": "https://www.nfm.go.kr/kids/nfmkid/education/selectEducation.do?e_seq=13919",
+      "title": "[2026년 하반기] 유아교육(단체)"
+    },
+    {
+      "id": "namu-8c3081e5ec4c",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25990",
-      "title": "(고)투어"
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26255",
+      "title": "(11월)<망원경: 밤하늘 관측 과학도구>"
     },
     {
-      "id": "namu-c0dda60b4378",
+      "id": "namu-5410a38908a1",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25992",
-      "title": "(유)자연"
+      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26254",
+      "title": "(11월)<현미경: 작은 세상을 살펴보는 과학도구>"
     },
     {
-      "id": "namu-3a072c67f1db",
+      "id": "namu-d37fd214e650",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25991",
-      "title": "(저)투어A"
-    },
-    {
-      "id": "namu-01417cb4096a",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25993",
-      "title": "(저탐구)생물탐구"
-    },
-    {
-      "id": "seoul-culture-3a5edc70313c",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_culture",
-      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158500&menuNo=200110",
-      "title": "[서울기록원] 유아, 어린이 대상 교육 프로그램 [우리들의 여름이야기]"
-    },
-    {
-      "id": "namu-c787f506df39",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25995",
-      "title": "(고심화)다양한 생물왕국"
-    },
-    {
-      "id": "namu-da66755971b5",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25994",
-      "title": "(유)생명"
-    },
-    {
-      "id": "seoul-childcare-d31c484dfc0d",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_childcare",
-      "source_url": "https://seoul.childcare.go.kr/ccef/edcevent/EdcEventSl.jsp?flag=CSl&EDCEVENTSEQ=51811",
-      "title": "[7/15] 다문화부모 양육클래스(베트남어) 2차"
-    },
-    {
-      "id": "namu-a702e6717c5e",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26021",
-      "title": "(7월)<망원경: 밤하늘 관측 과학도구>"
-    },
-    {
-      "id": "namu-644ebbb89b8e",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26020",
-      "title": "(7월)<현미경: 작은 세상을 살펴보는 과학도구>"
-    },
-    {
-      "id": "namu-f1785be213c1",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26118",
-      "title": "【여름방학 특강 1강】 진화란 무엇인가?"
-    },
-    {
-      "id": "namu-0357fabe21da",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121",
-      "title": "【올해의 과학도서 1강】 나는 달로 출근한다"
-    },
-    {
-      "id": "namu-be519dce80fc",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140",
-      "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>"
-    },
-    {
-      "id": "namu-da9c72b0d13b",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25998",
-      "title": "(유)멸종위기 야생생물"
-    },
-    {
-      "id": "namu-43bbb7905e88",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25996",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26233",
       "title": "(유)지구"
     },
     {
-      "id": "namu-2159cfc3a066",
+      "id": "namu-d4bd54bb9af6",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25997",
-      "title": "(저)멸종위기 야생생물"
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26232",
+      "title": "(저)우주에서 뛰어놀기"
     },
     {
-      "id": "namu-42ca266b1dcb",
+      "id": "namu-7c330f1517b6",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=25999",
-      "title": "(저)투어B"
-    },
-    {
-      "id": "namu-2ee885367731",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/experience/view?epIdx=26022",
-      "title": "<특별판>쌍안경으로 바라보는 밤하늘"
-    },
-    {
-      "id": "namu-fa561b24b244",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26119",
-      "title": "【여름방학 특강 2강】 캄브리아기 바다부터 현재까지, 5억 년의 진화"
-    },
-    {
-      "id": "namu-bef6cfee85a5",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074",
-      "title": "상어가족1"
-    },
-    {
-      "id": "namu-664c67e10987",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075",
-      "title": "상어가족2"
-    },
-    {
-      "id": "namu-e4cd4aa90289",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26072",
-      "title": "식물은 어떻게 생겼나요?1"
-    },
-    {
-      "id": "namu-6b2b1f54120b",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26073",
-      "title": "식물은 어떻게 생겼나요?2"
-    },
-    {
-      "id": "namu-67f3e47b3d6a",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26001",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26235",
       "title": "(고)멸종위기 야생생물"
     },
     {
-      "id": "namu-23da37823b8c",
+      "id": "namu-42c0585c0e10",
       "reasons": [
         "ended"
       ],
       "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26000",
-      "title": "(저탐구)화석탐구"
-    },
-    {
-      "id": "namu-dca2bb26d6f1",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26086",
-      "title": "배고픈 식물들1"
-    },
-    {
-      "id": "namu-2c4aad6bea65",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26087",
-      "title": "배고픈 식물들2"
-    },
-    {
-      "id": "namu-9e26640e51a8",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26114",
-      "title": "홀로그램으로 하는 붕어해부1"
-    },
-    {
-      "id": "namu-6f29747409d6",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26115",
-      "title": "홀로그램으로 하는 붕어해부2"
-    },
-    {
-      "id": "namu-e41fcc2cd191",
-      "reasons": [
-        "ended"
-      ],
-      "source": "namu",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26122",
-      "title": "【올해의 과학도서 2강】 호랑이는 숲에 살지 않는다"
-    },
-    {
-      "id": "seoul-culture-1c51cd37a9ec",
-      "reasons": [
-        "ended"
-      ],
-      "source": "seoul_culture",
-      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=158637&menuNo=200110",
-      "title": "[강북문화재단] 2026 코르딕 커넥션 프로젝트 [베이비 오페라 전문 워크숍]"
-    },
-    {
-      "id": "seoul-family-venues-6e4acd9f758b",
-      "reasons": [
-        "missing_starts_at"
-      ],
-      "source": "seoul_family_venues",
-      "source_url": "https://yeyak.seoul.go.kr/web/reservation/selectReservView.do?rsv_svc_id=S260722141656967999&locale=ko",
-      "title": "2026 물빛 반짝 여름 극장"
+      "source_url": "https://namu.sdm.go.kr/web/main/education/tour/view?epIdx=26234",
+      "title": "(유)박물관 속 공룡 친구들"
     },
     {
       "id": "seoul-family-venues-ceb2d4a01824",
@@ -559,15 +334,6 @@
       "title": "견학 프로그램 사전 예약"
     },
     {
-      "id": "seoul-family-venues-eb3a7ce91170",
-      "reasons": [
-        "missing_starts_at"
-      ],
-      "source": "seoul_family_venues",
-      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=281&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
-      "title": "다시 태어난 물의 여행"
-    },
-    {
       "id": "seoul-family-venues-bfd625eef43c",
       "reasons": [
         "missing_starts_at"
@@ -577,8 +343,8 @@
       "title": "해설 프로그램 사전 예약"
     }
   ],
-  "excluded_count": 64,
-  "generated_at": "2026-08-05",
-  "input_count": 258,
-  "published_count": 194
+  "excluded_count": 38,
+  "generated_at": "2026-11-22",
+  "input_count": 84,
+  "published_count": 46
 }

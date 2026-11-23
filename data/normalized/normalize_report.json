@@ -1,5 +1,5 @@
 {
-  "age_warning_count": 16,
+  "age_warning_count": 9,
   "age_warnings": [
     {
       "age_text": "전 연령",
@@ -7,7 +7,7 @@
       "source": "namu",
       "source_event_id": "exhibition-event-current",
       "source_url": "https://namu.sdm.go.kr/web/main/exhibition/event/current/view",
-      "title": "봄, 여름, 가을, 겨울 - 흔들리는 계절"
+      "title": "극한 식물 Extreme Plants"
     },
     {
       "age_text": "전 연령",
@@ -15,47 +15,23 @@
       "source": "namu",
       "source_event_id": "exhibition-special-current",
       "source_url": "https://namu.sdm.go.kr/web/main/exhibition/special/current/view",
-      "title": "무빙가든 MOVING GARDEN: 식물의 감각"
+      "title": "갯벌, 생명이 드러나는 시간의 땅"
     },
     {
-      "age_text": "성인 및 청소년 누구나 60명",
+      "age_text": "청소년 및 성인 60명",
       "reason": "unsupported_age_text_format",
       "source": "namu",
-      "source_event_id": "education-science-26121-2026-07-23-1",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26121",
-      "title": "【올해의 과학도서 1강】 나는 달로 출근한다"
+      "source_event_id": "education-science-26256-2026-11-26-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26256",
+      "title": "【제1강】 2026 노벨물리학상 해설"
     },
     {
-      "age_text": "관심 있는 누구나",
+      "age_text": "청소년 및 성인 60명",
       "reason": "unsupported_age_text_format",
       "source": "namu",
-      "source_event_id": "education-science-26140-2026-07-24-1",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26140",
-      "title": "생물 다양성 증진을 위한 정기강연 <도시 vs 야생>"
-    },
-    {
-      "age_text": "유치부(2020년생 1월1일생 이후)",
-      "reason": "unsupported_age_text_format",
-      "source": "namu",
-      "source_event_id": "education-class-26074-2026-07-25-3",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26074",
-      "title": "상어가족1"
-    },
-    {
-      "age_text": "유치부(2020년생 1월1일생 이후)",
-      "reason": "unsupported_age_text_format",
-      "source": "namu",
-      "source_event_id": "education-class-26075-2026-07-25-4",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/class/view?epIdx=26075",
-      "title": "상어가족2"
-    },
-    {
-      "age_text": "성인 및 청소년 누구나 60명",
-      "reason": "unsupported_age_text_format",
-      "source": "namu",
-      "source_event_id": "education-science-26122-2026-07-30-1",
-      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26122",
-      "title": "【올해의 과학도서 2강】 호랑이는 숲에 살지 않는다"
+      "source_event_id": "education-science-26257-2026-11-29-1",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26257",
+      "title": "【제2강】 2026 노벨생리의학상 해설"
     },
     {
       "age_text": "초·중·고등 특수학급(장애 어린이), 장애인, 노인 단체",
@@ -74,36 +50,20 @@
       "title": "[2026년 문화나눔] 두근두근 소풍"
     },
     {
-      "age_text": "전체관람가",
-      "reason": "unsupported_age_text_format",
-      "source": "seoul_culture",
-      "source_event_id": "157834",
-      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=157834&menuNo=200110",
-      "title": "아기상어 비밀 초대장: 비커밍 샤크"
-    },
-    {
-      "age_text": "누구나",
-      "reason": "unsupported_age_text_format",
-      "source": "seoul_culture",
-      "source_event_id": "156165",
-      "source_url": "https://culture.seoul.go.kr/culture/culture/cultureEvent/view.do?cultcode=156165&menuNo=200110",
-      "title": "[서울상상나라] 2F 기획전시 [사랑하는 모양이야]"
-    },
-    {
-      "age_text": "2016년생~2023년생 어린이",
+      "age_text": "1회차 전시 입장객",
       "reason": "unsupported_age_text_format",
       "source": "seoul_family_venues",
-      "source_event_id": "swr-06e8759f9fb9",
-      "source_url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=307&board_gb=event&menu_cd=C0018",
-      "title": "2026 서울물재생체험관 어린이 물놀이터 운영회차 변경 안내"
+      "source_event_id": "swr-72622034e02e",
+      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=321&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "title": "한 방울의 재생"
     },
     {
-      "age_text": "2016년생 ~ 2023년생 어린이",
+      "age_text": "2, 3회차 전시 입장객",
       "reason": "unsupported_age_text_format",
       "source": "seoul_family_venues",
-      "source_event_id": "swr-c6e12eaeb979",
-      "source_url": "https://swr.or.kr/museum/cpage/board/event/view.do?board_seq=296&board_gb=event&menu_cd=C0018",
-      "title": "2026 서울물재생체험관 야외 물놀이터 개장"
+      "source_event_id": "swr-862ed68d5143",
+      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=320&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "title": "물방울 크리에이터(하반기)"
     },
     {
       "age_text": "유아 동반 가족(2020~22년생)",
@@ -112,23 +72,7 @@
       "source_event_id": "swr-92ee296b9f0d",
       "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=289&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
       "title": "물재생 병원으로 오세요"
-    },
-    {
-      "age_text": "초등 개인(2~6학년)",
-      "reason": "unsupported_age_text_format",
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-e51e77ab829f",
-      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=281&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
-      "title": "다시 태어난 물의 여행"
-    },
-    {
-      "age_text": "2018-21년생 어린이",
-      "reason": "unsupported_age_text_format",
-      "source": "seoul_family_venues",
-      "source_event_id": "swr-9a6e57fd32b8",
-      "source_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=280&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
-      "title": "미생물 파티 타임"
     }
   ],
-  "input_count": 258
+  "input_count": 84
 }

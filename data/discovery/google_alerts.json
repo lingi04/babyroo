@@ -1,0 +1,478 @@
+{
+  "generated_at": "2026-11-22T00:00:00+00:00",
+  "keywords": {
+    "서울 키즈카페 아이랑 실내": [
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 1,
+        "title": "서울 키즈카페 위치·실내놀이터·아이랑 갈만한곳 | 아이콕",
+        "url": "https://kids.makka.co.kr/kids-cafe/seoul/",
+        "discovery_url": "https://kids.makka.co.kr/kids-cafe/seoul/",
+        "description": "서울 키즈카페 위치·실내놀이터 정보 | 아이콕 - 서울 키즈카페 239곳·실내 237곳 지역별 집계.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "지역별 키즈카페 집계 정보 페이지 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 2,
+        "title": "서울 아이랑 가기 좋은 실내 키즈카페 BEST 5 (2026 최신 추천) : 네이버 블로그",
+        "url": "https://blog.naver.com/growspace2025/224290110403",
+        "discovery_url": "https://blog.naver.com/growspace2025/224290110403",
+        "description": "롯데월드 키즈파크·쥬니버 키즈카페·코코몽파크·이케아 스몰란드·원더키즈 BEST 5 추천 목록.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 추천 목록글 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 3,
+        "title": "서울 아이와 가볼 만한 곳 랭킹 (2026) - mom-mom.net",
+        "url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8",
+        "discovery_url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8",
+        "description": "서울 키즈카페 및 아이랑 갈 만한 곳 랭킹 — 대형 키즈카페·실내 무료 키즈카페 등 모아보기.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 랭킹 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 4,
+        "title": "서울 아이랑 실내 갈만한곳 가산 아쿠아밸리 동물원 키즈카페 후기 : 네이버 블로그",
+        "url": "https://blog.naver.com/tkfkdgotmakt/224301650123",
+        "discovery_url": "https://blog.naver.com/tkfkdgotmakt/224301650123",
+        "description": "가산 아쿠아밸리 동물원 키즈카페 후기. 놀이기구·동물 교감 체험. 600평 규모 실내 키즈파�.",
+        "source": "google_alerts_trend",
+        "status": "new_candidate",
+        "venue_name": "아쿠아밸리 가산점",
+        "locality": "서울 금천구",
+        "address": "서울특별시 금천구 디지털로 178 (퍼블릭가산 B동 1층 엠-비154호)",
+        "official_url": "https://aquavalley.co.kr/",
+        "official_url_type": "official_website",
+        "note": "운영 주체 독립 홈페이지(aquavalley.co.kr) 확인 — 공식 URL로 채택. 블로그·검색 결과 링크는 discovery_url로만 보존.",
+        "candidate_reason": "2025년 10월 3일 오픈한 금천구 최대 규모 아쿠아리움 기반 키즈파크. 실내 아쿠아리움(87종 5,700여 마리)·파충류 교감·실내동물원 결합. 이용 24개월 이상, 운영시간 10:00~20:00, 예약 필요. (고객센터 0507-1335-3846)"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 5,
+        "title": "로라바운스 천호 키즈카페 서울 실내 아이랑 갈만한곳",
+        "url": "https://blog.naver.com/timtyjk/223300187567",
+        "discovery_url": "https://blog.naver.com/timtyjk/223300187567",
+        "description": "2000평 규모 초대형 키즈카페 로라바운스 천호점 방문 후기 (2022년 게시글).",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "2022년 게시글·현재 운영 여부 미확인 — 오래된 자료"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 1,
+        "title": "서울 키즈카페 위치·실내놀이터·아이랑 갈만한곳 | 아이콕",
+        "url": "https://kids.makka.co.kr/kids-cafe/seoul/",
+        "discovery_url": "https://kids.makka.co.kr/kids-cafe/seoul/",
+        "description": "서울 키즈카페 위치·실내놀이터 정보 | 아이콕 - 서울 키즈카페 239곳·실내 237곳 지역별 집계.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "지역별 키즈카페 집계 정보 페이지 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 2,
+        "title": "서울 아이랑 가기 좋은 실내 키즈카페 BEST 5 (2026 최신 추천) : 네이",
+        "url": "https://blog.naver.com/growspace2025/224290110403",
+        "discovery_url": "https://blog.naver.com/growspace2025/224290110403",
+        "description": "서울 아이랑 가기 좋은 실내 키즈카페 BEST 5 (2026 최신 추천) - 롯데월드 키즈파크·쥬니버 키즈카페·코코몽파크·이케아 스몰란드·원더키즈.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 추천 목록글 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 3,
+        "title": "서울 아이와 가볼 만한 곳 랭킹 (2026) - mom-mom.net",
+        "url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8",
+        "discovery_url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8",
+        "description": "서울 키즈카페 및 아이랑 갈 만한 곳 랭킹 - 대형 키즈카페·실내 무료 키즈카페 등 모아보기.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 랭킹 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 4,
+        "title": "서울 아이랑 실내 갈만한곳 가산 아쿠아밸리 동물원 키즈카페 후기 : 네이",
+        "url": "https://blog.naver.com/tkfkdgotmakt/224301650123",
+        "discovery_url": "https://blog.naver.com/tkfkdgotmakt/224301650123",
+        "description": "서울 아이랑 실내 갈만한곳 가산 아쿠아밸리 동물원 키즈카페 후기. 놀이기구·동물 교감 체험. 600평 규모 실내 키즈파크.",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "기존 신규 후보(아쿠아밸리 가산점, 11-12 승인 후보)와 동일 장소 재확인"
+      },
+      {
+        "keyword": "서울 키즈카페 아이랑 실내",
+        "rank": 5,
+        "title": "로라바운스 천호 키즈카페 서울 실내 아이랑 갈만한곳",
+        "url": "https://blog.naver.com/timtyjk/223300187567",
+        "discovery_url": "https://blog.naver.com/timtyjk/223300187567",
+        "description": "2000평 규모 초대형 키즈카페 로라바운스 천호점 방문 후기 (2022년 게시글).",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "2022년 게시글·현재 운영 여부 미확인 - 오래된 자료"
+      }
+    ],
+    "아기랑 나들이 서울 주말": [
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 1,
+        "title": "11월 21일·22일 아이랑 가볼만한곳 8곳｜서울·경기 무료 행사·실내 체...",
+        "url": "https://blog.naver.com/gomgomheelog/224484484883",
+        "discovery_url": "https://blog.naver.com/gomgomheelog/224484484883",
+        "description": "서울·경기·인천 주말 나들이 8곳 — DDP 아트홀2관 K-굿즈 전시 등 무료·실내 체험 모음.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 8곳 주말 행사 모음 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 2,
+        "title": "서울 24개월 아기랑 주말 나들이 4곳 – 실내외 총정리 (비와도 OK)",
+        "url": "https://frdomstone.tistory.com/entry/서울-24개월-아기랑-주말-나들이-4곳–실내외-총정리-비와도-OK",
+        "discovery_url": "https://frdomstone.tistory.com/entry/서울-24개월-아기랑-주말-나들이-4곳–실내외-총정리-비와도-OK",
+        "description": "서울어린이대공원·서울상상나라·국립과천과학관 유아체험관·몬스터파크(신도림) 4곳 총정리.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 추천 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 3,
+        "title": "[서울] 4~6개월 아기랑 나들이 갈만한 곳 추천",
+        "url": "https://blog.naver.com/what_1_want_2_say/224279673262",
+        "discovery_url": "https://blog.naver.com/what_1_want_2_say/224279673262",
+        "description": "4~6개월 아기 대상 외출 코스 추천 (수유실·유모차 동선 팁).",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "조언·팁 중심 글 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 4,
+        "title": "유모차도 편하고 수유실도 있는 아기랑 서울 나들이 코스 20선 : 네이...",
+        "url": "https://blog.naver.com/jomh7254/224347457956",
+        "discovery_url": "https://blog.naver.com/jomh7254/224347457956",
+        "description": "서울 나들이 명소 20곳 모아보기 (공원·실내 체험·박물관 등).",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 20선 모음 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 5,
+        "title": "8월 서울·경기 아기랑 갈만한 곳 BEST 10",
+        "url": "https://blog.naver.com/lovelyhm2_/224358973923",
+        "discovery_url": "https://blog.naver.com/lovelyhm2_/224358973923",
+        "description": "8월 여름 시즌 서울·경기 아이 동반 명소 10곳 모음 (한강페스티벌·어린이대공원 등).",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "8월 여름 시즌 한정 자료 — 11월 기준 계절 종료·과거 자료"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 1,
+        "title": "서울 아이와 가볼 만한 곳 랭킹(2026) - 12 ~ 24개월 아이와 추천",
+        "url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8&age=AFTER_12M_24M",
+        "discovery_url": "https://mom-mom.net/travel/places/rankings?province=%EC%84%9C%EC%9A%B8&age=AFTER_12M_24M",
+        "description": "맨발길과 체험 가득한 아이랑 도심 숲정원.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 랭킹 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 2,
+        "title": "유모차도 편하고 수유실도 있는 아기랑 서울 나들이 코스 20선 : 네이",
+        "url": "https://blog.naver.com/jomh7254/224347457956",
+        "discovery_url": "https://blog.naver.com/jomh7254/224347457956",
+        "description": "서울 나들이 명소 20곳 모아보기 (공원·실내 체험·박물관 등).",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 20선 모음 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 3,
+        "title": "서울 경기도 아기랑 갈만한 곳 추천! 돌 두돌 아기, 실내 실외 ...",
+        "url": "https://blog.naver.com/purelac/224309205291",
+        "discovery_url": "https://blog.naver.com/purelac/224309205291",
+        "description": "서울에서는 잠실 롯데월드 아쿠아리움 과 삼성 코엑스 아쿠아리움 을 추천. 애니멀카페·실내동물원｜서울 금천·영등포, 경기 하남·파주·동탄.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "조언·목록 중심 글 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 4,
+        "title": "8월 서울·경기 아기랑 갈만한 곳 BEST 10",
+        "url": "https://blog.naver.com/lovelyhm2_/224358973923",
+        "discovery_url": "https://blog.naver.com/lovelyhm2_/224358973923",
+        "description": "8월 여름 시즌 서울·경기 아이 동반 명소 10곳 모음 (한강페스티벌·어린이대공원 등).",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "8월 여름 시즌 한정 자료 - 11월 기준 계절 종료·과거 자료"
+      },
+      {
+        "keyword": "아기랑 나들이 서울 주말",
+        "rank": 5,
+        "title": "Weekend outings Family Places",
+        "url": "https://www.babymapkorea.com/themes/weekend",
+        "discovery_url": "https://www.babymapkorea.com/themes/weekend",
+        "description": "대형 가족 공원·녹지·동물원·공연 등 주말 나들이 장소 포털.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 포털 - 단일 장소·이벤트 아님"
+      }
+    ],
+    "서울 무료 아이 체험 전시": [
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 1,
+        "title": "서울시청에서 미로 탐험하고 기념품까지! '서울탐험대' 어린이 전시",
+        "url": "https://mediahub.seoul.go.kr/archives/2020092",
+        "discovery_url": "https://mediahub.seoul.go.kr/archives/2020092",
+        "description": "서울시청 지하1층 내친구서울관 '서울탐험대' 11.20~2027.2.28, 무료, 사전예약 없이 참여.",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "기존 승인 대기 후보(11-19) — 동일 이벤트 재확인 (보도 3건 포함)"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 2,
+        "title": "서울 실내 아이랑 갈만한 곳 5곳, 2026년 11월 전시·공연 총정리 : 네...",
+        "url": "https://blog.naver.com/gaegeelover/224474066098",
+        "discovery_url": "https://blog.naver.com/gaegeelover/224474066098",
+        "description": "중랑아트센터 등 11월 서울 실내 체험 5곳 무료·공연 총합.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 월간 목록 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 3,
+        "title": "서울·경기 무료 가족 체험 - 가족 체험·공연 567개 | GrowMonth",
+        "url": "https://family.growmonth.com/family/free/",
+        "discovery_url": "https://family.growmonth.com/family/free/",
+        "description": "서울·경기 무료 체험·공연·전시 567개 모음 (11.14 기준, 신청 가능 242개).",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "대규모 무료 체험 목록 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 4,
+        "title": "서울시청서 어린이 체험전 '서울탐험대' 20일 개막 - 서플",
+        "url": "https://supple.kr/news/cmwk2eltm88h2jkun8djgyh81",
+        "discovery_url": "https://supple.kr/news/cmwk2eltm88h2jkun8djgyh81",
+        "description": "서울시 어린이 체험 전시 '서울탐험대' 20일 개막 보도 (연합뉴스 인용).",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "동일 이벤트 보도 기사"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 5,
+        "title": "어린이들, 서울시청 지하서 가족과 놀이 통해 '서울의 역사' 공부",
+        "url": "https://v.daum.net/v/20261118171518890",
+        "discovery_url": "https://v.daum.net/v/20261118171518890",
+        "description": "서울시청 '서울탐험대' 체험 전시 보도 (연합뉴스 인용).",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "동일 이벤트 보도 기사"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 1,
+        "title": "서울시청에서 미로 탐험하고 기념품까지! '서울탐험대' 어린이 전시",
+        "url": "https://mediahub.seoul.go.kr/archives/2020092",
+        "discovery_url": "https://mediahub.seoul.go.kr/archives/2020092",
+        "description": "서울시청 지하1층 내친구서울관 '서울탐험대' 11.20~2027.2.28, 무료, 사전예약 없이 참여.",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "기존 중복 이벤트(서울시청 서울탐험대, 11-19 승인 후보) 재확인"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 2,
+        "title": "올겨울, 아이와 함께 빙하기 탐험! 아기 매머드 '디마' 특별전시",
+        "url": "https://mediahub.seoul.go.kr/archives/2020125",
+        "discovery_url": "https://mediahub.seoul.go.kr/archives/2020125",
+        "description": "서울백제어린이박물관, '아기 매머드 디마와 함께하는 빙하기 탐험' 11.17~2027.3.7, 무료.",
+        "source": "google_alerts_trend",
+        "status": "new_candidate",
+        "venue_name": "서울백제어린이박물관 'DIMA' 특별전",
+        "locality": "서울 송파구 올림픽로 424",
+        "address": "서울특별시 송파구 올림픽로 424 (서울백제어린이박물관)",
+        "official_url": "https://baekjemuseum.seoul.go.kr/dreamvillage/",
+        "official_url_type": "official_website",
+        "note": "운영 주체 한성백제박물관 부설 서울백제어린이박물관 직영 홈페이지(baekjemuseum.seoul.go.kr/dreamvillage) 확인 - 공식 URL로 채택. 블로그·뉴스 링크는 discovery_url로만 보존.",
+        "candidate_reason": "2026.11.17~2027.3.7 무료 실내 특별전(아기 매머드 디마+빙하기 생태). 화~금 9:00~18:00, 주말·공휴일 9:30~17:30, 월요일 휴관. 5~13세 빙하기 생태·매머드 탐험. 문의 02-2152-5900."
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 3,
+        "title": "서울탐험대 어린이 체험전 위치·이용방법 총정리, 무료입장·예약 바로가기 - 이든포스트",
+        "url": "https://eden08.com/how-to-use-seoul-expedition-team/",
+        "discovery_url": "https://eden08.com/how-to-use-seoul-expedition-team/",
+        "description": "서울탐험대는 서울시청 지하 1층 내친구서울관에서 열리는 어린이 참여형 무료 체험 전시. 2026.11.20~2027.2.28.",
+        "source": "google_alerts_trend",
+        "status": "duplicate",
+        "exclusion_reason": "동일 이벤트 보도 기사 (서울탐험대)"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 4,
+        "title": "2026년 11월 서울 전시 · Seoul Art Anthology",
+        "url": "https://anthology-art.org/ko/seoul/months/2026-11",
+        "discovery_url": "https://anthology-art.org/ko/seoul/months/2026-11",
+        "description": "11월 서울 전시 목록 - 구립증산도서관·서울백제어린이박물관 DIMA 등.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 월간 전시 목록 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 무료 아이 체험 전시",
+        "rank": 5,
+        "title": "11월 21일·22일 아이랑 가볼만한곳 8곳｜서울·경기 무료 행사·실내 체...",
+        "url": "https://blog.naver.com/gomgomheelog/224484484883",
+        "discovery_url": "https://blog.naver.com/gomgomheelog/224484484883",
+        "description": "서울·경기·인천 주말 나들이 8곳 - DDP 아트홀2관 K-굿즈 전시 등 무료·실내 체험 모음.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 weekend 행사 8곳 모음 - 단일 장소·이벤트 아님"
+      }
+    ],
+    "서울 가족 나들이 공원": [
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 1,
+        "title": "아이랑 가볼 만한 2026년 11월 서울 축제 7곳! 가족 나들이 장소 추천",
+        "url": "https://blog.naver.com/tjsdk154/224453810450",
+        "discovery_url": "https://blog.naver.com/tjsdk154/224453810450",
+        "description": "노원달빛산책·서울대공원 가을축제·북서울꿈의숲 등 7곳 축제 목록.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 축제 목록 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 2,
+        "title": "11월 첫 주말 서울, 아이와 어디 갈까 — 예약·경사·실내 대안 5곳 비교",
+        "url": "https://jennys.tistory.com/57",
+        "discovery_url": "https://jennys.tistory.com/57",
+        "description": "서울대공원·남산·서울아트북페어·서울역사박물관·서울창포원 5곳 비교.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 장소 비교 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 3,
+        "title": "2026년 11월 서울·근교 축제 일정표 — 아이와 어디 갈까? 11곳",
+        "url": "https://lafortune.tistory.com/180",
+        "discovery_url": "https://lafortune.tistory.com/180",
+        "description": "서울대공원 가을축제·서울어텀페스타·노원달빛산책 등 11곳 축제 일정표.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "다중 축제 일정표 — 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 4,
+        "title": "2026년 10월 서울 아이랑 가볼 만한 행사 총정리",
+        "url": "https://seoulwithkids.com/experience/september-2026-seoul-kids-events-festivals/",
+        "discovery_url": "https://seoulwithkids.com/experience/september-2026-seoul-kids-events-festivals/",
+        "description": "서울대공원 가을축제·서울식물원 전시온실 야간개장 등 8곳 10월 행사 총정리.",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "10월 기준 행사 총정리 — 11월 기준 과거 자료 (계절 종료)"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 5,
+        "title": "2026 남산둘레길 가을소풍 일정·예약 방법",
+        "url": "https://blog.naver.com/besttutor/224454614848",
+        "discovery_url": "https://blog.naver.com/besttutor/224454614848",
+        "description": "남산둘레길 가을소풍 '남산의 새' 가족탐사·가을숲 씨앗 탐험대 등 계절 프로그램 안내.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "계절 프로그램 종합 안내 — 단일 신규 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 1,
+        "title": "산책하고 튤립도 실컷 보고! 아이와 즐기는 서울숲 하루 코스",
+        "url": "https://mediahub.seoul.go.kr/archives/2014485",
+        "discovery_url": "https://mediahub.seoul.go.kr/archives/2014485",
+        "description": "서울숲, 튤립 만개 산책로·놀이터 등 아이와 즐기는 하루 코스 (봄 시즌).",
+        "source": "google_alerts_trend",
+        "status": "excluded_stale",
+        "exclusion_reason": "봄 시즌 글(튤립) - 11월 기준 계절 종료·과거 자료"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 2,
+        "title": "공원 near 서울: 273 Ttukseom-ro, Seongdong-gu, Seoul, South Korea",
+        "url": "https://cards.keenable.ai/w/01a205b4-e741-76e1-aec7-38237c80ac17",
+        "discovery_url": "https://cards.keenable.ai/w/01a205b4-e741-76e1-aec7-38237c80ac17",
+        "description": "Seoul Forest Park 위치·운영정보 지오데이터.",
+        "source": "google_alerts_trend",
+        "status": "excluded_aggregate",
+        "exclusion_reason": "위치 데이터 카드 - 단일 장소·이벤트 아님 (공식 정보 아님)"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 3,
+        "title": "아이와 완벽한 하루! 동물원, 놀이동산, 키즈카페 갖춘 '서울어린이대공원'",
+        "url": "https://mediahub.seoul.go.kr/archives/2012751",
+        "discovery_url": "https://mediahub.seoul.go.kr/archives/2012751",
+        "description": "서울어린이대공원 동물원·놀이동산·키즈카페 등 가족 나들이 장소 소개.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "기존 알려진 장소 종합 소개 - 신규 이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 4,
+        "title": "상상력 자극하는 신나는 세상, 서울상상나라와 한강유람선",
+        "url": "https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=4a46e8ce-1767-4112-b87e-3318198053bb",
+        "discovery_url": "https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=4a46e8ce-1767-4112-b87e-3318198053bb",
+        "description": "서울상상나라·한강유람선 여행 기사 - 36개월 미만·다둥이 무료.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "관광 기사 - 단일 장소·이벤트 아님"
+      },
+      {
+        "keyword": "서울 가족 나들이 공원",
+        "rank": 5,
+        "title": "서울숲 - 서울 성동구에서 아이와 갈 곳 추천 - 맘맘",
+        "url": "https://mom-mom.net/travel/places/62cd17c42718fee95297da5d",
+        "discovery_url": "https://mom-mom.net/travel/places/62cd17c42718fee95297da5d",
+        "description": "서울숲 - 유모차 이동·주차 가능한 가족 나들이 코스.",
+        "source": "google_alerts_trend",
+        "status": "excluded_advice",
+        "exclusion_reason": "다중 장소 소개 - 단일 장소·이벤트 아님"
+      }
+    ]
+  },
+  "candidate_count": 20,
+  "curation": {
+    "curated_at": "2026-11-23T00:00:00+00:00",
+    "method": "11-23 crawl: 4 키워드 × 상위 5건 웹 수집 → 구체 장소/이벤트 추출·분류 → 앱 DB(data/events.json) 및 기존 트렌드 후보 중복 제거 → 운영 주체 공식 URL 검증",
+    "raw_hits": 20,
+    "new_candidates": 1,
+    "duplicates_existing": 4,
+    "duplicates_events": 1,
+    "duplicates_provenance": 0,
+    "excluded": 15,
+    "unresolved": 0,
+    "notes": "11-23 crawl 신규 후보 2건(기존 아쿠아밸리 가산점 재확인 + 신규 서울백제어린이박물관 DIMA 특별전). 중복 4건. 나머지 15건은 집계·조언·계절 종료 등으로 제외. 앱 DB 미반영 (승인 대기)."
+  }
+}
