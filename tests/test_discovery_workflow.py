@@ -78,6 +78,49 @@ class WorkflowTest(unittest.TestCase):
             workflow.refresh(self.root, native_collector=lambda p: (_ for _ in ()).throw(ValueError("outage")))
         self.assertEqual(self.catalog.read_bytes(), before)
 
+    def test_verified_empty_childcare_continues_other_sources_and_retains_baseline(self):
+        from sources import seoul_childcare as childcare
+        self.catalog.write_text(json.dumps({"count": 1, "events": [event(source="seoul_childcare")]}))
+        staff = '<div class="cal_list"><a onclick="fnCalDetail(1)">교직원 교육</a></div>'
+        def module(name):
+            if name == "sources.seoul_childcare":
+                return SimpleNamespace(collect=lambda output_path: childcare.collect(
+                    output_path=output_path, fetch_text=lambda url: staff, request_delay=0))
+            return SimpleNamespace(collect=lambda **kwargs: [{
+                "source": "namu", "source_event_id": "new", "title": "Museum", "url": "https://example.com/new",
+                "captured_at": "2026-11-25", "payload": {"starts_at": "2026-11-25", "ends_at": "2026-12-25"}}])
+        with patch.object(workflow, "SOURCES", ("seoul_childcare", "namu")), patch.object(
+                workflow.importlib, "import_module", side_effect=module):
+            result = workflow.refresh(self.root)
+        rows = json.loads(self.catalog.read_text())["events"]
+        self.assertEqual(result["added"], 1)
+        self.assertEqual(result["missing"], 1)
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(any(row["id"] == "one" for row in rows))
+        self.assertTrue(any(row["title"] == "Museum" for row in rows))
+
+    def test_plain_empty_collector_still_blocks_and_preserves_files(self):
+        before = self.catalog.read_bytes()
+        for source in ("seoul_childcare", "namu"):
+            with self.subTest(source=source), patch.object(workflow, "SOURCES", (source,)), patch.object(
+                    workflow.importlib, "import_module", return_value=SimpleNamespace(collect=lambda **kwargs: [])):
+                with self.assertRaisesRegex(ValueError, "empty or malformed"):
+                    workflow.refresh(self.root)
+            self.assertEqual(self.catalog.read_bytes(), before)
+            self.assertFalse((self.root / "data/discovery").exists())
+
+    def test_unhealthy_childcare_still_aborts_refresh(self):
+        from sources import seoul_childcare as childcare
+        before = self.catalog.read_bytes()
+        collector = lambda output_path: childcare.collect(output_path=output_path,
+            fetch_text=lambda url: "Access denied", request_delay=0)
+        with patch.object(workflow, "SOURCES", ("seoul_childcare",)), patch.object(
+                workflow.importlib, "import_module", return_value=SimpleNamespace(collect=collector)):
+            with self.assertRaisesRegex(ValueError, "unrecognized childcare calendar"):
+                workflow.refresh(self.root)
+        self.assertEqual(self.catalog.read_bytes(), before)
+        self.assertFalse((self.root / "data/discovery").exists())
+
     def test_output_replace_failure_rolls_back_report_state_and_baseline(self):
         before = self.catalog.read_bytes()
         real_replace = workflow.os.replace

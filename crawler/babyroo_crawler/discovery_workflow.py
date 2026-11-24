@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib
 import json
+import logging
 import os
 import tempfile
 import uuid
@@ -10,6 +11,7 @@ from datetime import date
 from pathlib import Path
 
 from babyroo_crawler.normalize import normalize_raw_event
+from babyroo_crawler.collection import CollectedEvents
 
 REMOVED_FIELDS = {"image_url", "admin_updated_at", "publication_status"}
 IGNORED_FIELDS = REMOVED_FIELDS | {"created_at", "updated_at", "last_checked_at"}
@@ -116,8 +118,13 @@ def collect_native(staging: Path) -> tuple[list[dict], set[str]]:
             collector = importlib.import_module("sources." + source).collect
             # No page cap for the full replacement kids-cafe collector.
             rows = collector(output_path=staging / f"{source}.json")
-            if not isinstance(rows, list) or not rows:
+            if not isinstance(rows, list) or (not rows and not (
+                    isinstance(rows, CollectedEvents) and isinstance(rows.verified_empty_reason, str)
+                    and rows.verified_empty_reason.strip())):
                 raise ValueError("empty or malformed collection; needs operator review")
+            if not rows:
+                logging.getLogger(__name__).info("%s: verified empty collection (%s)",
+                                                 source, rows.verified_empty_reason)
             for raw in rows:
                 if not isinstance(raw, dict) or raw.get("source") != source:
                     raise ValueError("collector returned wrong source or invalid raw record")

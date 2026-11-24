@@ -23,8 +23,16 @@ clean. `--state` and `--output` must be outside that checkout:
 python3 scripts/discovery_queue.py --catalog-root /absolute/path/to/clean-main \
   --discovery-input /absolute/path/to/batch/search.json \
   --state /absolute/path/to/hermes-state/queue.json \
-  --output /absolute/path/to/batch/queue.json
+  --output /absolute/path/to/batch/queue.json --run-id ACQUIRED_RUN_ID
 ```
+
+For a complete Hermes run, acquire the run ID before searching using
+`python3 scripts/discovery_run.py acquire --state /absolute/path/to/hermes-state/queue.json`.
+Stop on `skipped-already-running`. Use the returned ID, never the literal
+`ACQUIRED_RUN_ID`. The setup below includes manual completion/recovery commands.
+An isolated manual queue invocation may omit `--run-id` only when no full run is
+active. Queue preparation uses a short nonblocking process lock for the entire
+checkpoint read/build/write; an active run requires its matching owner token.
 
 The queue selects up to 20 candidates, splitting slots between external-source
 rechecks/pending leads and new discoveries. Unused slots are reused by the other
@@ -32,6 +40,13 @@ group; cursors rotate larger queues. The external state file retains selected an
 deferred new leads until they enter catalog/review state, even without rediscovery.
 A selected candidate's fetch failure remains a visible
 retryable review outcome and never removes its existing catalog event.
+The 20-candidate processing budget does not cap retained leads at 1,000. Larger
+backlogs remain readable and rotate normally. Both queue and checkpoint are
+preflighted as the exact UTF-8 JSON bytes against the existing 5 MiB reader limit
+before either file is installed. Capacity failures keep the old checkpoint and
+search input; retain that batch and reduce/split new intake deliberately instead
+of deleting deferred leads. Source batches/checkpoints need operator-managed
+disk retention; automatically pruning unprocessed leads is not supported.
 
 Save actual visible web-tool text in `<batch>/raw/<document-id>.txt`, then run:
 
@@ -86,6 +101,101 @@ Budgets are represented by `extraction_schema.Limits` (20 active candidates,
 `--budget` can reduce selection. Captures/proposals beyond a budget must be deferred
 explicitly; they must not be accepted and then lost at a checkpoint.
 
+## Create the Hermes assistant and schedule (operator commands)
+
+These commands are for you to run; no bot or schedule is installed by this change.
+First merge these scripts into remote main: every scheduled run clones main, so
+uncommitted local fixes alone do not update its workflow code. Use an installed
+Hermes version supporting profiles, `cron create --paused` and job timezones;
+check `hermes profile create --help` and `hermes cron create --help` on your Mac.
+
+```sh
+hermes profile create babyroo
+hermes -p babyroo setup
+hermes -p babyroo tools
+gh auth login
+```
+
+The profile is the persistent assistant behind the bot; Hermes Desktop can add
+its roster presentation through Bots/New Agent. A profile separates configuration
+and memory, not OS file access. Select your own model/provider and enable web
+search/browser plus terminal/file tools for both the cron and CLI contexts.
+Keep the intended GitHub account configured for push/PR operations; no DB
+credentials are needed. Do not add broad auto-approval or change sandbox settings
+just to bypass an unattended failure.
+
+Create a **paused example** for daily 09:00 Korea time from the local bootstrap
+checkout. The workdir is the trusted local repo used to read the template/acquire
+ownership; research and refresh use fresh isolated main checkouts as directed.
+This prompt schedules the complete Hermes task, not just Python refresh:
+
+```sh
+cd /Users/hanjangho/Documents/repos/babyroo
+hermes -p babyroo cron create "0 9 * * *" \
+  'Read crawler/prompts/discovery-extraction.md and follow the complete workflow. Use ~/.cache/babyroo-hermes/queue.json as the persistent checkpoint and a new batch directory under ~/.cache/babyroo-hermes/batches for each run. Discover Seoul outings for young children, optionally using Google Trends for keywords; verify facts on official pages. Acquire ownership before research and stop on skipped-already-running. Dry-run only: do not pass --submit. Save a final report; release the exact token only after a completed outcome. Report failures and leave their ownership marker for manual recovery.' \
+  --workdir /Users/hanjangho/Documents/repos/babyroo \
+  --timezone Asia/Seoul --name babyroo-events --paused
+
+hermes -p babyroo gateway install
+hermes -p babyroo gateway start
+hermes -p babyroo gateway status
+hermes -p babyroo cron list
+hermes -p babyroo cron run babyroo-events
+```
+
+Manual `cron run` is an operator override even while paused. Inspect that pilot's
+output before enabling recurrence:
+
+```sh
+hermes -p babyroo cron resume babyroo-events
+hermes -p babyroo cron status
+hermes -p babyroo cron pause babyroo-events
+```
+
+To enable PR submission after testing, edit the job prompt, keeping the complete
+workflow instructions and replacing `Dry-run only: do not pass --submit` with
+`PR submission is authorized: pass --github-repo lingi04/babyroo --submit` using
+`hermes -p babyroo cron edit babyroo-events --prompt 'FULL_REVISED_PROMPT'`.
+`FULL_REVISED_PROMPT` is a placeholder: supply the whole revised prompt rather
+than replacing it with that literal string. A terminal-only manual pilot is also
+possible: `hermes -p babyroo chat -q 'Read crawler/prompts/discovery-extraction.md
+and run it in dry-run mode with ~/.cache/babyroo-hermes/queue.json as checkpoint.'`
+from the bootstrap checkout. The gateway must run and the Mac must be awake for
+scheduled jobs. Set the chosen schedule and notification delivery yourself;
+CLI-created jobs default to local output, not Telegram.
+
+### Ownership and manual recovery
+
+Acquisition returns `acquired` with `run_id` and persists it in
+`queue.json.active-run.json`, even after the tool process exits. A second full
+run returns `skipped-already-running` before research. The active marker is
+cooperative coordination, not security enforcement. All scheduled invocations
+must follow this protocol and use the same checkpoint path.
+
+On a successfully saved dry-run/no-op/PR or `skipped-open-pr` report, release the
+exact acquired token. An existing open PR is a normal completed skip; save its
+URL/status and release this run so the next schedule can try again. An acquisition
+returning `skipped-already-running` owns nothing and must not release a marker:
+
+```sh
+python3 scripts/discovery_run.py release \
+  --state "$HOME/.cache/babyroo-hermes/queue.json" --run-id ACTUAL_RUN_ID
+```
+
+Replace `ACTUAL_RUN_ID` with the token returned by acquire. A failed/interrupted
+run deliberately retains ownership and its batch; subsequent schedules skip.
+Confirm the old Hermes session is stopped, inspect its batch/PR outcome and read
+the marker's `run_id` before using that release command for recovery. Never
+release a still-running job, clear another owner's token, or delete/replace the
+`.lock` file. There is no automatic expiry/retry of an uncertain run. Canonical
+input/output aliases to checkpoint/lock/marker, or to each other, are rejected.
+
+Command references (official Hermes documentation, checked 2026-11-24):
+[Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles),
+[CLI](https://hermes-agent.nousresearch.com/docs/user-guide/cli),
+[Cron](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron),
+[Messaging gateway](https://hermes-agent.nousresearch.com/docs/user-guide/messaging).
+
 ## Scheduled discovery PR workflow (Mac / Hermes)
 
 The approved baseline is `server/data/events.json` in the latest remote `main`.
@@ -136,9 +246,11 @@ python3 scripts/event_refresh_pr.py \
 ```
 
 Configure Hermes to execute that command **only after successful acquisition**.
-A weekly Sunday 18:00 schedule can use the following cron example if the Mac's
-system timezone is Asia/Seoul. Set the timezone explicitly in your scheduler if
-it differs; no scheduler is installed by these scripts:
+A Python-only system cron example is shown below for deployments with a separate
+fresh feeder producer. It does **not** run Hermes discovery/extraction or acquire
+full-run ownership and is not the complete Hermes schedule above. The producer
+and runner must be coordinated by the operator. The example assumes the Mac's
+system timezone is Asia/Seoul; no scheduler is installed by these scripts:
 
 ```cron
 PATH=/opt/homebrew/bin:/usr/bin:/bin
@@ -173,7 +285,7 @@ baseline values. Concrete source values are proposed in the PR for review.
 Missing events are **kept and flagged**, never deleted automatically.
 
 All native outputs are staged in temporary files, with full kids-cafe pagination.
-Exceptions and empty source collections fail the run for operator review;
+Exceptions and unverified empty source collections fail the run for operator review;
 no catalog or review checkpoint advances. Source search windows can explain
 missing results and are not proof of deletion. Existing legacy `publish` commands
 are separate: they rebuild/filter the public catalog and must not replace this
@@ -184,6 +296,17 @@ For local troubleshooting without PR orchestration, run
 This command writes the local checkout on success; use the isolated runner for
 normal scheduled operation. Old run clones/logs are retained for diagnostics;
 manage their retention on the scheduler host.
+
+The Seoul Childcare collector can explicitly attest a healthy empty result when
+all fetched month listings validate but no parent/family candidate matches. Known
+staff-only listings and recognized empty `cal_list` containers are valid; unknown
+pages, changed event-link markup, fetch errors and missing eligible-event details
+still fail. Staged raw output records per-month listed/parent counts and the
+empty-result reason. Refresh logs the verified empty result, continues other
+collectors/extractions and retains missing baseline rows for review. Other
+collectors returning plain `[]` still fail. Hermes must start failed-work reports
+with `[CRON_FAILURE]` so an agent that finished reporting a failed refresh is not
+mistaken for a successful collection run.
 
 After merging, pull that main revision and run `npm run db:seed:events` in
 `server/` manually using the intended DB environment. Omitted images and existing

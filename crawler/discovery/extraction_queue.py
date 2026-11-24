@@ -44,9 +44,11 @@ def build_queue(catalog, review, registry, fresh, operational=None, budget=20, n
                     for item in [*review.get("candidates", []), *review.get("extractions", [])]
                     if item.get("decision") in {"dismissed", "resolved"} and item.get("proposal_id") is None and item.get("discovery_url")}
     backlog = operational.get("backlog", [])
-    if not isinstance(backlog, list) or len(backlog) > 1000:
-        raise BundleError("invalid/oversized local discovery backlog")
+    if not isinstance(backlog, list):
+        raise BundleError("invalid local discovery backlog")
     for item in [*backlog, *fresh]:
+        if not isinstance(item, dict) or "discovery_url" not in item:
+            raise BundleError("invalid discovery backlog/lead row")
         url = canonical_url(item["discovery_url"])
         if url not in known_urls and url not in blocked_urls:
             new[candidate_id(url)] = {"candidate_id": candidate_id(url), "discovery_url": url, "reason": "new_search_lead"}

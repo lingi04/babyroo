@@ -3,10 +3,8 @@
 import argparse
 import hashlib
 import json
-import os
 import sys
 import subprocess
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,22 +13,9 @@ sys.path.insert(0, str(ROOT / "crawler"))
 from crawler.discovery.extraction_queue import build_queue
 from crawler.discovery.google_alerts import sample
 from crawler.discovery.extraction_schema import read_json
+from crawler.discovery.queue_state import (AlreadyRunning, atomic_json, atomic_bytes,
+                                           coordination_paths, encode_json, require_owner, state_lock)
 from babyroo_crawler.discovery_workflow import SOURCES, validate_events
-
-
-def atomic_json(path, value):
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    name = None
-    try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, mode="w", encoding="utf-8", delete=False) as stream:
-            name = Path(stream.name)
-            json.dump(value, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-        os.replace(name, path)
-    finally:
-        if name:
-            name.unlink(missing_ok=True)
 
 
 def main(argv=None):
@@ -40,7 +25,14 @@ def main(argv=None):
     parser.add_argument("--state", type=Path, required=True, help="Local operational checkpoint outside Git")
     parser.add_argument("--output", type=Path, required=True, help="External batch queue file")
     parser.add_argument("--budget", type=int, default=20)
+    parser.add_argument("--run-id", help="Token from discovery_run.py acquire for the active Hermes run")
     args = parser.parse_args(argv)
+    args.state, lock_path, marker = coordination_paths(args.state)
+    args.output = args.output.expanduser().resolve()
+    args.discovery_input = args.discovery_input.expanduser().resolve()
+    reserved = {args.state, lock_path.resolve(), marker.resolve()}
+    if args.output in reserved or args.discovery_input in reserved or args.output == args.discovery_input:
+        raise ValueError("queue input/output cannot alias checkpoint, lock, active marker or each other")
     def git(*values):
         return subprocess.check_output(["git", "-C", str(args.catalog_root), *values], text=True, stderr=subprocess.PIPE).strip()
     if git("rev-parse", "HEAD") != git("rev-parse", "origin/main"):
@@ -53,18 +45,25 @@ def main(argv=None):
         raise ValueError("catalog count must match events")
     if args.catalog_root.resolve() in args.state.resolve().parents or args.catalog_root.resolve() in args.output.resolve().parents:
         raise ValueError("queue output and operational state must be outside the catalog checkout")
-    if args.state.resolve() == args.output.resolve():
-        raise ValueError("operational checkpoint cannot overwrite the extraction queue")
     base = args.catalog_root / "data/discovery"
     review = read_json(base / "review.json") if (base / "review.json").exists() else {}
     registry = read_json(base / "identities.json") if (base / "identities.json").exists() else {"entries": []}
-    operational = read_json(args.state) if args.state.exists() else None
-    queue, checkpoint = build_queue(catalog, review, registry, sample(args.discovery_input)["candidates"],
-                                    operational, args.budget, SOURCES)
-    atomic_json(args.output, queue)
-    atomic_json(args.state, checkpoint)
-    print(json.dumps({"selected": len(queue["selected"]), "deferred": len(queue["deferred"]), "output": str(args.output),
-                      "queue_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest()}))
+    try:
+        with state_lock(args.state):
+            require_owner(args.state, args.run_id)
+            operational = read_json(args.state) if args.state.exists() else None
+            queue, checkpoint = build_queue(catalog, review, registry, sample(args.discovery_input)["candidates"],
+                                            operational, args.budget, SOURCES)
+            # Check the exact encoded bytes for BOTH files before installing either.
+            encoded_queue, encoded_checkpoint = encode_json(queue), encode_json(checkpoint)
+            atomic_bytes(args.output, encoded_queue)
+            atomic_bytes(args.state, encoded_checkpoint)
+            result = {"status": "prepared", "selected": len(queue["selected"]),
+                      "deferred": len(queue["deferred"]), "backlog": len(checkpoint["backlog"]),
+                      "output": str(args.output), "queue_sha256": hashlib.sha256(encoded_queue).hexdigest()}
+    except AlreadyRunning as exc:
+        result = {"status": "skipped-already-running", "reason": str(exc)}
+    print(json.dumps(result))
     return 0
 
 

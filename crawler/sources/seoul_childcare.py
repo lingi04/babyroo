@@ -9,6 +9,7 @@ from typing import Any, Callable
 from urllib.request import Request, urlopen
 
 from babyroo_crawler.io import write_json
+from babyroo_crawler.collection import CollectedEvents
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
 
@@ -40,13 +41,19 @@ def collect(
     request_delay: float = 0.2,
 ) -> list[dict[str, Any]]:
     fetch_text = fetch_text or fetch_text_url
+    if type(months) is not int or months < 1:
+        raise ValueError("months must be a positive integer")
     output_path = output_path or RAW_DIR / f"{SOURCE}.json"
     captured_at = today_iso()
     candidates: dict[str, str] = {}
+    list_checks = []
 
     for year, month in iter_months(date.today(), months):
         list_url = make_list_url(year, month)
-        for sequence, title in parse_event_links(fetch_text(list_url)).items():
+        links = checked_event_links(fetch_text(list_url))
+        list_checks.append({"url": list_url, "listed_count": len(links),
+                            "parent_count": sum(is_parent_facing(t) for t in links.values())})
+        for sequence, title in links.items():
             if is_parent_facing(title):
                 candidates[sequence] = title
 
@@ -54,6 +61,8 @@ def collect(
     for sequence, list_title in candidates.items():
         detail_url = make_detail_url(sequence)
         detail = parse_detail(fetch_text(detail_url))
+        if not detail.get("제목") or not detail.get("행사기간"):
+            raise ValueError(f"unrecognized event detail page: {detail_url}")
         title = detail.get("제목") or list_title
         combined_text = f"{title} {detail.get('description', '')}"
         if not is_parent_facing(combined_text):
@@ -61,7 +70,7 @@ def collect(
 
         starts_at, ends_at = parse_period(detail.get("행사기간"))
         if not starts_at:
-            continue
+            raise ValueError(f"unrecognized event period: {detail_url}")
         venue_name = detail.get("장소")
 
         events.append(
@@ -90,6 +99,10 @@ def collect(
         if request_delay:
             time.sleep(request_delay)
 
+    # Only a validated listing with no eligible candidates can attest zero rows.
+    # Missing/unparseable details must never be reclassified as no events.
+    empty_reason = "no_parent_facing_candidates" if not candidates else None
+    result = CollectedEvents(events, verified_empty_reason=empty_reason if not events else None)
     write_json(
         output_path,
         {
@@ -97,9 +110,11 @@ def collect(
             "captured_at": captured_at,
             "source_url": BASE_URL,
             "events": events,
+            "collection": {"list_checks": list_checks,
+                           "verified_empty_reason": result.verified_empty_reason},
         },
     )
-    return events
+    return result
 
 
 def iter_months(start: date, count: int) -> list[tuple[int, int]]:
@@ -141,6 +156,21 @@ def parse_event_links(html: str) -> dict[str, str]:
     return parser.events
 
 
+def checked_event_links(html: str) -> dict[str, str]:
+    """Accept recognized events or a recognized calendar without event anchors.
+
+    A login/block page, unknown layout or changed onclick format fails closed.
+    Empty months need the source's cal_list container, rather than HTTP success.
+    """
+    parser = SeoulChildcareListParser()
+    parser.feed(html)
+    parser.close()
+    if parser.invalid_event_link or (not parser.events and (
+            not parser.calendar_seen or parser.calendar_anchors or parser.calendar_depth)):
+        raise ValueError("unrecognized childcare calendar; cannot verify empty results")
+    return parser.events
+
+
 def parse_detail(html: str) -> dict[str, str]:
     parser = SeoulChildcareDetailParser()
     parser.feed(html)
@@ -179,21 +209,40 @@ class SeoulChildcareListParser(HTMLParser):
         self.events: dict[str, str] = {}
         self._sequence: str | None = None
         self._parts: list[str] = []
+        self.calendar_seen = False
+        self.calendar_depth = 0
+        self.calendar_anchors = 0
+        self.invalid_event_link = False
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = dict(attrs)
+        if tag == "div":
+            if self.calendar_depth:
+                self.calendar_depth += 1
+            elif "cal_list" in (attributes.get("class") or "").split():
+                self.calendar_seen = True
+                self.calendar_depth = 1
         if tag != "a":
             return
-        onclick = dict(attrs).get("onclick") or ""
+        if self.calendar_depth:
+            self.calendar_anchors += 1
+        onclick = attributes.get("onclick") or ""
         match = re.search(r"fnCalDetail\((\d+)\)", onclick)
+        if "fnCalDetail" in onclick and not match:
+            self.invalid_event_link = True
         if match:
             self._sequence = match.group(1)
             self._parts = []
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "div" and self.calendar_depth:
+            self.calendar_depth -= 1
         if tag == "a" and self._sequence:
             title = " ".join(self._parts).strip()
             if title:
                 self.events[self._sequence] = title
+            else:
+                self.invalid_event_link = True
             self._sequence = None
             self._parts = []
 
