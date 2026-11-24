@@ -1,0 +1,235 @@
+"""Staged event refresh against the approved main-branch catalog."""
+from __future__ import annotations
+
+import importlib
+import json
+import os
+import tempfile
+import uuid
+from datetime import date
+from pathlib import Path
+
+from babyroo_crawler.normalize import normalize_raw_event
+
+REMOVED_FIELDS = {"image_url", "admin_updated_at", "publication_status"}
+IGNORED_FIELDS = REMOVED_FIELDS | {"created_at", "updated_at", "last_checked_at"}
+SOURCES = ("seoul_culture", "seoul_childcare", "dikidiki", "namu",
+           "nfm_kids", "seoul_family_venues", "seoul_kids_cafe")
+
+
+def read_json(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"expected JSON object: {path}")
+    return value
+
+
+def identity(event: dict):
+    return (event.get("source"), event["source_event_id"]) if event.get("source_event_id") else None
+
+
+def comparable(event: dict) -> dict:
+    return {k: v for k, v in event.items() if k not in IGNORED_FIELDS}
+
+
+def validate_events(events: list[dict]) -> None:
+    if not isinstance(events, list) or not events:
+        raise ValueError("catalog must contain a nonempty event list")
+    seen_ids, seen_pairs, seen_sequences = set(), set(), set()
+    for event in events:
+        if not isinstance(event, dict):
+            raise ValueError("invalid event object")
+        for key in ("id", "title", "source", "source_url"):
+            if not isinstance(event.get(key), str) or not event[key].strip():
+                raise ValueError(f"missing event {key}")
+        for key in ("starts_at", "ends_at"):
+            date.fromisoformat(event[key])
+        if event["ends_at"] < event["starts_at"]:
+            raise ValueError(f"reversed dates: {event['id']}")
+        seq = event.get("csv_sequence")
+        if seq is not None and (type(seq) is not int or seq < 1):
+            raise ValueError("csv_sequence must be a positive integer or null")
+        pair = identity(event)
+        if event["id"] in seen_ids or (pair and pair in seen_pairs) or (seq is not None and seq in seen_sequences):
+            raise ValueError(f"duplicate event identity/sequence: {event['id']}")
+        seen_ids.add(event["id"])
+        if pair:
+            seen_pairs.add(pair)
+        if seq is not None:
+            seen_sequences.add(seq)
+
+
+def merge_events(baseline: list[dict], incoming: list[dict], checked_sources: set[str]):
+    validate_events(baseline)
+    by_id = {e["id"]: e for e in baseline}
+    by_pair = {identity(e): e for e in baseline if identity(e)}
+    merged = [{k: v for k, v in e.items() if k not in REMOVED_FIELDS} for e in baseline]
+    positions = {e["id"]: i for i, e in enumerate(baseline)}
+    seen, seen_pairs, added, changed = set(), set(), [], []
+    next_sequence = max((e.get("csv_sequence") or 0 for e in baseline), default=0) + 1
+    for event in incoming:
+        pair = identity(event)
+        by_key = by_id.get(event["id"])
+        by_source = by_pair.get(pair) if pair else None
+        if by_key and by_source and by_key["id"] != by_source["id"]:
+            raise ValueError("conflicting id/source identities")
+        old = by_key or by_source
+        if old and identity(old) != pair:
+            raise ValueError("source identity changed for existing event id")
+        eid = old["id"] if old else event["id"]
+        if eid in seen or (pair and pair in seen_pairs):
+            raise ValueError(f"duplicate incoming identity: {eid}")
+        seen.add(eid)
+        if pair:
+            seen_pairs.add(pair)
+        current = dict(old or {})
+        for key, value in event.items():
+            if key not in IGNORED_FIELDS | {"id", "csv_sequence"} and (value is not None or old is None):
+                current[key] = value
+        current["id"] = eid
+        for key in REMOVED_FIELDS:
+            current.pop(key, None)
+        if old:
+            fields = {key: {"before": old.get(key), "after": current.get(key)}
+                      for key in sorted(comparable(old).keys() | comparable(current).keys())
+                      if old.get(key) != current.get(key)}
+            if fields:
+                current["last_checked_at"] = event.get("last_checked_at")
+                changed.append({"id": eid, "title": current["title"], "fields": fields})
+            merged[positions[eid]] = current
+        else:
+            current.update(csv_sequence=next_sequence, created_at=None, updated_at=None,
+                           last_checked_at=event.get("last_checked_at"))
+            next_sequence += 1
+            merged.append(current)
+            added.append(current)
+    validate_events(merged)
+    missing = [{"id": e["id"], "title": e["title"], "source": e["source"], "source_url": e["source_url"]}
+               for e in baseline if e["source"] in checked_sources and e["id"] not in seen]
+    return merged, added, changed, sorted(missing, key=lambda e: e["id"])
+
+
+def collect_native(staging: Path) -> tuple[list[dict], set[str]]:
+    events, checked = [], set()
+    for source in SOURCES:
+        try:
+            collector = importlib.import_module("sources." + source).collect
+            # No page cap for the full replacement kids-cafe collector.
+            rows = collector(output_path=staging / f"{source}.json")
+            if not isinstance(rows, list) or not rows:
+                raise ValueError("empty or malformed collection; needs operator review")
+            for raw in rows:
+                if not isinstance(raw, dict) or raw.get("source") != source:
+                    raise ValueError("collector returned wrong source or invalid raw record")
+                events.append(normalize_raw_event(raw).to_dict())
+            checked.add(source)
+        except Exception as exc:
+            raise ValueError(f"collection failed for {source}: {exc}") from exc
+    return events, checked
+
+
+def report_text(added, changed, review, acquisition_date) -> str:
+    # Use JSON blocks for values so source-provided Markdown cannot impersonate headings.
+    parts = ["# Event refresh review", "", "Review before merge; DB import is manual.",
+             f"External feeder acquisition date: {acquisition_date or 'native sources only'}", ""]
+    sections = [("New catalog events", added), ("Changed fields", changed),
+                        ("Missing from checked sources (retained)", review["missing"]),
+                        ("Discovery suggestions (not app events)", review["candidates"])]
+    if "extractions" in review:
+        sections.append(("Extraction outcomes (official evidence still requires PR review)", review["extractions"]))
+    for title, rows in sections:
+        encoded = json.dumps(rows, ensure_ascii=False, indent=2).replace("`", "\\u0060")
+        parts += ["## " + title, "", "```json", encoded, "```", ""]
+    parts += ["Discovery links and feeder-provided venue links require manual source verification.", ""]
+    return "\n".join(parts)
+
+
+def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> dict:
+    from crawler.discovery.google_alerts import sample
+    from crawler.discovery.extracted_events import adapt_extractions
+    catalog_path = root / "server/data/events.json"
+    state_path = root / "data/discovery/review.json"
+    identity_path = root / "data/discovery/identities.json"
+    baseline = read_json(catalog_path)
+    validate_events(baseline.get("events"))
+    if baseline.get("count") != len(baseline["events"]):
+        raise ValueError("catalog count does not match events")
+    discovery = sample(Path(feeder), max_age_days=max_age_days) if feeder else {"candidates": []}
+    old_review = read_json(state_path) if state_path.exists() else {"missing": [], "candidates": []}
+    old_identities = read_json(identity_path) if identity_path.exists() else {"schema_version": 1, "entries": []}
+    identities, outcomes, observations = old_identities, [], []
+    with tempfile.TemporaryDirectory(prefix="babyroo-collect-") as tmp:
+        incoming, checked = (native_collector or collect_native)(Path(tmp))
+        if "extraction_bundle" in discovery:
+            extracted, outcomes, identities, observations = adapt_extractions(
+                discovery["extraction_bundle"], baseline["events"], incoming, old_identities, set(SOURCES),
+                [*old_review.get("extractions", []), *old_review.get("candidates", [])])
+            incoming = [*incoming, *extracted]
+        merged, added, changed, missing = merge_events(baseline["events"], incoming, checked)
+    # Durable review state is not the latest search snapshot. Preserve pending leads and human notes.
+    candidates = {c["discovery_url"]: c for c in old_review.get("candidates", [])}
+    candidates.update({c["discovery_url"]: {**candidates.get(c["discovery_url"], {}), **c} for c in discovery["candidates"]})
+    review = {**old_review, "missing": missing, "candidates": [candidates[k] for k in sorted(candidates)]}
+    if outcomes or "extractions" in old_review:
+        # New batch outcomes replace machine observations for its candidates; absent pending items survive.
+        processed = set(discovery.get("extraction_bundle", {}).get("candidates_by_id", {}))
+        incoming_keys = {(r["candidate_id"], r.get("proposal_id")) for r in outcomes}
+        prior = []
+        for row in old_review.get("extractions", []):
+            key = (row["candidate_id"], row.get("proposal_id"))
+            if row["candidate_id"] not in processed:
+                prior.append(row)
+            elif key not in incoming_keys and any(k in row for k in ("operator_notes", "decision")):
+                prior.append({**row, "historical": True})
+        notes = {(r["candidate_id"], r.get("proposal_id")): r for r in old_review.get("extractions", [])}
+        candidate_notes = {r["candidate_id"]: r for r in old_review.get("extractions", []) if r.get("proposal_id") is None}
+        updated = [{**{k: v for k, v in notes.get((r["candidate_id"], r.get("proposal_id")), {}).items()
+                       if k in {"operator_notes", "decision"}}, **r} for r in outcomes]
+        for row in updated:
+            for key in ("operator_notes", "decision"):
+                if key not in row and key in candidate_notes.get(row["candidate_id"], {}):
+                    row[key] = candidate_notes[row["candidate_id"]][key]
+        review["extractions"] = sorted([*prior, *updated], key=lambda r: (r["candidate_id"], r.get("proposal_id") or ""))
+    catalog_changed = merged != baseline["events"]
+    if not catalog_changed and review == old_review and identities == old_identities:
+        return {"changed": False, "added": 0, "updated": 0}
+    payload = {**baseline, "count": len(merged), "events": merged}
+    if catalog_changed:
+        payload["generated_at"] = date.today().isoformat()
+    report_path = root / "data/discovery/reports" / f"refresh-{uuid.uuid4().hex}.md"
+    writes = {state_path: json.dumps(review, ensure_ascii=False, indent=2) + "\n",
+              report_path: report_text(added, changed, review, discovery.get("fetched_at"))}
+    if identities != old_identities:
+        writes[identity_path] = json.dumps(identities, ensure_ascii=False, indent=2) + "\n"
+    if observations:
+        evidence_path = report_path.with_name(report_path.name.replace("refresh-", "extraction-")).with_suffix(".json")
+        writes[evidence_path] = json.dumps({"batch_id": discovery["extraction_bundle"]["batch_id"],
+                                          "observations": observations}, ensure_ascii=False, indent=2) + "\n"
+    if catalog_changed:
+        writes[catalog_path] = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    # Prepare every output first. Roll back installed files if any replace fails.
+    prepared, originals = {}, {}
+    try:
+        for path, content in writes.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            originals[path] = path.read_bytes() if path.exists() else None
+            with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as stream:
+                prepared[path] = Path(stream.name)
+                stream.write(content.encode("utf-8"))
+        installed = []
+        try:
+            for path, temp in prepared.items():
+                os.replace(temp, path)
+                installed.append(path)
+        except Exception:
+            for path in reversed(installed):
+                if originals[path] is None:
+                    path.unlink(missing_ok=True)
+                else:
+                    path.write_bytes(originals[path])
+            raise
+    finally:
+        for temp in prepared.values():
+            temp.unlink(missing_ok=True)
+    return {"changed": True, "added": len(added), "updated": len(changed),
+            "missing": len(missing), "report": str(report_path.relative_to(root))}

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Build a Hermes extraction queue from an explicitly selected clean-main checkout."""
+import argparse
+import hashlib
+import json
+import os
+import sys
+import subprocess
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "crawler"))
+from crawler.discovery.extraction_queue import build_queue
+from crawler.discovery.google_alerts import sample
+from crawler.discovery.extraction_schema import read_json
+from babyroo_crawler.discovery_workflow import SOURCES, validate_events
+
+
+def atomic_json(path, value):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    name = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, mode="w", encoding="utf-8", delete=False) as stream:
+            name = Path(stream.name)
+            json.dump(value, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        os.replace(name, path)
+    finally:
+        if name:
+            name.unlink(missing_ok=True)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--catalog-root", type=Path, required=True, help="Clean latest-main checkout; never a developer's dirty worktree")
+    parser.add_argument("--discovery-input", type=Path, required=True)
+    parser.add_argument("--state", type=Path, required=True, help="Local operational checkpoint outside Git")
+    parser.add_argument("--output", type=Path, required=True, help="External batch queue file")
+    parser.add_argument("--budget", type=int, default=20)
+    args = parser.parse_args(argv)
+    def git(*values):
+        return subprocess.check_output(["git", "-C", str(args.catalog_root), *values], text=True, stderr=subprocess.PIPE).strip()
+    if git("rev-parse", "HEAD") != git("rev-parse", "origin/main"):
+        raise ValueError("catalog checkout must be at fetched origin/main")
+    if git("status", "--porcelain", "--", "server/data/events.json", "data/discovery/review.json", "data/discovery/identities.json"):
+        raise ValueError("catalog/review/identity files must be clean before queue preparation")
+    catalog = read_json(args.catalog_root / "server/data/events.json")
+    validate_events(catalog["events"])
+    if catalog.get("count") != len(catalog["events"]):
+        raise ValueError("catalog count must match events")
+    if args.catalog_root.resolve() in args.state.resolve().parents or args.catalog_root.resolve() in args.output.resolve().parents:
+        raise ValueError("queue output and operational state must be outside the catalog checkout")
+    if args.state.resolve() == args.output.resolve():
+        raise ValueError("operational checkpoint cannot overwrite the extraction queue")
+    base = args.catalog_root / "data/discovery"
+    review = read_json(base / "review.json") if (base / "review.json").exists() else {}
+    registry = read_json(base / "identities.json") if (base / "identities.json").exists() else {"entries": []}
+    operational = read_json(args.state) if args.state.exists() else None
+    queue, checkpoint = build_queue(catalog, review, registry, sample(args.discovery_input)["candidates"],
+                                    operational, args.budget, SOURCES)
+    atomic_json(args.output, queue)
+    atomic_json(args.state, checkpoint)
+    print(json.dumps({"selected": len(queue["selected"]), "deferred": len(queue["deferred"]), "output": str(args.output),
+                      "queue_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest()}))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"[FAILED] {exc}", file=sys.stderr)
+        raise SystemExit(1)

@@ -30,3 +30,12 @@ Access to current crowding and the rolling seven-day hourly history for one cove
 **Credit**:
 Babyroo's shared unit for purchasing recommendations and area unlocks.
 _Avoid_: Token
+
+**Discovery candidate**:
+A possible outing found through search or another lead. Discovery alone does not establish the facts needed for a catalog record.
+
+**Extracted event record**:
+Structured outing details derived from supporting source material, with the evidence needed to review each claim. Extraction does not itself approve the record for the catalog.
+
+**Permanent venue**:
+An ongoing outing destination without a fixed event period. Missing dates alone do not establish that a venue is permanent.
