@@ -71,9 +71,66 @@ const failedRecommendation: RecommendationSession = {
   error:{code:'llm_unavailable',message:'provider unavailable',retryable:true},
 };
 
+test.each([
+  [{ duration: 'duration_short' }, '짧은 코스가 좋아요'],
+  [{ activityStyle: 'activity_exhibition' }, '전시 관람'],
+  [{ place: 'place_outdoor', vibe: 'vibe_quiet' }, '야외도 좋아요'],
+] as const)('restores saved recommendation answers and visit-date ages %j', async (finalAnswers, finalLabel) => {
+  await saveAuthSession({ ...testAuthSession, apiAccessToken: 'history-test-token' });
+  const listedEvent = eventsNewestFirst[0];
+  const ageReason = '11월 29일에 방문한다면 원래 아이(24개월)도 참여할 수 있어요.';
+  const session: RecommendationSession = {
+    ...failedRecommendation,
+    status: 'success',
+    error: undefined,
+    answers: { startRegion: 'departure_input', interest: 'interest_animals', ...finalAnswers },
+    preferences: {
+      departureArea: { region: '경기', locality: '수원시' },
+      resolvedVisitRange: { start: '2026-11-29', end: '2026-11-29' },
+    },
+    results: [{ eventId: listedEvent.id, reasons: [ageReason] }],
+    eventSnapshots: [listedEvent],
+  };
+  const list = jest.spyOn(RemoteRecommendationService.prototype, 'listSessions').mockResolvedValue([session]);
+  const credits = jest.spyOn(babyrooApi, 'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const root = renderer!.root;
+    const row = root.findAll(node => node.props.accessibilityRole === 'button' &&
+      typeof node.props.accessibilityLabel === 'string' &&
+      node.props.accessibilityLabel.includes('원래 아이') &&
+      typeof node.props.onPress === 'function')[0];
+    await ReactTestRenderer.act(() => row.props.onPress());
+    expect(root.findByProps({ children: '경기 수원시' })).toBeTruthy();
+    expect(root.findByProps({ children: '동물이나 곤충을 좋아해요' })).toBeTruthy();
+    expect(root.findByProps({ children: finalLabel })).toBeTruthy();
+    expect(root.findByProps({ children: '방문 예정 11월 29일 (일)' })).toBeTruthy();
+    expect(root.findByProps({ children: ageReason })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    list.mockRestore();
+    credits.mockRestore();
+  }
+});
+
 test('retains failed history without a duplicate panel and retries original inputs once', async () => {
   await saveAuthSession({...testAuthSession,apiAccessToken:'failure-test-token'});
-  const list = jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue([failedRecommendation]);
+  const departureArea = { region: '경기', locality: '수원시' };
+  const answers = {
+    startRegion: 'departure_input', visitDay: 'visit_soon', interest: 'interest_transport',
+  } as const;
+  const saved = {
+    ...failedRecommendation,
+    answers,
+    preferences: {
+      ...failedRecommendation.preferences,
+      departureArea,
+      interest: 'interest_transport' as const,
+      resolvedVisitRange: { start: '2026-11-22', end: '2026-11-23' },
+    },
+  };
+  const list = jest.spyOn(RemoteRecommendationService.prototype,'listSessions').mockResolvedValue([saved]);
   const credits = jest.spyOn(babyrooApi,'getCreditStatusFromBabyrooApi').mockRejectedValue(new Error('Unavailable'));
   let resolveRequest!: (session:RecommendationSession) => void;
   const createRequest = jest.spyOn(RemoteRecommendationService.prototype,'createSession').mockImplementation(
@@ -96,7 +153,9 @@ test('retains failed history without a duplicate panel and retries original inpu
     await ReactTestRenderer.act(()=>{retry.props.onPress();retry.props.onPress();});
     expect(createRequest).toHaveBeenCalledTimes(1);
     expect(createRequest).toHaveBeenCalledWith(expect.objectContaining({
-      preferences:failedRecommendation.preferences,selectedChildIds:failedRecommendation.selectedChildIds,
+      answers,
+      preferences: { ...failedRecommendation.preferences, departureArea, interest: 'interest_transport' },
+      selectedChildIds:failedRecommendation.selectedChildIds,
       selectedChildren:failedRecommendation.selectedChildrenSnapshot,
     }));
     await ReactTestRenderer.act(()=>resolveRequest({...failedRecommendation,id:'retry-record',status:'loading',error:undefined}));
@@ -657,10 +716,14 @@ test('switches adjacent tabs with horizontal swipes', async () => {
   expect(renderer!.root.findByProps({ children: '맞춤 추천' })).toBeTruthy();
 });
 
-test('completes eight UI questions and submits supported conditions without local interest', async () => {
+test('completes eight UI questions and submits the edited interest', async () => {
   await saveAuthSession({
     ...testAuthSession,
     apiAccessToken: 'ui-test-token',
+  });
+  await saveUser({
+    ...completeUser,
+    homeAddress: { address: '서울 광진구 구의동', sido: '서울', sigungu: '광진구' },
   });
   const createSession = jest
     .spyOn(RemoteRecommendationService.prototype, 'createSession')
@@ -699,7 +762,7 @@ test('completes eight UI questions and submits supported conditions without loca
         })
         .props.onPress();
     });
-    await selectPostcodeAddress(renderer!, '서울 광진구 구의동');
+    await selectPostcodeAddress(renderer!, '경기 수원시', { sido: '경기', sigungu: '수원시' });
     await ReactTestRenderer.act(() => {
       renderer!.root
         .findByProps({ accessibilityLabel: 'Use departure address' })
@@ -757,9 +820,11 @@ test('completes eight UI questions and submits supported conditions without loca
     });
     expect(createSession).toHaveBeenCalledTimes(1);
     const submitted = createSession.mock.calls[0][0];
-    expect(submitted.answers).not.toHaveProperty('interest');
-    expect(submitted.preferences).not.toHaveProperty('interest');
+    expect(submitted.answers).toHaveProperty('interest', 'interest_any');
+    expect(submitted.preferences).toHaveProperty('interest', 'interest_any');
     expect(submitted.preferences).toMatchObject({
+      startRegion: 'gyeonggi',
+      departureArea: { region: '경기', locality: '수원시' },
       visitWindow: 'this_weekend',
       mobility: 'car',
       price: 'free',
@@ -1553,6 +1618,7 @@ test('Explore combines categories and shows age, venue and booking facts on each
 async function selectPostcodeAddress(
   renderer: ReactTestRenderer.ReactTestRenderer,
   address: string,
+  area = { sido: '서울', sigungu: '광진구' },
 ) {
   await ReactTestRenderer.act(() => {
     const postcodeSearchButtons = renderer.root
@@ -1575,8 +1641,7 @@ async function selectPostcodeAddress(
         data: JSON.stringify({
           address,
           roadAddress: address,
-          sido: '서울',
-          sigungu: '광진구',
+          ...area,
           bname: '구의동',
           zonecode: '05000',
         }),

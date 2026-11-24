@@ -10,8 +10,11 @@ import {
 } from '../../../credits/application/ports/in/check-recommendation-credit.use-case';
 import {
   CreateRecommendationSessionInput,
+  RECOMMENDATION_INTERESTS,
   RecommendationSession,
 } from '../../domain/recommendation.entity';
+import { resolveVisitDateRange, seoulDate } from '../../domain/recommendation-dates';
+import { departureArea } from '../../domain/recommendation-departure';
 import { CreateRecommendationSessionUseCase } from '../ports/in/create-recommendation-session.use-case';
 import { GetRecommendationSessionUseCase } from '../ports/in/get-recommendation-session.use-case';
 import { ListRecommendationSessionsUseCase } from '../ports/in/list-recommendation-sessions.use-case';
@@ -40,6 +43,7 @@ export class RecommendationSessionService
     userId: string,
     input: CreateRecommendationSessionInput,
   ): Promise<RecommendationSession> {
+    const createdAt = new Date().toISOString();
     debugLog('recommendations.create.start', {
       userId,
       selectedChildIdCount: input.selectedChildIds?.length,
@@ -60,14 +64,31 @@ export class RecommendationSessionService
       input.selectedChildren && input.selectedChildren.length > 0
         ? input.selectedChildren
         : user.children.filter(child => selectedChildIds.includes(child.id));
-    const createdAt = new Date().toISOString();
+    const {
+      interest,
+      departureArea: submittedArea,
+      resolvedVisitRange: _submittedRange,
+      ...preferences
+    } = input.preferences ?? {};
+    const area = departureArea(submittedArea?.region, submittedArea?.locality);
+    const resolvedVisitRange = resolveVisitDateRange(preferences.visitWindow, seoulDate(createdAt));
+    const uniqueIds = [...new Set(selectedChildIds)];
+    const childrenById = new Map(selectedChildren.map(child => [child.id, child]));
     const session: RecommendationSession = {
       id: createId('rec'),
       userId,
-      selectedChildIds,
-      selectedChildrenSnapshot: selectedChildren,
+      selectedChildIds: uniqueIds,
+      selectedChildrenSnapshot: uniqueIds.flatMap(id => {
+        const child = childrenById.get(id);
+        return child ? [child] : [];
+      }),
       answers: input.answers ?? {},
-      preferences: input.preferences ?? {},
+      preferences: {
+        ...preferences,
+        ...(resolvedVisitRange ? { resolvedVisitRange } : {}),
+        ...(area ? { departureArea: area } : {}),
+        ...(interest && RECOMMENDATION_INTERESTS.includes(interest) ? { interest } : {}),
+      },
       results: [],
       creditCost: 0,
       status: 'running',

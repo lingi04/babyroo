@@ -1,5 +1,17 @@
 import type { RecommendationQuestion } from './types';
 
+export const recommendationInterestQuestion: RecommendationQuestion = {
+  id: 'interest',
+  prompt: '요즘 아이가 뭘 보면 발걸음을 멈추나요?',
+  options: [
+    { value: 'interest_transport', label: '기차나 자동차를 좋아해요' },
+    { value: 'interest_animals', label: '동물이나 곤충을 좋아해요' },
+    { value: 'interest_water', label: '물을 보거나 물놀이하는 걸 좋아해요' },
+    { value: 'interest_music', label: '음악을 듣거나 악기를 연주하는 걸 좋아해요' },
+    { value: 'interest_any', label: '특별히 떠오르는 건 없어요' },
+  ],
+};
+
 // UI wording is independent of stored session summaries.
 export function buildQuestionnaire(
   legacyQuestions: RecommendationQuestion[],
@@ -37,23 +49,7 @@ export function buildQuestionnaire(
       '다음 주에 갈 거예요',
       '날짜는 유연하게 정할 수 있어요',
     ]),
-    {
-      id: 'interest',
-      prompt: '요즘 아이가 뭘 보면 발걸음을 멈추나요?',
-      options: [
-        { value: 'interest_transport', label: '기차나 자동차를 좋아해요' },
-        { value: 'interest_animals', label: '동물이나 곤충을 좋아해요' },
-        {
-          value: 'interest_water',
-          label: '물을 보거나 물놀이하는 걸 좋아해요',
-        },
-        {
-          value: 'interest_music',
-          label: '음악을 듣거나 악기를 연주하는 걸 좋아해요',
-        },
-        { value: 'interest_any', label: '특별히 떠오르는 건 없어요' },
-      ],
-    },
+    recommendationInterestQuestion,
     question('mobility'),
     withLabels('weather', '날씨가 좋다면 야외로 나가는 것도 괜찮으세요?', [
       '날씨가 좋으면 야외도 괜찮아요',

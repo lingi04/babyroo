@@ -3,17 +3,12 @@ import { ApplicationError } from '../../../../common/application-error';
 import { Logger } from '@nestjs/common';
 import { PushNotificationPort } from '../../../notifications/application/push-notification.port';
 import {
-  CONSUME_RECOMMENDATION_CREDIT_USE_CASE,
   ConsumeRecommendationCreditUseCase,
 } from '../../../credits/application/ports/in/consume-recommendation-credit.use-case';
 import {
-  LIST_EVENTS_USE_CASE,
   ListEventsUseCase,
 } from '../../../events/application/ports/in/list-events.use-case';
-import {
-  GET_CURRENT_USER_USE_CASE,
-  GetCurrentUserUseCase,
-} from '../../../users/application/ports/in/get-current-user.use-case';
+import { resolveVisitDateRange, seoulDate } from '../../domain/recommendation-dates';
 import {
   RecommendationSession,
   RecommendationSessionError,
@@ -25,14 +20,12 @@ import {
   RecommendationJob,
 } from '../ports/out/recommendation-job-dispatcher.port';
 import {
-  RECOMMENDATION_SESSION_REPOSITORY_PORT,
   RecommendationSessionRepositoryPort,
 } from '../ports/out/recommendation-session-repository.port';
 
 export class RecommendationJobProcessor {
   constructor(
     private readonly sessions: RecommendationSessionRepositoryPort,
-    private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly listEventsUseCase: ListEventsUseCase,
     private readonly consumeRecommendationCreditUseCase: ConsumeRecommendationCreditUseCase,
     private readonly recommendationEngine: RecommendationEnginePort,
@@ -59,22 +52,18 @@ export class RecommendationJobProcessor {
     try {
       completedSession = await this.runRecommendation(job, session);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const failure = recommendationJobError(error);
       debugLog('recommendations.job.failed', {
         ...job,
-        errorMessage,
+        code: failure.code,
       });
 
       completedSession = {
         ...session,
-        status: errorMessage.includes('timed out') ? 'timeout' : 'failed',
+        status: failure.code === 'timeout' ? 'timeout' : 'failed',
         results: [],
         creditCost: 0,
-        error: {
-          code: recommendationJobErrorCode(error, errorMessage),
-          message: errorMessage,
-          retryable: true,
-        },
+        error: failure,
       };
     }
 
@@ -106,15 +95,19 @@ export class RecommendationJobProcessor {
       ...job,
       selectedChildCount: session.selectedChildrenSnapshot.length,
     });
-    const user = await this.getCurrentUserUseCase.getRequiredUser(job.userId);
-    const eventList = await this.listEventsUseCase.list({ limit: '300' });
+    const today = seoulDate(session.createdAt);
+    const range = session.preferences.resolvedVisitRange ??
+      resolveVisitDateRange(session.preferences.visitWindow, today);
+    const events = await this.listEventsUseCase.listPublishedSnapshot({
+      startsBefore: range?.end,
+      endsAfter: range?.start ?? today,
+    });
     const results = await this.recommendationEngine.recommend({
-      events: eventList.events,
+      events,
       children: session.selectedChildrenSnapshot,
+      selectedChildIds: session.selectedChildIds,
       preferences: session.preferences,
       requestedAt: session.createdAt,
-      userHomeRegion: user.homeRegion,
-      userHomeAddress: user.homeAddress,
     });
 
     if (results.length > 0) {
@@ -140,20 +133,17 @@ export class RecommendationJobProcessor {
   }
 }
 
-function recommendationJobErrorCode(
-  error: unknown,
-  message: string,
-): RecommendationSessionError['code'] {
-  if (message.includes('timed out')) {
-    return 'timeout';
+function recommendationJobError(error: unknown): RecommendationSessionError {
+  if (error instanceof Error && error.message.includes('timed out')) {
+    return { code: 'timeout', message: 'Recommendation request timed out.', retryable: true };
   }
 
   if (
     error instanceof ApplicationError &&
     error.code === 'INSUFFICIENT_CREDITS'
   ) {
-    return 'insufficient_credits';
+    return { code: 'insufficient_credits', message: 'Insufficient recommendation credits.', retryable: true };
   }
 
-  return 'llm_unavailable';
+  return { code: 'llm_unavailable', message: 'Recommendation provider is unavailable.', retryable: true };
 }

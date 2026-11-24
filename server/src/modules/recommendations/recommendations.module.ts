@@ -55,7 +55,6 @@ import { RecommendationSessionService } from './application/services/recommendat
       provide: RecommendationJobProcessor,
       useFactory: (
         repository,
-        getCurrentUserUseCase,
         listEventsUseCase,
         consumeRecommendationCreditUseCase,
         recommendationEngine,
@@ -63,7 +62,6 @@ import { RecommendationSessionService } from './application/services/recommendat
       ) =>
         new RecommendationJobProcessor(
           repository,
-          getCurrentUserUseCase,
           listEventsUseCase,
           consumeRecommendationCreditUseCase,
           recommendationEngine,
@@ -71,7 +69,6 @@ import { RecommendationSessionService } from './application/services/recommendat
         ),
       inject: [
         RECOMMENDATION_SESSION_REPOSITORY_PORT,
-        GET_CURRENT_USER_USE_CASE,
         LIST_EVENTS_USE_CASE,
         CONSUME_RECOMMENDATION_CREDIT_USE_CASE,
         RECOMMENDATION_ENGINE_PORT,

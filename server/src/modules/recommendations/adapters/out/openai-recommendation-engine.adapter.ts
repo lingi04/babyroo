@@ -1,15 +1,16 @@
 import { debugLog } from '../../../../common/debug-log';
-import {
+import type {
   RecommendationEngineInput,
   RecommendationEnginePort,
 } from '../../application/ports/out/recommendation-engine.port';
-import { RecommendationResult } from '../../domain/recommendation.entity';
+import type { RecommendationResult } from '../../domain/recommendation.entity';
 import {
-  buildRecommendationPrompt,
-  childToContext,
-  eventToCandidate,
-  formatUserHomeAddress,
-} from './openai-recommendation-prompt';
+  rankRecommendations,
+  type RecommendationOption,
+  renderRecommendationResults,
+  SHARED_RESULT_LIMIT,
+} from '../../domain/rule-based-recommender';
+import { buildRecommendationPrompt } from './openai-recommendation-prompt';
 import { parseRecommendationResponse } from './openai-recommendation-response';
 
 type OpenAiRecommendationEngineOptions = {
@@ -36,74 +37,44 @@ export class OpenAiRecommendationEngineAdapter implements RecommendationEnginePo
   }
 
   async recommend(input: RecommendationEngineInput): Promise<RecommendationResult[]> {
-    const candidates = input.events
-      .slice(0, this.options.maxCandidates)
-      .map(eventToCandidate);
-    const prompt = buildRecommendationPrompt({
-      candidates,
-      children: input.children.map(childToContext),
-      preferences: input.preferences,
-      requestedAt: input.requestedAt,
-      userHomeAddress: formatUserHomeAddress(input.userHomeAddress),
-      userHomeRegion: input.userHomeRegion,
-    });
+    const { mode, groups } = rankRecommendations(input);
+    const budget = positiveLimit(this.options.maxCandidates, 20);
+    const shortlist = shortlistGroups(groups, budget);
+    if (shortlist.size === 0) return [];
 
-    debugLog('recommendations.openai.start', {
-      model: this.options.model,
-      candidateCount: candidates.length,
-    });
-    debugLog('recommendations.openai.prompt', {
-      prompt,
-    });
+    const maxResults = mode === 'shared'
+      ? Math.min(SHARED_RESULT_LIMIT, positiveLimit(this.options.maxResults, SHARED_RESULT_LIMIT))
+      : shortlist.size;
+    const prompt = buildRecommendationPrompt(shortlist, input.preferences, mode, maxResults);
+    debugLog('recommendations.openai.start', { model: this.options.model, assignmentCount: shortlist.size });
 
-    const rawResponse = await this.createResponse(prompt);
-    debugLog('recommendations.openai.rawResponse', {
-      rawResponse,
-    });
-    const parsed = parseRecommendationResponse(
-      rawResponse,
-      new Set(candidates.map(candidate => candidate.id)),
-      { maxResults: this.options.maxResults },
-    );
+    const response = await this.createResponse(prompt, maxResults);
+    const picks = parseRecommendationResponse(response, shortlist, mode, maxResults);
+    if (picks.size === 0) throw new Error('Recommendation provider returned no usable choices.');
 
-    if (!parsed.ok) {
-      debugLog('recommendations.openai.invalidResponse', {
-        errorMessage: parsed.errorMessage,
-      });
-      return [];
-    }
+    debugLog('recommendations.openai.success', { acceptedChoices: picks.size });
+    if (mode === 'shared') return renderRecommendationResults(Array.from(picks.values()));
 
-    debugLog('recommendations.openai.success', {
-      resultCount: parsed.results.length,
-    });
-    return parsed.results;
+    // Every covered child retains a deterministic pick if the model omits them.
+    return renderRecommendationResults(Array.from(groups, ([label, options]) =>
+      picks.get(label) ?? { option: options[0] },
+    ));
   }
 
-  private async createResponse(prompt: string): Promise<string> {
+  private async createResponse(prompt: string, maxResults: number): Promise<string> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-
     try {
       const response = await fetch(this.responsesUrl, {
         method: 'POST',
         signal: controller.signal,
         headers: {
-          Authorization: `Bearer ${this.options.apiKey}`,
+          Authorization: 'Bearer ' + this.options.apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: this.options.model,
-          input: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'input_text',
-                  text: prompt,
-                },
-              ],
-            },
-          ],
+          input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }] }],
           text: {
             format: {
               type: 'json_schema',
@@ -115,23 +86,16 @@ export class OpenAiRecommendationEngineAdapter implements RecommendationEnginePo
                 properties: {
                   results: {
                     type: 'array',
-                    maxItems: 3,
+                    maxItems: maxResults,
                     items: {
                       type: 'object',
                       additionalProperties: false,
                       properties: {
                         eventId: { type: 'string' },
-                        reasons: {
-                          type: 'array',
-                          minItems: 1,
-                          maxItems: 3,
-                          items: { type: 'string' },
-                        },
-                        caution: {
-                          type: ['string', 'null'],
-                        },
+                        assignment: { type: 'string' },
+                        fact: { type: 'string' },
                       },
-                      required: ['eventId', 'reasons', 'caution'],
+                      required: ['eventId', 'assignment', 'fact'],
                     },
                   },
                 },
@@ -141,37 +105,41 @@ export class OpenAiRecommendationEngineAdapter implements RecommendationEnginePo
           },
         }),
       });
-      const payload = (await response.json().catch(() => null)) as OpenAiResponsePayload | null;
-      debugLog('recommendations.openai.responsePayload', {
-        payload: JSON.stringify(payload),
-      });
-
       if (!response.ok) {
-        throw new Error(
-          `OpenAI recommendation request failed with ${response.status}: ${JSON.stringify(payload)}`,
-        );
+        debugLog('recommendations.openai.httpError', { status: response.status });
+        throw new Error('Recommendation provider request failed.');
       }
-
-      return extractOutputText(payload);
-    } catch (error) {
-      if (isAbortError(error)) {
-        throw new Error(
-          `OpenAI recommendation request timed out after ${this.timeoutMs}ms.`,
-        );
-      }
-
-      throw error;
+      return extractOutputText(await response.json() as OpenAiResponsePayload);
+    } catch {
+      if (controller.signal.aborted) throw new Error('Recommendation provider request timed out.');
+      throw new Error('Recommendation provider request failed.');
     } finally {
       clearTimeout(timeout);
     }
   }
 }
 
-function isAbortError(error: unknown) {
-  return (
-    error instanceof Error &&
-    (error.name === 'AbortError' || error.message.includes('aborted'))
-  );
+function positiveLimit(value: number, fallback: number): number {
+  return Number.isSafeInteger(value) && value > 0 ? value : fallback;
+}
+
+function shortlistGroups(groups: Map<string, RecommendationOption[]>, budget: number) {
+  const eventIds = new Set<string>();
+  const groupOptions = [...groups.values()];
+  // Spend the shortlist budget on first choices across groups before adding alternatives.
+  for (let rank = 0; eventIds.size < budget && groupOptions.some(options => rank < options.length); rank++) {
+    for (const options of groupOptions) {
+      if (options[rank]) eventIds.add(options[rank].ranked.event.id);
+      if (eventIds.size >= budget) break;
+    }
+  }
+
+  const shortlisted = new Map<string, RecommendationOption[]>();
+  for (const [label, options] of groups) {
+    const matches = options.filter(option => eventIds.has(option.ranked.event.id));
+    if (matches.length > 0) shortlisted.set(label, matches);
+  }
+  return shortlisted;
 }
 
 function extractOutputText(payload: OpenAiResponsePayload | null): string {

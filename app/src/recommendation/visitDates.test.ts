@@ -2,6 +2,8 @@ import {
   formatVisitRange,
   isPastVisitRange,
   isPastRecommendationSession,
+  nextRecommendationDayBoundary,
+  recommendationSessionVisitRange,
   recommendationVisitRange,
 } from './visitDates';
 
@@ -48,4 +50,21 @@ test('leaves flexible, missing, and malformed dates unmarked', () => {
   expect(recommendationVisitRange(undefined, today)).toBeNull();
   expect(recommendationVisitRange('soon', new Date('invalid'))).toBeNull();
   expect(isPastVisitRange(null, today)).toBe(false);
+});
+
+test('uses the original date-only range and expires it at Seoul midnight', () => {
+  const session = {
+    status: 'success' as const,
+    createdAt: '2026-11-27T15:01:00Z',
+    preferences: {
+      visitWindow: 'this_weekend' as const,
+      resolvedVisitRange: { start: '2026-11-28', end: '2026-11-29' },
+    },
+  };
+  const range = recommendationSessionVisitRange(session);
+  expect(range && formatVisitRange(range)).toBe('11월 28일 (토)~11월 29일 (일)');
+  const midnight = Date.parse('2026-11-29T15:00:00Z');
+  expect(isPastRecommendationSession(session, new Date(midnight - 1))).toBe(false);
+  expect(isPastRecommendationSession(session, new Date(midnight))).toBe(true);
+  expect(nextRecommendationDayBoundary(new Date(midnight - 1))).toBe(midnight);
 });

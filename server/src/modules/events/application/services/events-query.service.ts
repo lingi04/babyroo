@@ -53,6 +53,11 @@ export class EventsQueryService
     return result;
   }
 
+  async listPublishedSnapshot(query: Pick<EventListQuery, 'startsBefore' | 'endsAfter'>): Promise<BabyrooEvent[]> {
+    const { filtered } = await this.filteredEvents(query);
+    return filtered;
+  }
+
   async count(query: EventListQuery): Promise<EventCountResult> {
     debugLog('events.count.start', {
       q: query.q,

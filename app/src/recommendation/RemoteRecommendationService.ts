@@ -33,6 +33,7 @@ type RemoteRecommendationSession = {
   userId: string;
   selectedChildIds: string[];
   selectedChildrenSnapshot?: Child[];
+  answers?: RecommendationRequest['answers'];
   preferences: RecommendationRequest['preferences'];
   results: RecommendationResult[];
   creditCost: number;
@@ -94,6 +95,7 @@ export class RemoteRecommendationService implements RecommendationService {
           userId: request.userId,
           selectedChildIds: request.selectedChildIds,
           selectedChildrenSnapshot: request.selectedChildren ?? this.options.selectedChildren,
+          answers: request.answers,
           preferences: request.preferences,
           results: [],
           creditCost: 0,
@@ -213,6 +215,7 @@ async function toRecommendationSession(
     userId: session.userId,
     selectedChildIds: session.selectedChildIds,
     selectedChildrenSnapshot: session.selectedChildrenSnapshot,
+    answers: session.answers,
     preferences: session.preferences,
     status:
       session.status === 'running'

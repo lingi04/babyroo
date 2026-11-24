@@ -59,7 +59,7 @@ def normalize_raw_event(raw: dict[str, Any]) -> NormalizedEvent:
         nursing_room=parse_bool_from_text(text, ["수유실"]),
         parking=parse_bool_from_text(text, ["주차"]),
         tags=make_parent_tags(payload, text, age_min_months),
-        summary=clean_string(payload.get("summary") or payload.get("description")),
+        summary=summary_with_schedule(payload),
         source=source,
         source_url=source_url,
         source_event_id=source_event_id,
@@ -105,6 +105,18 @@ def clean_string(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def summary_with_schedule(payload: dict[str, Any]) -> str | None:
+    summary = clean_string(payload.get("summary") or payload.get("description"))
+    notes = clean_string(payload.get("notes")) or ""
+    schedule = [
+        sentence.strip()
+        for sentence in re.split(r"[.\n]", notes)
+        if re.search(r"매주|소요\s*시간|러닝\s*타임|공연\s*시간", sentence)
+        and (not summary or sentence.strip() not in summary)
+    ]
+    return " ".join(filter(None, [summary, *(sentence + "." for sentence in schedule)])) or None
 
 
 def parse_locality(address: str | None) -> str | None:

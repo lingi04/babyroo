@@ -1,159 +1,208 @@
-import { BabyrooEvent } from '../../events/domain/event.entity';
-import { Child } from '../../users/domain/user.entity';
-import {
-  RecommendationPreferences,
-  RecommendationResult,
-} from './recommendation.entity';
+import type { BabyrooEvent } from '../../events/domain/event.entity';
+import type { Child } from '../../users/domain/user.entity';
+import type { RecommendationEngineInput } from '../application/ports/out/recommendation-engine.port';
+import { addDays, ageThresholdDate, completedMonths, isDateOnly, resolveVisitDateRange, seoulDate } from './recommendation-dates';
+import type { RecommendationResult, VisitDateRange } from './recommendation.entity';
+import { listedClosedWeekdays, recommendationEventFacts } from './recommendation-event-facts';
 
-type ScoredEvent = {
+export const SHARED_RESULT_LIMIT = 3;
+
+const categories = new Set(['performance', 'experience', 'play_space', 'exhibition']);
+
+type Attendance = {
+  start: string;
+  end: string;
+  ageLimited: boolean;
+};
+
+type SelectedChild = { label: string; child: Child };
+type RankedEvent = {
   event: BabyrooEvent;
-  score: number;
-  reasons: string[];
-  caution?: string;
+  facts: ReturnType<typeof recommendationEventFacts>;
+  closedWeekdays: Set<number>;
 };
-
-const REGION_BY_ANSWER: Record<string, string> = {
-  seoul: '서울',
-  gyeonggi: '경기',
+export type RecommendationOption = {
+  ranked: RankedEvent;
+  children: SelectedChild[];
+  attendance: Attendance;
 };
+type RecommendationPlan = {
+  mode: 'shared' | 'individual';
+  groups: Map<string, RecommendationOption[]>;
+  today: string;
+};
+export type RecommendationPick = { option: RecommendationOption; fact?: string };
 
 export class RuleBasedRecommender {
-  recommend(
-    events: BabyrooEvent[],
-    children: Child[],
-    preferences: RecommendationPreferences,
-  ): RecommendationResult[] {
-    const childAges = children.map(child => this.ageMonths(child.birthDate));
-    const region = preferences.startRegion
-      ? REGION_BY_ANSWER[preferences.startRegion]
-      : undefined;
-
-    return events
-      .filter(event => this.isRecommendationCandidate(event, childAges, region))
-      .map(event => this.scoreEvent(event, childAges, preferences))
-      .sort((a, b) => b.score - a.score || this.eventSequence(b.event) - this.eventSequence(a.event))
-      .slice(0, 3)
-      .map(scored => ({
-        eventId: scored.event.id,
-        reasons: scored.reasons.slice(0, 3),
-        caution: scored.caution,
-      }));
+  recommend(input: RecommendationEngineInput): RecommendationResult[] {
+    const plan = rankRecommendations(input);
+    return renderRecommendationResults(deterministicPicks(plan));
   }
+}
 
-  private isRecommendationCandidate(
-    event: BabyrooEvent,
-    childAges: number[],
-    region?: string,
-  ): boolean {
-    if (event.endsAt && event.endsAt < this.today()) {
-      return false;
-    }
-    if (region && event.region !== region) {
-      return false;
-    }
-    if (!['performance', 'experience', 'play_space', 'exhibition'].includes(event.category)) {
-      return false;
-    }
-    if (event.reservationStatus === 'closed') {
-      return false;
-    }
-    if (childAges.length === 0) {
-      return true;
-    }
-    return childAges.some(age => this.matchesAge(event, age));
-  }
+export function rankRecommendations(input: RecommendationEngineInput): RecommendationPlan {
+  const { events, children, preferences, requestedAt } = input;
+  const today = seoulDate(requestedAt);
+  const visit = preferences.resolvedVisitRange ?? resolveVisitDateRange(preferences.visitWindow, today);
+  const requestedStart = visit?.start ?? today;
+  const ids = [...new Set(input.selectedChildIds ?? children.map(child => child.id))];
+  const snapshot = new Map(children.map(child => [child.id, child]));
+  const selected = ids.flatMap((id, index) => {
+    const child = snapshot.get(id);
+    return child && isDateOnly(child.birthDate) && child.birthDate <= today
+      ? [{ label: 'child-' + (index + 1), child }]
+      : [];
+  });
+  const region = preferences.startRegion === 'seoul' ? '서울'
+    : preferences.startRegion === 'gyeonggi' ? '경기' : undefined;
+  const shared: RecommendationOption[] = [];
+  const individual = new Map(selected.map(({ label }) => [label, [] as RecommendationOption[]]));
 
-  private scoreEvent(
-    event: BabyrooEvent,
-    childAges: number[],
-    preferences: RecommendationPreferences,
-  ): ScoredEvent {
-    let score = this.eventSequence(event);
-    const reasons: string[] = [];
-    let caution: string | undefined;
+  for (const event of events) {
+    if (!categories.has(event.category) || event.reservationStatus === 'closed' ||
+        (region && event.region !== region) ||
+        (event.publicationStatus && event.publicationStatus !== 'published')) continue;
+    if (!isDateOnly(event.startsAt) || !isDateOnly(event.endsAt)) continue;
+    const start = event.startsAt > requestedStart ? event.startsAt : requestedStart;
+    const end = visit && visit.end < event.endsAt ? visit.end : event.endsAt;
+    if (start > end) continue;
 
-    if (childAges.some(age => this.matchesAge(event, age))) {
-      score += 40;
-      reasons.push('Selected child age matches this event.');
-    } else if (childAges.length === 0) {
-      caution = 'Child age was not provided, so age fit should be checked.';
+    const closedWeekdays = listedClosedWeekdays(event);
+    const calendar = openInterval({ start, end }, closedWeekdays);
+    if (!calendar) continue;
+    const ranked = { event, facts: recommendationEventFacts(event, preferences), closedWeekdays };
+    if (ids.length === 0) {
+      shared.push({ ranked, children: [], attendance: { ...calendar, ageLimited: false } });
+      continue;
     }
 
-    if (event.indoor === true) {
-      reasons.push('This is an indoor option.');
-      if (
-        preferences.weatherPlan === 'prefer_indoor' ||
-        preferences.place === 'indoor'
-      ) {
-        score += 25;
+    const eligible = selected.flatMap(child => {
+      const attendance = ageInterval(event, child.child.birthDate, calendar, closedWeekdays);
+      return attendance ? [{ ranked, children: [child], attendance }] : [];
+    });
+    if (eligible.length === ids.length) {
+      const common = eligible.reduce<VisitDateRange>((range, { attendance }) => ({
+        start: attendance.start > range.start ? attendance.start : range.start,
+        end: attendance.end < range.end ? attendance.end : range.end,
+      }), calendar);
+      if (common.start <= common.end) {
+        shared.push({
+          ranked,
+          children: selected,
+          attendance: {
+            ...common,
+            ageLimited: common.start !== calendar.start || common.end !== calendar.end,
+          },
+        });
+        continue;
       }
     }
-
-    if (preferences.price === 'free' && event.priceType === 'free') {
-      score += 20;
-      reasons.push('It is listed as free.');
-    } else if (preferences.price === 'low' && event.priceType !== 'paid') {
-      score += 10;
+    for (const option of eligible) {
+      individual.get(option.children[0].label)!.push(option);
     }
-
-    if (
-      preferences.reservation === 'no_reservation' &&
-      event.reservationRequired === false
-    ) {
-      score += 15;
-      reasons.push('It does not require reservation.');
-    }
-
-    if (preferences.activity && preferences.activity !== 'any') {
-      if (event.category === preferences.activity) {
-        score += 15;
-        reasons.push(`It matches the ${preferences.activity} preference.`);
-      }
-    }
-
-    if (event.guardianRequired) {
-      reasons.push('Guardian participation is noted.');
-    }
-
-    if (reasons.length === 0) {
-      reasons.push('It is a currently published Babyroo event.');
-    }
-
-    if (!caution && event.reservationStatus === 'unknown') {
-      caution = 'Reservation availability should be checked on the source page.';
-    }
-
-    return { event, score, reasons, caution };
   }
 
-  private matchesAge(event: BabyrooEvent, ageMonths: number): boolean {
-    if (event.ageMinMonths === undefined && event.ageMaxMonths === undefined) {
-      return false;
-    }
-    if (event.ageMinMonths !== undefined && ageMonths < event.ageMinMonths) {
-      return false;
-    }
-    if (event.ageMaxMonths !== undefined && ageMonths > event.ageMaxMonths) {
-      return false;
-    }
-    return true;
+  if (shared.length > 0 || ids.length === 0) {
+    return { mode: 'shared', groups: new Map([['all', shared.sort(compareOptions)]]), today };
+  }
+  for (const [label, options] of individual) {
+    if (options.length === 0) individual.delete(label);
+    else options.sort(compareOptions);
+  }
+  return { mode: 'individual', groups: individual, today };
+}
+
+function openInterval(
+  { start, end }: VisitDateRange,
+  closedWeekdays: Set<number>,
+): VisitDateRange | undefined {
+  if (closedWeekdays.size === 7) return undefined;
+  while (start <= end && closedWeekdays.has(new Date(start).getUTCDay())) start = addDays(start, 1);
+  while (start <= end && closedWeekdays.has(new Date(end).getUTCDay())) end = addDays(end, -1);
+  return start <= end ? { start, end } : undefined;
+}
+
+function ageInterval(
+  event: BabyrooEvent,
+  birthDate: string,
+  calendar: VisitDateRange,
+  closedWeekdays: Set<number>,
+): Attendance | undefined {
+  const min = event.ageMinMonths;
+  const max = event.ageMaxMonths;
+  if (min === undefined && max === undefined) return undefined;
+  if ((min !== undefined && (!Number.isSafeInteger(min) || min < 0)) ||
+      (max !== undefined && (!Number.isSafeInteger(max) || max < 0))) return undefined;
+  if ((min !== undefined && completedMonths(birthDate, calendar.end) < min) ||
+      (max !== undefined && completedMonths(birthDate, calendar.start) > max)) return undefined;
+
+  const start = min !== undefined && completedMonths(birthDate, calendar.start) < min
+    ? ageThresholdDate(birthDate, min) : calendar.start;
+  const end = max !== undefined && completedMonths(birthDate, calendar.end) > max
+    ? addDays(ageThresholdDate(birthDate, max + 1), -1) : calendar.end;
+  const open = openInterval({ start, end }, closedWeekdays);
+  return open && { ...open, ageLimited: open.start !== calendar.start || open.end !== calendar.end };
+}
+
+function compareOptions(a: RecommendationOption, b: RecommendationOption) {
+  const left = a.ranked.facts;
+  const right = b.ranked.facts;
+  return right.practical - left.practical || right.interest - left.interest ||
+    right.activity - left.activity || (b.ranked.event.csvSequence ?? 0) - (a.ranked.event.csvSequence ?? 0);
+}
+
+export function deterministicPicks(plan: RecommendationPlan): RecommendationPick[] {
+  return Array.from(plan.groups.values()).flatMap(options =>
+    options.slice(0, plan.mode === 'shared' ? SHARED_RESULT_LIMIT : 1).map(option => ({ option })),
+  );
+}
+
+export function renderRecommendationResults(picks: RecommendationPick[]): RecommendationResult[] {
+  const byEvent = new Map<string, RecommendationPick[]>();
+  for (const pick of picks) {
+    const id = pick.option.ranked.event.id;
+    const group = byEvent.get(id) ?? [];
+    group.push(pick);
+    byEvent.set(id, group);
   }
 
-  private ageMonths(birthDate: string): number {
-    const birth = new Date(`${birthDate}T00:00:00.000Z`);
-    const now = new Date();
-    return (
-      (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 +
-      now.getUTCMonth() -
-      birth.getUTCMonth()
-    );
-  }
+  return Array.from(byEvent, ([eventId, group]) => {
+    const { event, facts, closedWeekdays } = group[0].option.ranked;
+    const attendanceReasons = group.flatMap(({ option }) => attendanceReason(option));
+    const details = new Set(group.flatMap(({ fact }) => fact && fact !== 'published' && facts.facts[fact] ? [facts.facts[fact]] : []));
+    for (const [key, detail] of Object.entries(facts.facts)) {
+      if (key !== 'published') details.add(detail);
+    }
+    const reasons = [...new Set(attendanceReasons), ...Array.from(details).slice(0, attendanceReasons.length ? 2 : 3)];
+    if (reasons.length === 0) reasons.push(facts.facts.published);
 
-  private today(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
+    const cautions = [];
+    if (attendanceReasons.length === 0) cautions.push('아이의 참여 가능 연령을 확인해 주세요.');
+    if (closedWeekdays.size > 0) {
+      const days = [...closedWeekdays].map(day => ['일', '월', '화', '수', '목', '금', '토'][day] + '요일');
+      cautions.push('매주 ' + days.join(', ') + '은 운영하지 않는다고 안내돼 있어요.');
+    }
+    if (event.reservationStatus === 'unknown' && event.reservationRequired !== false) {
+      cautions.push('원문에서 예약 가능 여부를 확인해 주세요.');
+    }
+    return { eventId, reasons, caution: cautions.join(' ') || undefined };
+  });
+}
 
-  private eventSequence(event: BabyrooEvent): number {
-    return event.csvSequence ?? 0;
-  }
+function attendanceReason({ attendance, children }: RecommendationOption): string[] {
+  if (children.length === 0) return [];
+  const { start, end, ageLimited } = attendance;
+  const namesAndAges = children.map(({ child }) =>
+    child.nickname + '(' + completedMonths(child.birthDate, start) + '개월)',
+  );
+  const eligibleChildren = namesAndAges.join(', ') + (children.length > 1 ? ' 모두' : '도');
+  const visit = koreanDate(start) + '에 방문한다면 ' + eligibleChildren + ' 참여할 수 있어요.';
+  if (!ageLimited) return [visit];
+  const dates = start === end ? koreanDate(start) : koreanDate(start) + '~' + koreanDate(end);
+  return [visit + ' 연령 기준으로 가능한 날짜는 ' + dates + '이에요.'];
+}
+
+function koreanDate(day: string): string {
+  const [, month, date] = day.split('-').map(Number);
+  return month + '월 ' + date + '일';
 }

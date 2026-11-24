@@ -1,8 +1,22 @@
 import { Child } from '../../users/domain/user.entity';
 
+export const RECOMMENDATION_INTERESTS = [
+  'interest_transport',
+  'interest_animals',
+  'interest_water',
+  'interest_music',
+  'interest_any',
+] as const;
+
+export type VisitDateRange = { start: string; end: string };
+export type DepartureArea = { region: string; locality?: string };
+
 export type RecommendationPreferences = Partial<{
+  interest: (typeof RECOMMENDATION_INTERESTS)[number];
   startRegion: 'seoul' | 'gyeonggi' | 'other';
   departureAddress: string;
+  departureArea: DepartureArea;
+  resolvedVisitRange: VisitDateRange;
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
   weatherPlan: 'outdoor_if_suitable' | 'prefer_indoor' | 'prefer_outdoor';
   mobility: 'car' | 'transit' | 'nearby';

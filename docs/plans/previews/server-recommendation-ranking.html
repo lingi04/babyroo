@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Babyroo result card copy review</title>
+<style>
+  * { box-sizing: border-box; }
+  body { max-width: 840px; margin: 24px auto; padding: 0 12px; color: #29231f; background: #f9f7f5; font: 15px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 21px; margin: 0 0 16px; }
+  h2 { font-size: 14px; margin: 0 0 8px; }
+  .comparison { display: flex; align-items: start; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  figure { width: 390px; max-width: 100%; margin: 0; }
+  .screen { position: relative; width: 100%; aspect-ratio: 390 / 695; overflow: hidden; background: white; border: 1px solid #e7e0db; border-radius: 15px; }
+  .screen img { display: block; width: 100%; position: absolute; top: -19%; left: 0; }
+  .reasons { position: absolute; top: 57.6%; left: 32.2%; width: 56.9%; min-height: 23%; padding: 12px; border-radius: 11px; border: 1px solid #e4ddd7; background: #f3ede8; color: #57534f; font-size: 12px; font-weight: 700; line-height: 17px; }
+  .reasons h3 { margin: 0 0 6px; color: #c64c1e; font-size: 12px; font-weight: 900; }
+  .reasons p { margin: 0; }
+  .reasons h4 { margin: 10px 0 4px; color: #2b2521; font-size: 12px; font-weight: 900; }
+  figcaption { margin: 7px 0 15px; font-size: 13px; }
+</style>
+<h1>Visit-date age in the result card</h1>
+<main class="comparison">
+  <figure>
+    <h2>Existing Android screenshot</h2>
+    <div class="screen">
+      <img src="../../../app/store-assets/real-screenshots/04-recommendation-detail.png" alt="Existing Babyroo result card and its recommendation reasons">
+    </div>
+    <figcaption>Repository screenshot, shown at a 390 px reference width.</figcaption>
+  </figure>
+  <figure>
+    <h2>Updated copy preview</h2>
+    <div class="screen">
+      <img src="../../../app/store-assets/real-screenshots/04-recommendation-detail.png" alt="" aria-hidden="true">
+      <section class="reasons" lang="ko">
+        <h3>추천 이유</h3>
+        <p>11월 29일에 방문한다면 하윤(24개월), 서준(54개월) 모두 참여할 수 있어요.</p>
+        <p>실내에서 즐길 수 있어요.</p>
+        <p>입장료가 무료로 안내돼 있어요.</p>
+        <h4>확인할 점</h4>
+        <p>원문에서 예약 가능 여부를 확인해 주세요.</p>
+      </section>
+    </div>
+    <figcaption>Static mockup with a shared outing and the children’s ages on the same visit date.</figcaption>
+  </figure>
+</main>
+</html>

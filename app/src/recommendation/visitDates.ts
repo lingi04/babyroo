@@ -1,5 +1,23 @@
 import type { Preferences, RecommendationSession } from './types';
 
+const seoulDateFormatter = new Intl.DateTimeFormat('en', {
+  timeZone: 'Asia/Seoul', calendar: 'gregory', numberingSystem: 'latn',
+  year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+function seoulCalendarDay(date: Date): string {
+  const parts = seoulDateFormatter.formatToParts(date);
+  return ['year', 'month', 'day'].map(type => parts.find(part => part.type === type)?.value).join('-');
+}
+
+export function nextRecommendationDayBoundary(now: Date) {
+  const localMidnight = new Date(now);
+  localMidnight.setHours(24, 0, 0, 0);
+  const seoulMidnight = new Date(seoulCalendarDay(now) + 'T00:00:00+09:00');
+  seoulMidnight.setUTCDate(seoulMidnight.getUTCDate() + 1);
+  return Math.min(localMidnight.getTime(), seoulMidnight.getTime());
+}
+
 function addDays(date: Date, days: number) {
   const next = new Date(date);
   next.setDate(next.getDate() + days);
@@ -50,10 +68,29 @@ export function isPastRecommendationSession(
   session: Pick<RecommendationSession, 'status' | 'createdAt' | 'preferences'>,
   today: Date,
 ) {
+  const savedRange = session.preferences.resolvedVisitRange;
+  if (savedRange) {
+    const seoulToday = seoulCalendarDay(today);
+    return session.status === 'success' && savedRange.end < seoulToday;
+  }
   return session.status === 'success' && isPastVisitRange(
     recommendationVisitRange(session.preferences.visitWindow, new Date(session.createdAt)),
     today,
   );
+}
+
+export function recommendationSessionVisitRange(
+  session: Pick<RecommendationSession, 'createdAt' | 'preferences'>,
+) {
+  const range = session.preferences.resolvedVisitRange;
+  if (range) {
+    const dateOnly = (day: string) => {
+      const [year, month, date] = day.split('-').map(Number);
+      return new Date(year, month - 1, date);
+    };
+    return { start: dateOnly(range.start), end: dateOnly(range.end) };
+  }
+  return recommendationVisitRange(session.preferences.visitWindow, new Date(session.createdAt));
 }
 
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];

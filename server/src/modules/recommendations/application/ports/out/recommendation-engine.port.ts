@@ -1,5 +1,5 @@
 import { BabyrooEvent } from '../../../../events/domain/event.entity';
-import { Child, UserHomeAddress } from '../../../../users/domain/user.entity';
+import { Child } from '../../../../users/domain/user.entity';
 import {
   RecommendationPreferences,
   RecommendationResult,
@@ -10,10 +10,9 @@ export const RECOMMENDATION_ENGINE_PORT = Symbol('RECOMMENDATION_ENGINE_PORT');
 export type RecommendationEngineInput = {
   events: BabyrooEvent[];
   children: Child[];
+  selectedChildIds?: string[];
   preferences: RecommendationPreferences;
   requestedAt: string;
-  userHomeRegion: string;
-  userHomeAddress?: UserHomeAddress;
 };
 
 export interface RecommendationEnginePort {

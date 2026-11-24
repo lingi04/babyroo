@@ -22,8 +22,7 @@ async function fixture({ results = [], error, pushError, saveError } = {}) {
   if (saveError) sessions.update = async () => { throw saveError; };
   const processor = new RecommendationJobProcessor(
     sessions,
-    { getRequiredUser: async () => ({ id: 'user-1' }) },
-    { list: async () => ({ events: [] }) },
+    { listPublishedSnapshot: async () => [] },
     { consumeRecommendationCredit: async () => { charges += 1; } },
     { recommend: async () => { if (error) throw error; return results; } },
     { sendRecommendationCompleted: async completion => {
@@ -72,8 +71,7 @@ test('a failed request costs zero and a new successful retry costs exactly one',
   await f.sessions.create({ ...failed, id:'retry-1', status:'running', error:undefined });
   const processor = new RecommendationJobProcessor(
     f.sessions,
-    {getRequiredUser:async()=>({id:'user-1'})},
-    {list:async()=>({events:[]})},
+    {listPublishedSnapshot:async()=>[]},
     {consumeRecommendationCredit:async()=>{ charges += 1; }},
     {recommend:async()=>[{eventId:'event-1',reasons:[]}]},
     {sendRecommendationCompleted:async()=>{}},
@@ -191,8 +189,7 @@ test('a replacement provider works through the same recommendation processor', a
   });
   const processor = new RecommendationJobProcessor(
     f.sessions,
-    { getRequiredUser: async () => ({ id: 'user-1' }) },
-    { list: async () => ({ events: [] }) },
+    { listPublishedSnapshot: async () => [] },
     { consumeRecommendationCredit: async () => {} },
     { recommend: async () => [] },
     new RecommendationNotificationService(devices, other),

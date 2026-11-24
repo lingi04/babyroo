@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { buildQuestionnaire } from './src/recommendation/questionnaire';
+import {
+  buildQuestionnaire,
+  recommendationInterestQuestion,
+} from './src/recommendation/questionnaire';
 import { QuestionnaireCard } from './src/recommendation/QuestionnaireCard';
 import { RecommendationWelcome } from './src/recommendation/RecommendationWelcome';
 import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
@@ -80,7 +83,7 @@ import { useLocalToday } from './src/recommendation/useLocalToday';
 import {
   formatVisitRange,
   isPastRecommendationSession,
-  recommendationVisitRange,
+  recommendationSessionVisitRange,
 } from './src/recommendation/visitDates';
 import { AuthSession } from './src/auth/types';
 import { AuthWelcome } from './src/auth/AuthWelcome';
@@ -1050,14 +1053,6 @@ function BabyrooApp() {
             <RecommendationSessionDetail
               bottomInset={bottomInset}
               events={events}
-              questions={buildRecommendationQuestions(
-                events,
-                recommendationSessionChildren(selectedRecommendationSession),
-                preferencesToAnswers(selectedRecommendationSession.preferences),
-                user.homeAddress,
-                undefined,
-                new Date(selectedRecommendationSession.createdAt),
-              )}
               session={selectedRecommendationSession}
               topInset={topInset}
               onBack={closeRecommendationDetail}
@@ -1734,10 +1729,11 @@ function HomeScreen({
       return;
     }
     const preferences = source?.preferences ??
-      answersToPreferences(answers, departureAddress);
-    // Interest is a UI preview until backend ranking supports it.
-    const submittedAnswers = { ...answers };
-    delete submittedAnswers.interest;
+      answersToPreferences(
+        answers,
+        answers.startRegion === 'departure_input' ? departureAddress : user.homeAddress,
+      );
+    const { resolvedVisitRange: _priorVisitRange, ...requestPreferences } = preferences;
     const requestedAt = new Date().toISOString();
 
     const recommendationService = new RemoteRecommendationService({
@@ -1752,8 +1748,8 @@ function HomeScreen({
         selectedChildIds: source?.selectedChildIds ??
           requestChildren.map(child => child.id),
         selectedChildren: requestChildren,
-        answers: submittedAnswers,
-        preferences,
+        answers,
+        preferences: requestPreferences,
         client: {
           locale: 'ko-KR',
           timezone: 'Asia/Seoul',
@@ -1798,7 +1794,7 @@ function HomeScreen({
     if (!retryRequest) return;
     onRetryStarted();
     retryHandler.current(
-      preferencesToAnswers(retryRequest.preferences), retryRequest,
+      recommendationSessionAnswers(retryRequest), retryRequest,
     ).catch(() => console.warn('[Babyroo] Could not retry recommendation.'));
   }, [retryRequest, onRetryStarted]);
 
@@ -2245,10 +2241,7 @@ function RecommendationSessionCard({
 }) {
   const isLoading = session.status === 'loading';
   const isSuccess = session.status === 'success';
-  const range = recommendationVisitRange(
-    session.preferences.visitWindow,
-    new Date(session.createdAt),
-  );
+  const range = recommendationSessionVisitRange(session);
   const isPast = isPastRecommendationSession(session, today);
   const createdAt = new Date(session.createdAt);
   const title = `${
@@ -3522,7 +3515,6 @@ function RecommendationSessionDetail({
   onBack,
   onOpenEvent,
   onRetry,
-  questions,
   session,
   topInset,
 }: {
@@ -3531,15 +3523,12 @@ function RecommendationSessionDetail({
   onBack: () => void;
   onOpenEvent: (event: BabyrooEvent) => void;
   onRetry: () => void;
-  questions: RecommendationQuestion[];
   session: RecommendationSession;
   topInset: number;
 }) {
   const today = useLocalToday();
-  const visitRange = recommendationVisitRange(
-    session.preferences.visitWindow,
-    new Date(session.createdAt),
-  );
+  const visitRange = recommendationSessionVisitRange(session);
+  const answers = recommendationSessionAnswers(session);
   const isPast = isPastRecommendationSession(session, today);
   const recommendedEvents = session.results
     .map(result =>
@@ -3604,8 +3593,8 @@ function RecommendationSessionDetail({
         ) : null}
 
         <RecommendationAnswerSummary
-          answers={preferencesToAnswers(session.preferences)}
-          questions={questions}
+          answers={answers}
+          questions={recommendationHistoryQuestions(session, answers)}
         />
 
         {__DEV__ && session.debug ? (
@@ -5267,6 +5256,33 @@ function buildRecommendationQuestions(
   ];
 }
 
+const durationRecommendationQuestion: RecommendationQuestion = {
+  id: 'duration',
+  prompt: '짧게 머물 수 있는 곳이 좋으세요?',
+  options: [
+    { label: '짧은 코스가 좋아요', value: 'duration_short' },
+    { label: '상관없어요', value: 'duration_any' },
+  ],
+};
+const placeRecommendationQuestion: RecommendationQuestion = {
+  id: 'place',
+  prompt: '실내와 야외 중 어디가 더 편하세요?',
+  options: [
+    { label: '실내 위주', value: 'place_indoor' },
+    { label: '야외도 좋아요', value: 'place_outdoor' },
+    { label: '상관없어요', value: 'place_any' },
+  ],
+};
+const activityRecommendationQuestion: RecommendationQuestion = {
+  id: 'activityStyle',
+  prompt: '어떤 활동이 더 끌리세요?',
+  options: [
+    { label: '직접 체험', value: 'activity_experience' },
+    { label: '전시 관람', value: 'activity_exhibition' },
+    { label: '상관없어요', value: 'activity_any' },
+  ],
+};
+
 function selectAdaptiveRecommendationQuestion(
   events: BabyrooEvent[],
   selectedChildren: Child[],
@@ -5275,47 +5291,50 @@ function selectAdaptiveRecommendationQuestion(
   const youngestChildAge = selectedChildren.reduce<number | null>(
     (youngestAge, child) => {
       const childAge = calculateAgeMonths(child.birthDate, asOfDate);
-
       return youngestAge == null ? childAge : Math.min(youngestAge, childAge);
     },
     null,
   );
 
   if (youngestChildAge != null && youngestChildAge < 24) {
-    return {
-      id: 'duration',
-      prompt: '짧게 머물 수 있는 곳이 좋으세요?',
-      options: [
-        { label: '짧은 코스가 좋아요', value: 'duration_short' },
-        { label: '상관없어요', value: 'duration_any' },
-      ],
-    };
+    return durationRecommendationQuestion;
   }
-
-  const hasIndoor = events.some(event => event.indoor === true);
-  const hasOutdoor = events.some(event => event.indoor === false);
-
-  if (hasIndoor && hasOutdoor) {
-    return {
-      id: 'place',
-      prompt: '실내와 야외 중 어디가 더 편하세요?',
-      options: [
-        { label: '실내 위주', value: 'place_indoor' },
-        { label: '야외도 좋아요', value: 'place_outdoor' },
-        { label: '상관없어요', value: 'place_any' },
-      ],
-    };
+  if (events.some(event => event.indoor === true) && events.some(event => event.indoor === false)) {
+    return placeRecommendationQuestion;
   }
+  return activityRecommendationQuestion;
+}
 
-  return {
-    id: 'activityStyle',
-    prompt: '어떤 활동이 더 끌리세요?',
-    options: [
-      { label: '직접 체험', value: 'activity_experience' },
-      { label: '전시 관람', value: 'activity_exhibition' },
-      { label: '상관없어요', value: 'activity_any' },
-    ],
-  };
+function recommendationSessionAnswers(session: RecommendationSession): RecommendationAnswerMap {
+  return session.answers && Object.keys(session.answers).length > 0
+    ? session.answers
+    : preferencesToAnswers(session.preferences);
+}
+
+function recommendationHistoryQuestions(
+  session: RecommendationSession,
+  answers: RecommendationAnswerMap,
+): RecommendationQuestion[] {
+  const questions = coreRecommendationQuestions(answers);
+  const area = session.preferences.departureArea;
+  const departureLabel = [area?.region, area?.locality].filter(Boolean).join(' ');
+  questions[0].options = [
+    { value: 'region_seoul', label: departureLabel || '서울' },
+    { value: 'region_gyeonggi', label: departureLabel || '경기' },
+    { value: 'region_other', label: departureLabel || '기타 지역' },
+    {
+      value: 'departure_input',
+      label: departureLabel || session.preferences.departureAddress || '직접 입력한 출발지',
+    },
+  ];
+  return [
+    ...questions.slice(0, 2),
+    recommendationInterestQuestion,
+    ...questions.slice(2),
+    durationRecommendationQuestion,
+    placeRecommendationQuestion,
+    activityRecommendationQuestion,
+  ];
 }
 
 function recommendationQuestionLabel(question: RecommendationQuestion) {
@@ -5423,17 +5442,28 @@ function answersToPreferences(
   answers: RecommendationAnswerMap,
   departureAddress?: UserHomeAddress,
 ): Preferences {
+  const regionAnswer = answers.startRegion === 'departure_input' && departureAddress
+    ? regionAnswerValueFromAddress(departureAddress)
+    : answers.startRegion;
   return {
+    interest:
+      answers.interest === 'interest_transport' ||
+      answers.interest === 'interest_animals' ||
+      answers.interest === 'interest_water' ||
+      answers.interest === 'interest_music' ||
+      answers.interest === 'interest_any'
+        ? answers.interest
+        : undefined,
     startRegion:
-      answers.startRegion === 'region_seoul'
+      regionAnswer === 'region_seoul'
         ? 'seoul'
-        : answers.startRegion === 'region_gyeonggi'
+        : regionAnswer === 'region_gyeonggi'
         ? 'gyeonggi'
-        : answers.startRegion === 'region_other'
+        : regionAnswer === 'region_other'
         ? 'other'
         : undefined,
-    departureAddress: departureAddress
-      ? formatHomeAddress(departureAddress)
+    departureArea: departureAddress?.sido
+      ? { region: departureAddress.sido, locality: departureAddress.sigungu }
       : undefined,
     visitWindow:
       answers.visitDay === 'visit_soon'
@@ -5514,6 +5544,7 @@ function preferencesToAnswers(
   preferences: Preferences,
 ): RecommendationAnswerMap {
   return {
+    interest: preferences.interest,
     startRegion:
       preferences.startRegion === 'seoul'
         ? 'region_seoul'

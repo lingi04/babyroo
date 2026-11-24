@@ -15,8 +15,11 @@ export type RecommendationErrorCode =
   | 'unknown';
 
 export type Preferences = Partial<{
+  interest: RecommendationInterest;
   startRegion: 'seoul' | 'gyeonggi' | 'other';
   departureAddress: string;
+  departureArea: { region: string; locality?: string };
+  resolvedVisitRange: { start: string; end: string };
   visitWindow: 'soon' | 'this_weekend' | 'next_week' | 'flexible';
   weatherPlan: 'outdoor_if_suitable' | 'prefer_indoor' | 'prefer_outdoor';
   mobility: 'car' | 'transit' | 'nearby';
@@ -28,12 +31,15 @@ export type Preferences = Partial<{
   activity: 'experience' | 'exhibition' | 'any';
 }>;
 
-export type RecommendationAnswerValue =
+export type RecommendationInterest =
   | 'interest_transport'
   | 'interest_animals'
   | 'interest_water'
   | 'interest_music'
-  | 'interest_any'
+  | 'interest_any';
+
+export type RecommendationAnswerValue =
+  | RecommendationInterest
   | 'region_seoul'
   | 'region_gyeonggi'
   | 'region_other'
@@ -150,6 +156,7 @@ export type RecommendationSession = {
   userId: string;
   selectedChildIds: string[];
   selectedChildrenSnapshot?: Child[];
+  answers?: RecommendationAnswerMap;
   preferences: Preferences;
   status: 'loading' | 'success' | 'failed';
   results: RecommendationResult[];

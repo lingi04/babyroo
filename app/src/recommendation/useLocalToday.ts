@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
-import { localDayStart } from './visitDates';
+import { nextRecommendationDayBoundary } from './visitDates';
 
 export function useLocalToday() {
-  const [today, setToday] = useState(() => localDayStart(new Date()));
+  const [today, setToday] = useState(() => Date.now());
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     function refresh() {
       clearTimeout(timer);
       const now = new Date();
-      setToday(localDayStart(now));
-      const tomorrow = new Date(now);
-      tomorrow.setHours(24, 0, 0, 0);
-      timer = setTimeout(refresh, tomorrow.getTime() - now.getTime());
+      setToday(now.getTime());
+      timer = setTimeout(refresh, nextRecommendationDayBoundary(now) - now.getTime());
     }
 
     refresh();
