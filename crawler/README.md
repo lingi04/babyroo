@@ -1,5 +1,198 @@
 # Babyroo crawler
 
+## Extracting newly discovered event details
+
+Search-only (v1) input continues to produce review suggestions. Version 2 adds
+official detail-page extraction by Hermes and deterministic Python validation.
+Use `crawler/prompts/discovery-extraction.md` as the scheduled Hermes task template;
+it replaces the earlier search-only prompt. This change does not install a bot,
+select a model/provider, or register a cron job.
+
+The sequence is: fresh web search -> queue known/pending/new URLs -> Hermes reads
+official details -> captured source text/hash -> structured extraction proposal ->
+Python evidence/type/date/identity gate -> catalog/review PR. Python never calls
+an LLM API or fetches arbitrary candidate URLs. It preserves the configured Hermes
+model as the extraction owner. Official ownership and facts still need human PR
+review; hashes/quote spans only check supplied material's internal consistency.
+
+Prepare a fresh clean-main checkout and an external batch directory first. Queue
+preparation verifies HEAD equals fetched origin/main and baseline/review files are
+clean. `--state` and `--output` must be outside that checkout:
+
+```sh
+python3 scripts/discovery_queue.py --catalog-root /absolute/path/to/clean-main \
+  --discovery-input /absolute/path/to/batch/search.json \
+  --state /absolute/path/to/hermes-state/queue.json \
+  --output /absolute/path/to/batch/queue.json
+```
+
+The queue selects up to 20 candidates, splitting slots between external-source
+rechecks/pending leads and new discoveries. Unused slots are reused by the other
+group; cursors rotate larger queues. The external state file retains selected and
+deferred new leads until they enter catalog/review state, even without rediscovery.
+A selected candidate's fetch failure remains a visible
+retryable review outcome and never removes its existing catalog event.
+
+Save actual visible web-tool text in `<batch>/raw/<document-id>.txt`, then run:
+
+```sh
+python3 scripts/discovery_bundle.py capture --batch-root /absolute/path/to/batch \
+  --document-id doc-1 --candidate-id candidate-1 \
+  --url https://official-venue.example/detail --fetched-at ACTUAL_ISO_TIMESTAMP
+```
+
+The example domain is a placeholder, not an actual source. The helper creates
+normalized UTF-8/NFC/LF text and metadata under batch/documents/. Build a version-2
+batch.draft.json from generated document metadata and Hermes's factual proposals.
+The exact contract is in extraction_schema.py and the task template. All selected
+candidate IDs must be accounted for, and references may not cross candidates.
+Unknown schema versions, hashes, invalid paths/symlinks or malformed whole batches
+fail before catalog writes. v2 allows empty search keywords for recheck-only runs.
+
+```sh
+python3 scripts/discovery_bundle.py finalize --batch-root /absolute/path/to/batch
+python3 scripts/event_refresh_pr.py --discovery-input /absolute/path/to/batch/bundle.json
+```
+
+The second command is a dry run; add `--github-repo lingi04/babyroo --submit` when
+authorized to push/open PRs. Keep bundle.json, queue.json and documents/ together.
+Validation binds the batch to the exact queue file using its SHA-256 and selected IDs.
+Do not modify captured documents after finalization. Source text remains external;
+only bounded quotes, computed spans, source URLs/hashes and outcomes enter PR review
+artifacts. No full pages, credentials or model reasoning enter events.json.
+
+Ready records have the full 30-field catalog shape. Unknown optional facts are
+null/unknown. Concrete claims need official-text evidence, with conservative age,
+date, boolean, price and reservation checks. Unsupported/ambiguous proposals stay
+review-only (or are rejected for invalid field types/enums). Never guess missing
+dates or treat unknown amenities as false. Native structured collectors take
+precedence when they and extraction identify the same record.
+
+Confirmed permanent venues get exactly `1970-01-01` to `9999-12-31`; Hermes must
+provide affirmative ongoing/permanent-operation evidence and leave those dates
+for Python to assign. These dates are availability sentinels, not historical
+opening dates, a promise of daily opening, or a substitute for missing event dates.
+Existing native venue dates are not bulk migrated. The app may currently display
+literal sentinel years; UI formatting is a separate follow-up before user rollout.
+
+`data/discovery/identities.json` preserves date-independent identities and reviewed
+URL aliases/edition keys. Corrected dates reuse the same ID. Ambiguous annual
+editions, shared homepages and fuzzy cross-source matches require review. Pending
+items and operator notes survive subsequent searches. Confidence, evidence text
+formatting and capture timestamps alone do not create a PR.
+
+Budgets are represented by `extraction_schema.Limits` (20 active candidates,
+3 documents/candidate, 40 proposals, 100 KiB/document, 5 MiB total text). Queue CLI
+`--budget` can reduce selection. Captures/proposals beyond a budget must be deferred
+explicitly; they must not be accepted and then lost at a checkpoint.
+
+## Scheduled discovery PR workflow (Mac / Hermes)
+
+The approved baseline is `server/data/events.json` in the latest remote `main`.
+The initial DB export is already committed. The scheduler never reads or writes
+the database. You merge the PR and run the DB import manually afterward.
+
+Install Git, Python 3.9+ and GitHub CLI (`gh`) on the Mac account running Hermes.
+Use `gh auth login` once and verify the account can push branches and open PRs
+for `lingi04/babyroo`. Do not put access tokens in commands or committed files.
+The workflow code must be merged into main before the scheduled runner can use it.
+
+Hermes (or another external search task) must first acquire fresh results and
+atomically replace an input file **outside the repository**, for example:
+
+```json
+{
+  "generated_at": "2026-11-23",
+  "keywords": {
+    "서울 아이랑 전시": [
+      {"title": "A venue to review", "url": "https://example.com/event", "description": "Search evidence"}
+    ],
+    "서울 키즈카페": []
+  }
+}
+```
+
+`generated_at` is the actual acquisition date (ISO date or ISO timestamp), not
+the date the file was copied. Each query maps to a list; an empty list is valid
+after a successful search. A missing, malformed, future-dated or older-than-eight-day
+input fails the run. Override freshness with `--discovery-max-age-days` if needed.
+This Python reader does not call Google search or Google Alerts. Discovery hits
+remain unverified review suggestions; they are never inserted as incomplete app
+events. `official_url`, when provided, is still a link requiring human verification.
+
+First run a local dry run (the default), after setting a PATH containing Git:
+
+```sh
+python3 scripts/event_refresh_pr.py \
+  --discovery-input /absolute/path/to/hermes-results.json
+```
+
+When ready, enable branch push and PR creation:
+
+```sh
+python3 scripts/event_refresh_pr.py \
+  --discovery-input /absolute/path/to/hermes-results.json \
+  --github-repo lingi04/babyroo --submit
+```
+
+Configure Hermes to execute that command **only after successful acquisition**.
+A weekly Sunday 18:00 schedule can use the following cron example if the Mac's
+system timezone is Asia/Seoul. Set the timezone explicitly in your scheduler if
+it differs; no scheduler is installed by these scripts:
+
+```cron
+PATH=/opt/homebrew/bin:/usr/bin:/bin
+0 18 * * 0 cd /absolute/path/to/babyroo && python3 scripts/event_refresh_pr.py --discovery-input /absolute/path/to/hermes-results.json --github-repo lingi04/babyroo --submit >> /absolute/path/to/refresh.log 2>&1
+```
+
+Each run uses a fresh clone under `~/.cache/babyroo-refresh/run-*`, creates an
+`automation/event-refresh/*` branch from fetched main, and invokes refresh code
+from that checkout. Your developer checkout is untouched. A lock prevents local
+overlap. If a refresh PR is already open, the run skips; resolve/merge/close it
+before the next run. If main advances during collection, rerun the job. Main can
+also advance after PR creation, so revalidate the PR against current main before
+merging. The runner never rebases, force-pushes, auto-merges or imports DB data.
+Subprocesses run without interactive stdin/auth prompts and have a 30-minute
+timeout; configure SSH/GitHub authentication before enabling the schedule.
+If pushing succeeds but PR creation fails, the remote branch may remain. Inspect
+the retained checkout/remote branch before retrying; the runner never deletes or
+force-replaces it.
+
+No semantic changes means no writes/push/PR. Generated files are limited to:
+
+- `server/data/events.json`: merged catalog, including retained missing/expired rows.
+- `data/discovery/review.json`: stable missing-event and discovery-suggestion state.
+- `data/discovery/reports/refresh-*.md`: unique per-change reports. Prior reports
+  and annotations are never overwritten. All new events appear, not only a top 25.
+
+Semantic comparison ignores `created_at`, `updated_at`, `last_checked_at`,
+`image_url`, `admin_updated_at`, and `publication_status`. The last three remain
+absent from the catalog. Existing IDs, sequence numbers and created/updated
+timestamps are preserved. Unknown/null incoming optional fields retain known
+baseline values. Concrete source values are proposed in the PR for review.
+Missing events are **kept and flagged**, never deleted automatically.
+
+All native outputs are staged in temporary files, with full kids-cafe pagination.
+Exceptions and empty source collections fail the run for operator review;
+no catalog or review checkpoint advances. Source search windows can explain
+missing results and are not proof of deletion. Existing legacy `publish` commands
+are separate: they rebuild/filter the public catalog and must not replace this
+merged-baseline workflow.
+
+For local troubleshooting without PR orchestration, run
+`python3 refresh_places.py --discovery-input /absolute/path/to/hermes-results.json`.
+This command writes the local checkout on success; use the isolated runner for
+normal scheduled operation. Old run clones/logs are retained for diagnostics;
+manage their retention on the scheduler host.
+
+After merging, pull that main revision and run `npm run db:seed:events` in
+`server/` manually using the intended DB environment. Omitted images and existing
+publication states are preserved. New records use the DB's default draft status;
+publish them through the admin workflow as appropriate. The importer upserts
+catalog contents and does not delete DB-only rows. DB-owned timestamps/images/
+publication states are outside baseline comparison; complete row equality is
+not claimed. No DB import was run during verification.
+
 Babyroo의 데이터 파이프라인은 처음부터 작게 시작합니다.
 
 ```text

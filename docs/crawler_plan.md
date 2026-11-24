@@ -6,6 +6,28 @@
 
 ## 파이프라인
 
+### Scheduled discovery extension
+
+The current scheduled PR workflow uses the latest main-branch catalog as a merged
+baseline. It keeps missing/expired existing rows for human review; the legacy
+`publish` filtering described below is not invoked by that workflow.
+
+New-source details are extracted by Hermes from official pages and validated by
+Python through a version-2 feeder contract. Required date fields are both starts_at
+and ends_at for the current importer. Explicit single-day events use equal dates;
+confirmed permanent venues use 1970-01-01/9999-12-31. Missing/ambiguous event dates
+do not imply permanent operation. Catalog categories supported by the current
+admin/schema contract are performance, experience, play_space, exhibition, camp,
+class, festival and other. Unknown optional age/amenity facts remain null.
+
+The public Git baseline has 30 fields; image_url, publication_status and
+admin_updated_at are deliberately excluded. created_at, updated_at and
+last_checked_at remain outside semantic change detection. Evidence, source hashes,
+classification and confidence stay in review artifacts, not public JSON. See
+docs/plans/crawler-discovery-field-extraction.md and crawler/README.md for the
+current extraction/identity/queue contract. No DB or UI schema migration is part
+of this stage.
+
 1. `collect`
    - 출처별 원문 데이터를 `data/raw/{source}.json`에 저장합니다.
    - 원문에서 확실히 알 수 있는 값만 담습니다.
