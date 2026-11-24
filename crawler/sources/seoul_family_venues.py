@@ -359,9 +359,21 @@ def parse_korean_date_range(value: str | None, captured_at: str) -> tuple[str | 
     if not value:
         return None, None
     year = date.fromisoformat(captured_at).year
-    text = value.replace(" ", "")
-    matches = re.findall(r"(?:(20\d{2})[.\-/년])?(\d{1,2})[.\-/월](\d{1,2})", text)
-    dates = [date(int(match_year) if match_year else year, int(month), int(day)).isoformat() for match_year, month, day in matches]
+    text = re.sub(r"\s+", "", value)
+    # SWR uses both 2026.11.25 and 26.11.25 (20YY). Match the whole
+    # token: never reinterpret the year's suffix as a month or truncate digits.
+    pattern = (r"(?<![\d.\-/년월])(?:(20\d{2}|\d{2})[.\-/년])?"
+               r"(\d{1,2})[.\-/월](\d{1,2})(?!\d|[.\-/]\d)")
+    dates = []
+    for match in re.finditer(pattern, text):
+        match_year, month, day = match.groups()
+        parsed_year = year if match_year is None else int(match_year)
+        if match_year is not None and len(match_year) == 2:
+            parsed_year += 2000
+        try:
+            dates.append(date(parsed_year, int(month), int(day)).isoformat())
+        except ValueError as exc:
+            raise ValueError(f"invalid SWR event date {match.group()!r} in {value!r}: {exc}") from exc
     if not dates:
         return None, None
     if len(dates) == 1:

@@ -47,6 +47,52 @@ SWR_DETAIL_HTML = """
 
 
 class SeoulFamilyVenuesCollectorTest(unittest.TestCase):
+    def test_parse_korean_date_range_handles_two_digit_years(self):
+        for value in ("26.11.25. ~ 26.12.1.", "26-11-25 ~ 26-12-01",
+                      "26/11/25 ~ 26/12/1", "26년 11월 25일 ~ 26년 12월 1일"):
+            with self.subTest(value=value):
+                self.assertEqual(parse_korean_date_range(value, "2026-11-25"),
+                                 ("2026-11-25", "2026-12-01"))
+
+    def test_date_tokens_do_not_match_inside_longer_numbers(self):
+        for value in ("1232026.11.25", "2026.11.250", "2026.111.25"):
+            with self.subTest(value=value):
+                self.assertEqual(parse_korean_date_range(value, "2026-11-25"), (None, None))
+
+    def test_explicit_dates_and_month_day_dates_keep_existing_behavior(self):
+        for value in ("2026-11-25 ~ 2026-12-01", "2026년 11월 25일 ~ 2026년 12월 1일",
+                      "11.25. ~ 12.1.", "11/25 ~ 12/1"):
+            with self.subTest(value=value):
+                self.assertEqual(parse_korean_date_range(value, "2026-11-25"),
+                                 ("2026-11-25", "2026-12-01"))
+        self.assertEqual(parse_korean_date_range("26.11.25", "2026-11-25"),
+                         ("2026-11-25", "2026-11-25"))
+
+    def test_invalid_dates_fail_with_source_text_in_error(self):
+        for value in ("26.13.25", "2026-02-30"):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "invalid SWR event date"):
+                parse_korean_date_range(value, "2026-11-25")
+
+    def test_collect_two_digit_year_program_preserves_other_events(self):
+        page = SWR_HTML.replace("2026.8.2. ~ 2026.8.30.", "26.11.25. ~ 26.12.1.")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.json"
+            rows = collect(output_path=path, captured_at="2026-11-25", fetch_text=lambda _: page)
+            self.assertEqual(len(rows), 10)
+            program = next(row for row in rows if row["title"] == "돌고 도는 물의 여행 야호!")
+            self.assertEqual(program["payload"]["starts_at"], "2026-11-25")
+            self.assertEqual(program["payload"]["ends_at"], "2026-12-01")
+            self.assertEqual(read_json(path)["events"], rows)
+
+    def test_collect_invalid_date_preserves_existing_output(self):
+        page = SWR_HTML.replace("2026.8.2. ~ 2026.8.30.", "26.13.25 ~ 26.13.30")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "events.json"
+            path.write_text("keep existing output")
+            with self.assertRaisesRegex(ValueError, "invalid SWR event date"):
+                collect(output_path=path, captured_at="2026-11-25", fetch_text=lambda _: page)
+            self.assertEqual(path.read_text(), "keep existing output")
+
     def test_parse_korean_date_range_handles_dotted_dates(self):
         self.assertEqual(
             parse_korean_date_range("2026.8.2. ~ 2026.8.30. (매주 일)", "2026-07-22"),
