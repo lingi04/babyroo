@@ -4,7 +4,7 @@
 
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-native';
+import { AccessibilityInfo, Alert, BackHandler, Linking, ScrollView, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import App from '../App';
 import { RemoteRecommendationService } from '../src/recommendation/RemoteRecommendationService';
@@ -1314,8 +1314,7 @@ test('filters schedule by scheduled and ongoing states separately', async () => 
   await ReactTestRenderer.act(() => renderer!.unmount());
 });
 
-test('Explore combines categories and shows age, venue and booking facts on each card', async () => {
-  const event: BabyrooEvent = {
+const exploreWorkshop: BabyrooEvent = {
     id: 'workshop',
     csvSequence: 1,
     title: '가족 놀이',
@@ -1335,7 +1334,160 @@ test('Explore combines categories and shows age, venue and booking facts on each
     reservationStatus: 'available',
     reservationRequired: true,
     tags: ['예약필요'],
-  };
+};
+
+test('Explore distinguishes a failed load from a retry that succeeds with zero results', async () => {
+  let finishRetry!: (events: BabyrooEvent[]) => void;
+  const pendingRetry = new Promise<BabyrooEvent[]>(resolve => { finishRetry = resolve; });
+  const fetchList = jest.spyOn(babyrooApi, 'listEventsFromBabyrooApi')
+    .mockRejectedValueOnce(new Error('private server error'))
+    .mockReturnValueOnce(pendingRetry);
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockClear()
+    .mockImplementation(() => {});
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const root = renderer!.root;
+    const retry = () => root.findByProps({ accessibilityLabel: '다시 시도' });
+    expect(root.findByProps({ children: '행사 목록을 불러오지 못했어요' })).toBeTruthy();
+    expect(root.findAllByProps({ children: '조건에 맞는 행사가 없어요' })).toHaveLength(0);
+    expect(root.findAllByProps({ children: 'private server error' })).toHaveLength(0);
+    await ReactTestRenderer.act(() => {
+      const onPress = retry().props.onPress;
+      onPress();
+      onPress();
+    });
+    expect(fetchList).toHaveBeenCalledTimes(2);
+    expect(fetchList.mock.calls[1]).toEqual(fetchList.mock.calls[0]);
+    expect(retry().props.accessibilityState).toEqual({ disabled: true, busy: true });
+    await ReactTestRenderer.act(() => finishRetry([]));
+    expect(root.findByProps({ children: '조건에 맞는 행사가 없어요' })).toBeTruthy();
+    expect(root.findAllByProps({ accessibilityLabel: '다시 시도' })).toHaveLength(0);
+    expect(announce.mock.calls).toEqual([
+      ['행사 목록을 불러오지 못했어요'],
+      ['행사 목록을 불러왔어요'],
+    ]);
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+    announce.mockRestore();
+  }
+});
+
+test('Explore reuses a matching saved response and labels the detail during an outage', async () => {
+  const fetchList = jest.spyOn(babyrooApi, 'listEventsFromBabyrooApi')
+    .mockResolvedValueOnce([exploreWorkshop])
+    .mockRejectedValueOnce(new Error('different filters unavailable'))
+    .mockRejectedValueOnce(new Error('original filters unavailable'));
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const root = renderer!.root;
+    const category = () => root.findByProps({ accessibilityLabel: 'Toggle explore event type 상설 전시' });
+    await ReactTestRenderer.act(() => category().props.onPress());
+    expect(root.findAllByProps({ accessibilityLabel: 'Open 가족 놀이' })).toHaveLength(0);
+    expect(root.findByProps({ children: '행사 목록을 불러오지 못했어요' })).toBeTruthy();
+    await ReactTestRenderer.act(() => category().props.onPress());
+    expect(fetchList.mock.calls[2]).toEqual(fetchList.mock.calls[0]);
+    expect(root.findByProps({ children: '이전에 불러온 행사예요' })).toBeTruthy();
+    const card = root.findByProps({ accessibilityLabel: 'Open 가족 놀이' });
+    await ReactTestRenderer.act(() => card.props.onPress());
+    expect(root.findByProps({
+      children: '예약 가능 여부가 달라졌을 수 있어요. 방문 전 원문을 확인해 주세요.',
+    })).toBeTruthy();
+    expect(root.findByProps({ accessibilityLabel: 'Open source or reservation page' })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+  }
+});
+
+test('Explore announces a background failure once when the user returns', async () => {
+  let rejectLoad!: (error: Error) => void;
+  const load = new Promise<BabyrooEvent[]>((_resolve, reject) => { rejectLoad = reject; });
+  const fetchList = jest.spyOn(babyrooApi, 'listEventsFromBabyrooApi').mockReturnValueOnce(load);
+  const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockClear()
+    .mockImplementation(() => {});
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const navigate = (label: string) => ReactTestRenderer.act(() => {
+      renderer!.root.findByProps({ accessibilityRole: 'tab', accessibilityLabel: label }).props.onPress();
+    });
+    await navigate('추천');
+    await ReactTestRenderer.act(() => rejectLoad(new Error('server unavailable')));
+    expect(announce).not.toHaveBeenCalled();
+    await navigate('탐색');
+    await navigate('추천');
+    await navigate('탐색');
+    expect(announce.mock.calls).toEqual([['행사 목록을 불러오지 못했어요']]);
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+    announce.mockRestore();
+  }
+});
+
+test('Explore shows recovery when local filters hide the matching saved cards', async () => {
+  const fetchList = jest.spyOn(babyrooApi, 'listEventsFromBabyrooApi')
+    .mockResolvedValueOnce([exploreWorkshop])
+    .mockRejectedValueOnce(new Error('other filters unavailable'))
+    .mockRejectedValueOnce(new Error('original filters unavailable'));
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const root = renderer!.root;
+    const press = (props: Record<string, string>) => ReactTestRenderer.act(() => root.findByProps(props).props.onPress());
+    await press({ testID: 'explore-filter-entry' });
+    await press({ accessibilityLabel: 'Filter schedule 예정' });
+    await press({ accessibilityLabel: 'Apply filters' });
+    expect(fetchList).toHaveBeenCalledTimes(1);
+    await press({ accessibilityLabel: 'Toggle explore event type 상설 전시' });
+    await press({ accessibilityLabel: 'Toggle explore event type 상설 전시' });
+    expect(fetchList.mock.calls[2]).toEqual(fetchList.mock.calls[0]);
+    expect(root.findAllByProps({ children: '이전에 불러온 행사예요' })).toHaveLength(0);
+    expect(root.findAllByProps({ children: '조건에 맞는 행사가 없어요' })).toHaveLength(0);
+    expect(root.findByProps({ children: '행사 목록을 불러오지 못했어요' })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+  }
+});
+
+test('Explore ignores a superseded response and retains only the latest successful request', async () => {
+  let finishOldRequest!: (events: BabyrooEvent[]) => void;
+  const oldRequest = new Promise<BabyrooEvent[]>(resolve => { finishOldRequest = resolve; });
+  const fetchList = jest.spyOn(babyrooApi, 'listEventsFromBabyrooApi')
+    .mockResolvedValueOnce([exploreWorkshop])
+    .mockReturnValueOnce(oldRequest)
+    .mockResolvedValueOnce([exploreWorkshop])
+    .mockResolvedValueOnce([{ ...exploreWorkshop, id: 'latest', title: '최신 놀이' }])
+    .mockRejectedValueOnce(new Error('original filters unavailable'));
+  let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(() => { renderer = ReactTestRenderer.create(<App />); });
+    const root = renderer!.root;
+    const toggle = () => root.findByProps({ accessibilityLabel: 'Toggle explore event type 상설 전시' }).props.onPress();
+    await ReactTestRenderer.act(toggle);
+    await ReactTestRenderer.act(toggle);
+    await ReactTestRenderer.act(() => finishOldRequest([]));
+    expect(root.findByProps({ accessibilityLabel: 'Open 가족 놀이' })).toBeTruthy();
+    await ReactTestRenderer.act(toggle);
+    expect(root.findByProps({ accessibilityLabel: 'Open 최신 놀이' })).toBeTruthy();
+    await ReactTestRenderer.act(toggle);
+    expect(root.findAllByProps({ accessibilityLabel: 'Open 가족 놀이' })).toHaveLength(0);
+    expect(root.findAllByProps({ accessibilityLabel: 'Open 최신 놀이' })).toHaveLength(0);
+    expect(root.findByProps({ children: '행사 목록을 불러오지 못했어요' })).toBeTruthy();
+  } finally {
+    await ReactTestRenderer.act(() => renderer?.unmount());
+    fetchList.mockRestore();
+  }
+});
+
+test('Explore combines categories and shows age, venue and booking facts on each card', async () => {
+  const event = exploreWorkshop;
   const fetchList = jest
     .spyOn(babyrooApi, 'listEventsFromBabyrooApi')
     .mockResolvedValue([

@@ -10,6 +10,7 @@ import {
   updateRecommendationCtaScroll,
 } from './src/mobileLayout/recommendationCtaScroll';
 import {
+  AccessibilityInfo,
   Alert,
   AppState,
   Animated,
@@ -358,6 +359,20 @@ function App() {
   );
 }
 
+type ExploreEventSnapshot = {
+  queryKey: string;
+  events: BabyrooEvent[];
+};
+
+type ExploreEventRequest = {
+  queryKey: string;
+  status: 'loading' | 'success' | 'failed';
+  retrying: boolean;
+};
+
+const exploreLoadFailure = '행사 목록을 불러오지 못했어요';
+const exploreSavedResults = '이전에 불러온 행사예요';
+
 function BabyrooApp() {
   const bottomInset = useBottomSafeAreaInset();
   const { top: topInset } = useSafeAreaInsets();
@@ -371,8 +386,12 @@ function BabyrooApp() {
   const [browsingAsGuest, setBrowsingAsGuest] = useState(false);
   const [tab, setTab] = useState<Tab>('explore');
   const [exploreHeaderExpanded, setExploreHeaderExpanded] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState<BabyrooEvent | null>(null);
-  const [events, setEvents] = useState<BabyrooEvent[]>(eventsNewestFirst);
+  const [selectedEvent, setSelectedEvent] = useState<{
+    event: BabyrooEvent;
+    previouslyLoaded: boolean;
+  } | null>(null);
+  const [eventSnapshot, setEventSnapshot] = useState<ExploreEventSnapshot>();
+  const events = eventSnapshot?.events ?? eventsNewestFirst;
   const [selectedRecommendationSession, setSelectedRecommendationSession] =
     useState<RecommendationSession | null>(null);
   const [notificationSession, setNotificationSession] =
@@ -455,8 +474,9 @@ function BabyrooApp() {
     if (screenTab === 'explore') {
       return (
         <ExploreScreen
-          events={events}
-          onChangeEvents={setEvents}
+          active={tab === 'explore' && !filterOpen && !selectedEvent && !selectedRecommendationSession}
+          eventSnapshot={eventSnapshot}
+          onLoadEvents={setEventSnapshot}
           user={user}
           filters={exploreFilters}
           onOpenEvent={openDetail}
@@ -635,8 +655,8 @@ function BabyrooApp() {
     tab,
   ]);
 
-  const openDetail = (event: BabyrooEvent) => {
-    setSelectedEvent(event);
+  const openDetail = (event: BabyrooEvent, previouslyLoaded = false) => {
+    setSelectedEvent({ event, previouslyLoaded });
     setFilterOpen(false);
     setSettingsOpen(false);
   };
@@ -1050,7 +1070,8 @@ function BabyrooApp() {
           ) : null}
           {selectedEvent ? (
             <EventDetail
-              event={selectedEvent}
+              event={selectedEvent.event}
+              previouslyLoaded={selectedEvent.previouslyLoaded}
               bottomInset={bottomInset}
               topInset={topInset}
               accessToken={authSession?.apiAccessToken}
@@ -2748,8 +2769,9 @@ function RecommendationDebugPrompt({
 }
 
 function ExploreScreen({
-  events,
-  onChangeEvents,
+  active,
+  eventSnapshot,
+  onLoadEvents,
   user,
   filters,
   onOpenEvent,
@@ -2761,11 +2783,12 @@ function ExploreScreen({
   onToggleEventType,
   bottomInset,
 }: {
-  events: BabyrooEvent[];
-  onChangeEvents: (events: BabyrooEvent[]) => void;
+  active: boolean;
+  eventSnapshot?: ExploreEventSnapshot;
+  onLoadEvents: (snapshot: ExploreEventSnapshot) => void;
   user: User;
   filters: ExploreFilters;
-  onOpenEvent: (event: BabyrooEvent) => void;
+  onOpenEvent: (event: BabyrooEvent, previouslyLoaded: boolean) => void;
   onOpenFilter: () => void;
   onOpenRecommendation: () => void;
   onOpenSettings: () => void;
@@ -2790,7 +2813,10 @@ function ExploreScreen({
     visible: false,
     anchorOffset: 0,
   });
-  const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [request, setRequest] = useState<ExploreEventRequest>();
+  const [retryCount, setRetryCount] = useState(0);
+  const retryRequestedFor = useRef<ExploreEventRequest | null>(null);
+  const lastAnnouncedRequest = useRef<ExploreEventRequest | null>(null);
   const [recommendationCtaVisible, setRecommendationCtaVisible] =
     useState(false);
   const [compactHeaderTouchable, setCompactHeaderTouchable] = useState(false);
@@ -2817,10 +2843,6 @@ function ExploreScreen({
       (recommendationCtaVisible
         ? EXPLORE_RECOMMENDATION_BOTTOM + recommendationCtaHeight + spacing.md
         : FLOATING_RECOMMENDATION_BOTTOM);
-  const filteredEvents = useMemo(
-    () => filterEvents(events, searchQuery, filters, selectedChildren),
-    [events, filters, searchQuery, selectedChildren],
-  );
   const activeFilterLabels = getOptionalExploreFilterLabels(filters);
   const exploreEventTypeSummary = formatExploreEventTypeSummary(
     filters.exploreEventTypes,
@@ -2837,26 +2859,33 @@ function ExploreScreen({
       ),
     [filters, searchQuery, selectedChildren],
   );
+  const currentRequest = request?.queryKey === eventListQueryKey ? request : undefined;
+  const status = currentRequest?.status ?? 'loading';
+  const retrying = Boolean(currentRequest && (
+    currentRequest === retryRequestedFor.current ||
+    (status === 'loading' && currentRequest.retrying)
+  ));
+  const matchingSnapshot = eventSnapshot?.queryKey === eventListQueryKey ? eventSnapshot : undefined;
+  const filteredEvents = useMemo(
+    () => matchingSnapshot ? filterEvents(matchingSnapshot.events, searchQuery, filters, selectedChildren) : [],
+    [matchingSnapshot, filters, searchQuery, selectedChildren],
+  );
+  const hasPreviousResults = filteredEvents.length > 0 && status !== 'success';
 
   useEffect(() => {
     let mounted = true;
+    const isRetry = retryRequestedFor.current?.queryKey === eventListQueryKey;
+    retryRequestedFor.current = null;
     const eventListQuery = JSON.parse(
       eventListQueryKey,
     ) as BabyrooEventListQuery;
 
-    console.warn(
-      `[Babyroo Explore] loading events from API with query ${JSON.stringify(
-        eventListQuery,
-      )}`,
-    );
-    setEventsLoaded(false);
+    setRequest({ queryKey: eventListQueryKey, status: 'loading', retrying: isRetry });
     listEventsFromBabyrooApi(eventListQuery)
       .then(apiEvents => {
         if (mounted) {
-          console.warn(
-            `[Babyroo Explore] loaded ${apiEvents.length} events from API`,
-          );
-          onChangeEvents(apiEvents);
+          onLoadEvents({ queryKey: eventListQueryKey, events: apiEvents });
+          setRequest({ queryKey: eventListQueryKey, status: 'success', retrying: isRetry });
         }
       })
       .catch(error => {
@@ -2865,24 +2894,39 @@ function ExploreScreen({
             '[Babyroo Explore] failed to load events from API',
             error,
           );
-          Alert.alert(
-            '행사 데이터를 불러오지 못했어요',
-            error instanceof Error
-              ? error.message
-              : 'Babyroo 서버에서 행사 목록을 가져오지 못했습니다.',
-          );
-        }
-      })
-      .finally(() => {
-        if (mounted) {
-          setEventsLoaded(true);
+          setRequest({ queryKey: eventListQueryKey, status: 'failed', retrying: isRetry });
         }
       });
 
     return () => {
       mounted = false;
     };
-  }, [eventListQueryKey, onChangeEvents]);
+  }, [eventListQueryKey, onLoadEvents, retryCount]);
+
+  useEffect(() => {
+    if (!active || !currentRequest || currentRequest === lastAnnouncedRequest.current) {
+      return;
+    }
+    const announcement = status === 'failed'
+      ? (hasPreviousResults ? exploreSavedResults : exploreLoadFailure)
+      : status === 'success' && currentRequest.retrying
+        ? '행사 목록을 불러왔어요'
+        : undefined;
+    if (announcement) {
+      lastAnnouncedRequest.current = currentRequest;
+      AccessibilityInfo.announceForAccessibility(announcement);
+    }
+  }, [active, currentRequest, hasPreviousResults, status]);
+
+  const retryEvents = () => {
+    if (!currentRequest || currentRequest.status !== 'failed' || retrying ||
+        retryRequestedFor.current === currentRequest) {
+      return;
+    }
+    retryRequestedFor.current = currentRequest;
+    setRetryCount(count => count + 1);
+  };
+  const showRecovery = status === 'failed' || retrying;
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffsetY = event.nativeEvent.contentOffset.y;
@@ -3063,7 +3107,7 @@ function ExploreScreen({
             event={item}
             tone={index}
             explore
-            onPress={() => onOpenEvent(item)}
+            onPress={() => onOpenEvent(item, hasPreviousResults)}
           />
         )}
         contentContainerStyle={[
@@ -3073,20 +3117,25 @@ function ExploreScreen({
           },
           { paddingBottom: recommendationCtaVisible ? recommendationCtaHeight + 8 : 16 },
         ]}
-        ListEmptyComponent={
+        ListHeaderComponent={showRecovery && hasPreviousResults ? (
+          <ExploreLoadRecovery withPreviousResults retrying={retrying} onRetry={retryEvents} />
+        ) : null}
+        ListEmptyComponent={showRecovery ? (
+          <ExploreLoadRecovery retrying={retrying} onRetry={retryEvents} />
+        ) : (
           <View style={styles.noResultsCard}>
             <Text style={styles.noResultsTitle}>
-              {eventsLoaded
+              {status === 'success'
                 ? '조건에 맞는 행사가 없어요'
                 : '행사 데이터를 불러오고 있어요'}
             </Text>
             <Text style={styles.noResultsText}>
-              {eventsLoaded
+              {status === 'success'
                 ? '검색어를 줄이거나 필터를 넓혀서 다시 찾아보세요.'
                 : 'Babyroo 서버에서 최신 행사 목록을 가져오는 중입니다.'}
             </Text>
           </View>
-        }
+        )}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         onScroll={Animated.event(
@@ -3209,8 +3258,47 @@ function ChildFilterSignInPrompt({
   );
 }
 
+function ExploreLoadRecovery({
+  withPreviousResults = false,
+  retrying,
+  onRetry,
+}: {
+  withPreviousResults?: boolean;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <View style={styles.noResultsCard}>
+      <Text style={styles.noResultsTitle} accessibilityRole="header">
+        {withPreviousResults ? exploreSavedResults : exploreLoadFailure}
+      </Text>
+      {withPreviousResults ? null : (
+        <Text style={styles.noResultsText}>
+          {retrying ? '같은 조건으로 다시 요청했어요.' : '잠시 후 다시 시도해 주세요.'}
+        </Text>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="다시 시도"
+        accessibilityState={{ disabled: retrying, busy: retrying }}
+        disabled={retrying}
+        onPress={onRetry}
+        style={({ pressed }) => [
+          styles.exploreRetryButton,
+          (pressed || retrying) && styles.buttonDisabled,
+        ]}
+      >
+        <Text style={styles.exploreRetryText}>
+          {retrying ? '다시 불러오는 중…' : '다시 시도'}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function EventDetail({
   event,
+  previouslyLoaded = false,
   bottomInset,
   topInset,
   accessToken,
@@ -3218,6 +3306,7 @@ export function EventDetail({
   onBack,
 }: {
   event: BabyrooEvent;
+  previouslyLoaded?: boolean;
   bottomInset: number;
   topInset: number;
   accessToken?: string;
@@ -3274,6 +3363,14 @@ export function EventDetail({
           detailContentBottomPadding(bottomInset),
         ]}
       >
+        {previouslyLoaded ? (
+          <View style={styles.noResultsCard}>
+            <Text style={styles.noResultsTitle}>{exploreSavedResults}</Text>
+            <Text style={styles.noResultsText}>
+              예약 가능 여부가 달라졌을 수 있어요. 방문 전 원문을 확인해 주세요.
+            </Text>
+          </View>
+        ) : null}
         <View style={[styles.detailHero, heroSize]}>
           {event.imageUrl && failedImageUrl !== event.imageUrl ? (
             <Image
@@ -5063,7 +5160,7 @@ function buildExploreEventListQuery(
   }
 
   if (filters.exploreEventTypes.length > 0) {
-    query.eventType = filters.exploreEventTypes.join(',');
+    query.eventType = [...filters.exploreEventTypes].sort().join(',');
   }
 
   if (filters.region === 'seoul') {
@@ -7709,6 +7806,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 19,
     marginTop: spacing.xs,
+  },
+  exploreRetryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.exploreSelectedLabel,
+    borderRadius: radius.md,
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  exploreRetryText: {
+    color: colors.inverseText,
+    fontSize: 14,
+    fontWeight: '900',
   },
   eventCard: {
     alignItems: 'stretch',
