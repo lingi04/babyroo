@@ -46,7 +46,12 @@ function dateOnly(value, fieldName, eventId) {
     throw new Error(`Event ${eventId} is missing required date field: ${fieldName}`);
   }
 
-  return new Date(`${value}T00:00:00.000Z`);
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)
+      || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error(`Event ${eventId} has invalid date field: ${fieldName}`);
+  }
+  return parsed;
 }
 
 function toEventData(event, csvSequence) {
@@ -57,7 +62,10 @@ function toEventData(event, csvSequence) {
     venueName: requiredText(event.venue_name),
     venueDetail: nullable(event.venue_detail),
     address: nullable(event.address),
-    imageUrl: nullable(event.image_url),
+    // Omitted image fields are outside the Git baseline; preserve existing DB images.
+    ...(Object.prototype.hasOwnProperty.call(event, 'image_url')
+      ? { imageUrl: nullable(event.image_url) }
+      : {}),
     locality: requiredText(event.locality),
     region: requiredText(event.region),
     category: requiredText(event.category, 'unknown'),
@@ -88,10 +96,36 @@ function toEventData(event, csvSequence) {
 async function main() {
   const eventsPath = resolve(process.cwd(), 'data/events.json');
   const payload = JSON.parse(readFileSync(eventsPath, 'utf8'));
-  const events = Array.isArray(payload.events) ? payload.events : [];
+  if (!Array.isArray(payload.events) || payload.events.length === 0
+      || payload.count !== payload.events.length) {
+    throw new Error('Expected a nonempty event catalog with a matching count.');
+  }
+  const events = payload.events;
+  // Validate the entire input before the first write. This is not a DB transaction.
+  const ids = new Set();
+  const sequences = new Set();
+  const identities = new Set();
+  const rows = events.map((event, index) => {
+    if (!event || typeof event.id !== 'string' || !event.id.trim()) {
+      throw new Error('Every event must have an id.');
+    }
+    const sequence = event.csv_sequence === undefined || event.csv_sequence === null
+      ? index + 1 : event.csv_sequence;
+    if (!Number.isInteger(sequence) || sequence < 1) {
+      throw new Error('csv_sequence must be a positive integer.');
+    }
+    const data = toEventData(event, sequence);
+    const identity = data.sourceEventId ? JSON.stringify([data.source, data.sourceEventId]) : null;
+    if (ids.has(data.id) || sequences.has(sequence) || (identity && identities.has(identity))) {
+      throw new Error('Duplicate event id, sequence, or source identity.');
+    }
+    ids.add(data.id);
+    sequences.add(sequence);
+    if (identity) identities.add(identity);
+    return data;
+  });
 
-  for (const [index, event] of events.entries()) {
-    const data = toEventData(event, index + 1);
+  for (const data of rows) {
     await prisma.event.upsert({
       where: { id: data.id },
       update: data,
