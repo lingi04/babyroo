@@ -87,8 +87,21 @@ Confirmed permanent venues get exactly `1970-01-01` to `9999-12-31`; Hermes must
 provide affirmative ongoing/permanent-operation evidence and leave those dates
 for Python to assign. These dates are availability sentinels, not historical
 opening dates, a promise of daily opening, or a substitute for missing event dates.
-Existing native venue dates are not bulk migrated. The app may currently display
+All native `venue_admission` records (kids cafes, museum admission and family
+venues) use the same shared constants. Their next refresh updates existing rows
+by source identity, preserving catalog IDs and sequence numbers; capture dates
+remain in `last_checked_at`. Dated workshops, programs and exhibitions retain
+their actual event dates. No synthetic capture-date-plus-180-day window is used.
+The app may currently display
 literal sentinel years; UI formatting is a separate follow-up before user rollout.
+
+Namu special/planned exhibitions use a source identity derived from the current
+page slot, normalized exhibition title and opening date. Replacing the show or
+repeating it with a new opening date creates a new event; extending its end date
+updates the same event. The first refresh adopts a legacy slot-only row only if
+its title and opening date match, preserving its catalog ID and sequence. Older
+different shows remain retained. A correction to the title or opening date needs
+manual identity review; it is not automatically inferred to be the same show.
 
 `data/discovery/identities.json` preserves date-independent identities and reviewed
 URL aliases/edition keys. Corrected dates reuse the same ID. Ambiguous annual

@@ -4,12 +4,13 @@ import hashlib
 import html
 import re
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Callable
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+from babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
 from babyroo_crawler.io import write_json
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
@@ -194,8 +195,8 @@ def make_admission_event(venue: Venue, captured_at: str) -> dict:
             "title": venue.title,
             "description": venue.description,
             "category": venue.category,
-            "starts_at": captured_at,
-            "ends_at": future_date(captured_at, days=180),
+            "starts_at": PERMANENT_START,
+            "ends_at": PERMANENT_END,
             "region": "서울",
             "locality": venue.locality,
             "venue_name": venue.venue_name,
@@ -430,10 +431,6 @@ def clean_html(value: str | None) -> str | None:
     text = html.unescape(text)
     text = " ".join(text.split())
     return text or None
-
-
-def future_date(start: str, days: int) -> str:
-    return (date.fromisoformat(start) + timedelta(days=days)).isoformat()
 
 
 def fetch_text_url(url: str) -> str:

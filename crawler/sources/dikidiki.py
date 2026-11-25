@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Callable
 from urllib.request import Request, urlopen
 
+from babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
 from babyroo_crawler.io import write_json
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
@@ -60,8 +60,8 @@ def make_admission_event(captured_at: str) -> dict[str, Any]:
                 "만 24개월 이상부터 만 8세까지 이용 가능하며 보호자 동반 입장."
             ),
             "category": "실내놀이",
-            "starts_at": captured_at,
-            "ends_at": future_date(captured_at, days=180),
+            "starts_at": PERMANENT_START,
+            "ends_at": PERMANENT_END,
             "region": "서울",
             "locality": "중구",
             "venue_name": VENUE_NAME,
@@ -181,10 +181,6 @@ def clean_string(value: Any) -> str | None:
 def join_parts(parts: list[Any]) -> str | None:
     cleaned = [text for part in parts if (text := clean_string(part))]
     return ". ".join(cleaned) or None
-
-
-def future_date(start: str, days: int) -> str:
-    return (date.fromisoformat(start) + timedelta(days=days)).isoformat()
 
 
 def fetch_json_url(url: str) -> dict[str, Any]:

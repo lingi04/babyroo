@@ -11,8 +11,8 @@ from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 
-PERMANENT_START = "1970-01-01"
-PERMANENT_END = "9999-12-31"
+from crawler.babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
+
 ID_PATTERN = re.compile(r"[A-Za-z0-9_-]{1,100}\Z")
 KINDS = {"dated_event", "permanent_venue", "uncertain"}
 OUTCOMES = {"extracted", "fetch_failed", "needs_review", "budget_deferred"}

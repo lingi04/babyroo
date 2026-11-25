@@ -34,6 +34,24 @@ def comparable(event: dict) -> dict:
     return {k: v for k, v in event.items() if k not in IGNORED_FIELDS}
 
 
+def legacy_namu_exhibition(baseline: list[dict], event: dict) -> dict | None:
+    """Adopt a legacy slot identity only when it describes this same exhibition."""
+    if event.get("source") != "namu":
+        return None
+    from sources.namu import exhibition_slot, make_exhibition_source_event_id
+    slot = exhibition_slot(event["source_url"])
+    if slot not in {"exhibition-event-current", "exhibition-special-current"}:
+        return None
+    expected = make_exhibition_source_event_id(event["source_url"], event["title"], event["starts_at"])
+    if event.get("source_event_id") != expected:
+        return None
+    for old in baseline:
+        if (old.get("source") == "namu" and old.get("source_event_id") == slot
+                and make_exhibition_source_event_id(old["source_url"], old["title"], old["starts_at"]) == expected):
+            return old
+    return None
+
+
 def validate_events(events: list[dict]) -> None:
     if not isinstance(events, list) or not events:
         raise ValueError("catalog must contain a nonempty event list")
@@ -75,8 +93,9 @@ def merge_events(baseline: list[dict], incoming: list[dict], checked_sources: se
         by_source = by_pair.get(pair) if pair else None
         if by_key and by_source and by_key["id"] != by_source["id"]:
             raise ValueError("conflicting id/source identities")
-        old = by_key or by_source
-        if old and identity(old) != pair:
+        legacy = None if by_key or by_source else legacy_namu_exhibition(baseline, event)
+        old = by_key or by_source or legacy
+        if old and identity(old) != pair and not legacy:
             raise ValueError("source identity changed for existing event id")
         eid = old["id"] if old else event["id"]
         if eid in seen or (pair and pair in seen_pairs):

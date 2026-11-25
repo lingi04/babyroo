@@ -20,6 +20,31 @@ def event(eid="one", source="test", sequence=1, **values):
 
 
 class WorkflowTest(unittest.TestCase):
+    def test_legacy_exhibition_migrates_same_show_and_preserves_catalog_identity(self):
+        from sources.namu import make_exhibition_source_event_id
+        url = "https://namu.sdm.go.kr/web/main/exhibition/special/current/view"
+        old = event("legacy-id", source="namu", source_event_id="exhibition-special-current",
+                    source_url=url, title="Same show", starts_at="2026-06-06", ends_at="2026-10-18")
+        new = {**old, "id": "new-id", "source_event_id": make_exhibition_source_event_id(
+            url, old["title"], old["starts_at"]), "ends_at": "2026-12-31"}
+        merged, added, changed, missing = workflow.merge_events([old], [new], {"namu"})
+        self.assertEqual((len(added), len(changed), len(missing)), (0, 1, 0))
+        self.assertEqual((merged[0]["id"], merged[0]["csv_sequence"]), ("legacy-id", 1))
+        self.assertEqual(merged[0]["source_event_id"], new["source_event_id"])
+        self.assertEqual(merged[0]["ends_at"], "2026-12-31")
+        self.assertEqual(workflow.merge_events(merged, [new], {"namu"}), (merged, [], [], []))
+
+    def test_replacement_exhibition_does_not_overwrite_legacy_or_migrated_show(self):
+        from sources.namu import make_exhibition_source_event_id
+        url = "https://namu.sdm.go.kr/web/main/exhibition/special/current/view"
+        for source_id in ("exhibition-special-current", make_exhibition_source_event_id(url, "Old show", "2026-01-01")):
+            old = event("old-id", source="namu", source_event_id=source_id, source_url=url, title="Old show")
+            new = event("new-id", source="namu", source_event_id=make_exhibition_source_event_id(
+                url, "New show", "2026-11-10"), source_url=url, title="New show", starts_at="2026-11-10")
+            merged, added, changed, missing = workflow.merge_events([old], [new], {"namu"})
+            self.assertEqual((len(merged), len(added), len(changed), len(missing)), (2, 1, 0, 1))
+            self.assertEqual(merged[0]["title"], "Old show")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

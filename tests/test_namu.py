@@ -5,6 +5,7 @@ from pathlib import Path
 from babyroo_crawler.io import read_json
 from sources.namu import (
     collect,
+    make_exhibition_source_event_id,
     parse_calendar_year_month,
     parse_education_calendar,
     parse_education_detail,
@@ -71,7 +72,8 @@ class NamuCollectorTest(unittest.TestCase):
         self.assertEqual(len(events), 1)
         event = events[0]
         self.assertEqual(event["source"], "namu")
-        self.assertEqual(event["source_event_id"], "exhibition-special-current")
+        self.assertEqual(event["source_event_id"], make_exhibition_source_event_id(
+            event["url"], event["title"], "2026-06-06"))
         self.assertEqual(event["payload"]["item_type"], "exhibition")
         self.assertEqual(event["payload"]["starts_at"], "2026-06-06")
         self.assertEqual(event["payload"]["ends_at"], "2026-10-18")
@@ -82,6 +84,19 @@ class NamuCollectorTest(unittest.TestCase):
             event["payload"]["image_url"],
             "https://namu.sdm.go.kr/uploadfile/asa/exhibition/314/poster.png",
         )
+
+    def test_exhibition_replacement_and_repeat_editions_have_distinct_ids(self):
+        original = parse_exhibitions([EXHIBITION_HTML], "2026-07-21")[0]
+        replacement = parse_exhibitions([EXHIBITION_HTML.replace(
+            "무빙가든 MOVING GARDEN: 식물의 감각", "갯벌 전시")], "2026-07-21")[0]
+        repeat = parse_exhibitions([EXHIBITION_HTML.replace("2026-06-06", "2027-06-06")], "2027-07-21")[0]
+        self.assertEqual(len({row["source_event_id"] for row in (original, replacement, repeat)}), 3)
+
+    def test_exhibition_end_extension_and_capture_date_keep_identity(self):
+        original = parse_exhibitions([EXHIBITION_HTML], "2026-07-21")[0]
+        extended = parse_exhibitions([EXHIBITION_HTML.replace("2026-10-18", "2026-12-31")], "2026-08-01")[0]
+        self.assertEqual(original["source_event_id"], extended["source_event_id"])
+        self.assertEqual(extended["payload"]["ends_at"], "2026-12-31")
 
     def test_parse_education_calendar_uses_calendar_month_and_hidden_inputs(self):
         self.assertEqual(parse_calendar_year_month(EDUCATION_HTML, "2026-07-21"), (2026, 7))

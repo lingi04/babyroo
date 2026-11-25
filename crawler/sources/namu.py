@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import html
 import json
 import re
@@ -10,6 +11,7 @@ from typing import Callable
 from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
+from babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
 from babyroo_crawler.io import write_json
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
@@ -86,8 +88,8 @@ def make_admission_event(captured_at: str) -> dict:
             "title": "서대문자연사박물관 관람",
             "description": "공룡, 생명진화, 지구환경 전시를 볼 수 있는 실내 자연사박물관 관람.",
             "category": "박물관",
-            "starts_at": captured_at,
-            "ends_at": future_date(captured_at, days=180),
+            "starts_at": PERMANENT_START,
+            "ends_at": PERMANENT_END,
             "region": "서울",
             "locality": "서대문구",
             "venue_name": VENUE_NAME,
@@ -120,7 +122,7 @@ def parse_exhibitions(html_pages: list[str], captured_at: str) -> list[dict]:
         events.append(
             RawEvent(
                 source=SOURCE,
-                source_event_id=make_exhibition_source_event_id(url),
+                source_event_id=make_exhibition_source_event_id(url, title, starts_at),
                 title=title,
                 url=url,
                 captured_at=captured_at,
@@ -315,12 +317,19 @@ def normalize_status(starts_at: str | None, ends_at: str | None, captured_at: st
     return "unknown"
 
 
-def make_exhibition_source_event_id(url: str) -> str:
+def exhibition_slot(url: str) -> str:
     if "/exhibition/event/current/" in url:
         return "exhibition-event-current"
     if "/exhibition/special/current/" in url:
         return "exhibition-special-current"
     return make_source_event_id("exhibition", url)
+
+
+def make_exhibition_source_event_id(url: str, title: str, starts_at: str | None) -> str:
+    # The current-page URL is a slot, not an exhibition identity. Include the
+    # opening date to distinguish repeat editions, but not the extendable end.
+    key = json.dumps([" ".join(title.split()).casefold(), starts_at], ensure_ascii=False)
+    return exhibition_slot(url) + "-" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:20]
 
 
 def make_source_event_id(prefix: str, value: str) -> str:
@@ -342,10 +351,6 @@ def clean_html(value: str | None) -> str | None:
     text = html.unescape(text)
     text = " ".join(text.split())
     return text or None
-
-
-def future_date(start: str, days: int) -> str:
-    return (date.fromisoformat(start) + timedelta(days=days)).isoformat()
 
 
 def fetch_text_url(url: str) -> str:

@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import html
 import re
-from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable
 from urllib.request import Request, urlopen
 
+from babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
 from babyroo_crawler.io import write_json
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
@@ -59,8 +59,8 @@ def make_admission_event(captured_at: str) -> dict:
             "title": "국립민속박물관 어린이박물관 관람",
             "description": "무료로 이용할 수 있는 실내 어린이박물관 전시 관람.",
             "category": "박물관",
-            "starts_at": captured_at,
-            "ends_at": future_date(captured_at, days=180),
+            "starts_at": PERMANENT_START,
+            "ends_at": PERMANENT_END,
             "region": "서울",
             "locality": "종로구",
             "venue_name": VENUE_NAME,
@@ -197,10 +197,6 @@ def clean_html(value: str | None) -> str | None:
     text = html.unescape(text)
     text = " ".join(text.split())
     return text or None
-
-
-def future_date(start: str, days: int) -> str:
-    return (date.fromisoformat(start) + timedelta(days=days)).isoformat()
 
 
 def fetch_text_url(url: str) -> str:

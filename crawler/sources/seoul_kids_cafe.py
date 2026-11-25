@@ -3,12 +3,12 @@ from __future__ import annotations
 import html
 import re
 import time
-from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
 
+from babyroo_crawler.dates import PERMANENT_START, PERMANENT_END
 from babyroo_crawler.io import write_json
 from babyroo_crawler.models import RawEvent, today_iso
 from babyroo_crawler.pipeline import RAW_DIR
@@ -106,8 +106,8 @@ def parse_list_page(page: str, captured_at: str, fclty_stle: str = DEFAULT_FCLTY
                     "title": f"{title} 이용",
                     "description": f"{title} {style_label} 보호자 동반 실내 놀이공간 이용.",
                     "category": "키즈카페",
-                    "starts_at": captured_at,
-                    "ends_at": future_date(captured_at, days=180),
+                    "starts_at": PERMANENT_START,
+                    "ends_at": PERMANENT_END,
                     "region": "서울",
                     "locality": parse_locality(address),
                     "venue_name": title,
@@ -222,10 +222,6 @@ def clean_html(value: Any) -> str | None:
     text = html.unescape(text)
     text = " ".join(text.split())
     return text or None
-
-
-def future_date(start: str, days: int) -> str:
-    return (date.fromisoformat(start) + timedelta(days=days)).isoformat()
 
 
 def fetch_text_url(url: str) -> str:
