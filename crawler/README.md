@@ -101,6 +101,54 @@ Budgets are represented by `extraction_schema.Limits` (20 active candidates,
 `--budget` can reduce selection. Captures/proposals beyond a budget must be deferred
 explicitly; they must not be accepted and then lost at a checkpoint.
 
+## Verify live collectors before running Hermes discovery
+
+Run this from the checkout in the same container/user environment as Hermes:
+
+```sh
+python3 scripts/verify_native_sources.py
+```
+
+It contacts all seven real native sources (up to four independent sources at a
+time), exercises the production empty-result checks and normalization, and saves
+per-source raw output, normalized rows and stdout/stderr outside the repository.
+It checks every source even if an earlier source fails. Only after all pass does
+it run the production refresh/merge against a copied catalog/review/identity tree.
+The developer/remote checkout's catalog, Git refs, DB and PRs are never modified.
+No Hermes/model calls or new discovery searches are made.
+
+The default output is a new temporary directory, printed at startup. `report.json`
+records source outcomes separately from catalog refresh and bundle validation.
+Use `--output /absolute/new/external/directory` for durable diagnostics and
+`--timeout 600` if a complete source needs longer than the default 300 seconds.
+An existing output directory is refused to avoid reusing stale source results.
+Optional `--source seoul_kids_cafe` checks only that source and explicitly leaves
+full catalog verification unperformed. Plain `[]` from this facility catalog is
+still an error, not an accepted empty family-event listing.
+
+To also verify an already finalized Hermes evidence bundle, retain its queue and
+document files together, then run:
+
+```sh
+python3 scripts/verify_native_sources.py --discovery-input /absolute/path/to/batch/bundle.json
+```
+
+Existing evidence/date/identity/freshness rules still apply; this does not declare
+the model's source claims true. A native-only pass does not verify a remote
+Hermes session, its permissions, credentials or a bundle not supplied to this
+command. Test in the real execution environment before resuming recurrence.
+
+The 2026-11-25 live kids-cafe page used `h3` headings while the old parser only
+accepted `h5`, discarding all five visible cards. Both versions are now supported,
+with one actual public venue card retained as a regression fixture. A malformed
+card or missing expected page aborts rather than installing a partial catalog.
+The same full live check found three SWR links without exact event dates
+(recurring reservation instructions and an imprecise month-only program period).
+Native rows missing either date now remain durable `missing_event_dates` review
+leads instead of being inserted into the catalog or blocking valid records.
+Existing complete baseline rows and operator notes are retained. Invalid concrete
+dates still fail validation; no dates are inferred from month-only text.
+
 ## Create the Hermes assistant and schedule (operator commands)
 
 These commands are for you to run; no bot or schedule is installed by this change.

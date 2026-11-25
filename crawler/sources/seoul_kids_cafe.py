@@ -43,9 +43,13 @@ def collect(
         page = 1
         last_page = max_pages
         while last_page is None or page <= last_page:
-            html_page = fetch_text(make_list_url(page, fclty_stle=fclty_stle))
+            list_url = make_list_url(page, fclty_stle=fclty_stle)
+            html_page = fetch_text(list_url)
             cards = parse_list_page(html_page, captured_at, fclty_stle=fclty_stle)
             if not cards:
+                if page == 1 or last_page is not None:
+                    raise ValueError(f"kids cafe listing has no parsed cards: {list_url}; "
+                                     f"HTML length={len(html_page)}, expected last page={last_page}")
                 break
             events.extend(cards)
 
@@ -78,7 +82,8 @@ def parse_list_page(page: str, captured_at: str, fclty_stle: str = DEFAULT_FCLTY
     for card in extract_cards(page):
         parsed = parse_card(card)
         if not parsed.get("title") or not parsed.get("source_event_id"):
-            continue
+            raise ValueError("unrecognized kids cafe card: missing title or facility ID; "
+                             "refusing partial collection")
 
         title = str(parsed["title"])
         address = clean_html(parsed.get("address"))
@@ -140,7 +145,7 @@ def parse_card(card: str) -> dict[str, str | None]:
 
 
 def extract_title(card: str) -> str | None:
-    match = re.search(r"<h5[^>]*>(?P<value>.*?)</h5>", card, re.DOTALL)
+    match = re.search(r"<(?P<tag>h3|h5)\b[^>]*>(?P<value>.*?)</(?P=tag)>", card, re.DOTALL | re.IGNORECASE)
     return clean_html(match.group("value")) if match else None
 
 

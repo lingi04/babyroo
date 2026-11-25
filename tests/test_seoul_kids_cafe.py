@@ -39,6 +39,40 @@ LIST_HTML = """
 
 
 class SeoulKidsCafeCollectorTest(unittest.TestCase):
+    def test_saved_live_card_is_not_discarded(self):
+        page = (Path(__file__).parent / "fixtures/seoul-kids-cafe-live-20261125.html").read_text()
+        rows = parse_list_page(page, "2026-11-25")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_event_id"], "2001-DJ230901")
+        self.assertEqual(rows[0]["payload"]["venue_name"], "서울형 키즈카페 시립 1호점")
+        self.assertEqual(rows[0]["payload"]["locality"], "동작구")
+
+    def test_current_live_h3_heading_is_recognized(self):
+        # Live response on 2026-11-25 uses h3, while older responses used h5.
+        page = LIST_HTML.replace("<h5>", '<h3 class="title">').replace("</h5>", "</h3>")
+        rows = parse_list_page(page, "2026-11-25")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["source_event_id"], "2001-GJ240401")
+        self.assertEqual(rows[0]["payload"]["venue_name"], "서울형 키즈카페 시립 뚝섬자벌레점")
+
+    def test_bad_card_among_good_cards_cannot_silently_disappear(self):
+        page = LIST_HTML + LIST_HTML.replace("<h5>", "<p>").replace("</h5>", "</p>")
+        with self.assertRaisesRegex(ValueError, "refusing partial collection"):
+            parse_list_page(page, "2026-11-25")
+
+    def test_missing_expected_page_or_first_category_fails_without_replacing_output(self):
+        for bad_page in (1, 2):
+            with self.subTest(page=bad_page), tempfile.TemporaryDirectory() as tmp:
+                path = Path(tmp) / "raw.json"
+                path.write_text("keep")
+                def fetch(url):
+                    from urllib.parse import urlsplit, parse_qs
+                    page = int(parse_qs(urlsplit(url).query)["q_currPage"][0])
+                    return "Access denied" if page == bad_page else LIST_HTML
+                with self.assertRaisesRegex(ValueError, "no parsed cards"):
+                    collect(output_path=path, fetch_text=fetch, request_delay=0, fclty_stles=("2001",))
+                self.assertEqual(path.read_text(), "keep")
+
     def test_parse_list_page_maps_cafe_cards(self):
         events = parse_list_page(LIST_HTML, "2026-08-03")
 

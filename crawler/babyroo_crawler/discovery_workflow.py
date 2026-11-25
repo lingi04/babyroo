@@ -167,6 +167,22 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
     identities, outcomes, observations = old_identities, [], []
     with tempfile.TemporaryDirectory(prefix="babyroo-collect-") as tmp:
         incoming, checked = (native_collector or collect_native)(Path(tmp))
+        complete, incomplete = [], []
+        for row in incoming:
+            if row.get("starts_at") is None or row.get("ends_at") is None:
+                # An announcement/recurring-program page is not a dated event.
+                # Keep a durable lead for review; never fabricate its dates or
+                # replace a complete baseline record with an incomplete one.
+                incomplete.append({"discovery_url": row["source_url"],
+                    "venue_name": row.get("venue_name") or row["title"],
+                    "title": row["title"], "source": row["source"],
+                    "source_event_id": row.get("source_event_id"),
+                    "reason": "missing_event_dates", "keyword": "native:" + row["source"],
+                    "locality": row.get("locality") or "", "address": row.get("address") or "",
+                    "snippet": row.get("summary") or "", "official_url": None})
+            else:
+                complete.append(row)
+        incoming = complete
         if "extraction_bundle" in discovery:
             extracted, outcomes, identities, observations = adapt_extractions(
                 discovery["extraction_bundle"], baseline["events"], incoming, old_identities, set(SOURCES),
@@ -175,7 +191,8 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         merged, added, changed, missing = merge_events(baseline["events"], incoming, checked)
     # Durable review state is not the latest search snapshot. Preserve pending leads and human notes.
     candidates = {c["discovery_url"]: c for c in old_review.get("candidates", [])}
-    candidates.update({c["discovery_url"]: {**candidates.get(c["discovery_url"], {}), **c} for c in discovery["candidates"]})
+    candidates.update({c["discovery_url"]: {**candidates.get(c["discovery_url"], {}), **c}
+                       for c in [*incomplete, *discovery["candidates"]]})
     review = {**old_review, "missing": missing, "candidates": [candidates[k] for k in sorted(candidates)]}
     if outcomes or "extractions" in old_review:
         # New batch outcomes replace machine observations for its candidates; absent pending items survive.
@@ -199,7 +216,7 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         review["extractions"] = sorted([*prior, *updated], key=lambda r: (r["candidate_id"], r.get("proposal_id") or ""))
     catalog_changed = merged != baseline["events"]
     if not catalog_changed and review == old_review and identities == old_identities:
-        return {"changed": False, "added": 0, "updated": 0}
+        return {"changed": False, "added": 0, "updated": 0, "incomplete_native": len(incomplete)}
     payload = {**baseline, "count": len(merged), "events": merged}
     if catalog_changed:
         payload["generated_at"] = date.today().isoformat()
@@ -239,4 +256,4 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         for temp in prepared.values():
             temp.unlink(missing_ok=True)
     return {"changed": True, "added": len(added), "updated": len(changed),
-            "missing": len(missing), "report": str(report_path.relative_to(root))}
+            "missing": len(missing), "incomplete_native": len(incomplete), "report": str(report_path.relative_to(root))}

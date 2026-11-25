@@ -154,6 +154,39 @@ class WorkflowTest(unittest.TestCase):
             self.refresh([event(ends_at="2026-02-30")])
         self.assertEqual(self.catalog.read_bytes(), before)
 
+    def test_undated_native_lead_is_retained_for_review_not_catalog(self):
+        before = self.catalog.read_bytes()
+        result = self.refresh([event(), event("undated", sequence=2, starts_at=None, ends_at=None)])
+        self.assertEqual(result["incomplete_native"], 1)
+        self.assertEqual(result["added"], 0)
+        self.assertEqual(self.catalog.read_bytes(), before)
+        review = json.loads((self.root / "data/discovery/review.json").read_text())
+        lead = review["candidates"][0]
+        self.assertEqual(lead["reason"], "missing_event_dates")
+        self.assertEqual(lead["discovery_url"], "https://example.com/undated")
+        self.assertEqual(lead["source_event_id"], "undated")
+        self.assertFalse(self.refresh([event(), event("undated", sequence=2, starts_at=None, ends_at=None)])["changed"])
+
+    def test_missing_date_cannot_replace_baseline_or_erase_operator_notes(self):
+        state = self.root / "data/discovery/review.json"
+        state.parent.mkdir(parents=True)
+        state.write_text(json.dumps({"missing": [], "candidates": [{"discovery_url": "https://example.com/one",
+            "operator_notes": "Keep for review", "decision": "pending"}]}))
+        before = self.catalog.read_bytes()
+        result = self.refresh([event(starts_at="2026-01-01", ends_at=None)])
+        self.assertEqual(result["incomplete_native"], 1)
+        self.assertEqual(self.catalog.read_bytes(), before)
+        lead = json.loads(state.read_text())["candidates"][0]
+        self.assertEqual(lead["operator_notes"], "Keep for review")
+        self.assertEqual(lead["decision"], "pending")
+
+    def test_valid_native_event_can_be_added_alongside_undated_lead(self):
+        result = self.refresh([event(), event("new", sequence=2),
+                               event("undated", sequence=3, starts_at=None, ends_at=None)])
+        self.assertEqual(result["added"], 1)
+        self.assertEqual(result["incomplete_native"], 1)
+        self.assertEqual({row["id"] for row in json.loads(self.catalog.read_text())["events"]}, {"one", "new"})
+
     def test_kids_cafe_full_three_page_collection_in_staging(self):
         from sources import seoul_kids_cafe as cafe
         calls = []
