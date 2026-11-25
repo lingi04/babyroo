@@ -76,15 +76,16 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual((current["age_min_months"], current["indoor"]), (0, False))
         self.assertFalse(self.refresh([incoming])["changed"])
 
-    def test_missing_expired_and_manual_records_retained_and_flagged(self):
+    def test_missing_expired_records_excluded_and_manual_records_retained(self):
         original = [event(ends_at="2026-01-01"), event("manual", source="manual", sequence=2)]
         self.catalog.write_text(json.dumps({"count": 2, "events": original}))
         result = self.refresh([event("new", sequence=3)], {"test"})
-        self.assertEqual(result["missing"], 1)
-        self.assertEqual(len(json.loads(self.catalog.read_text())["events"]), 3)
+        self.assertEqual(result["missing"], 0)
+        self.assertEqual(result["excluded_expired"], 1)
+        self.assertEqual(len(json.loads(self.catalog.read_text())["events"]), 2)
         report = (self.root / result["report"]).read_text()
         self.assertIn('"id": "one"', report)
-        self.assertEqual(report.count("```"), 8)
+        self.assertEqual(report.count("```"), 10)
 
     def test_more_than_25_new_events_and_edited_report_survive(self):
         incoming = [event()] + [event(str(i), sequence=i + 2) for i in range(30)]

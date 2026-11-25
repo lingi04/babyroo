@@ -96,6 +96,26 @@ class ExtractionTest(unittest.TestCase):
             self.assertFalse(refresh(self.root, path, native_collector=lambda p: ([event()], {"test"}))["changed"])
         self.assertEqual(result["added"], 1)
 
+    def test_expired_extraction_is_excluded_and_repeat_is_stable(self):
+        data = fixture(self.root, "dated_event", fields={"starts_at": "2026-11-01", "ends_at": "2026-11-22"})
+        catalog = self.root / "server/data/events.json"
+        catalog.parent.mkdir(parents=True)
+        catalog.write_text(json.dumps({"count": 1, "events": [event()]}))
+        path = self.root / "bundle.json"
+        path.write_text(json.dumps(data))
+        with patch("crawler.discovery.google_alerts.date") as clock:
+            clock.today.return_value = TODAY
+            clock.fromisoformat.side_effect = date.fromisoformat
+            result = refresh(self.root, path, today=TODAY.isoformat(), native_collector=lambda p: ([event()], {"test"}))
+            self.assertEqual(result["added"], 0)
+            self.assertEqual(json.loads(catalog.read_text())["count"], 1)
+            review = json.loads((self.root / "data/discovery/review.json").read_text())
+            self.assertEqual(review["extractions"][0]["status"], "excluded")
+            self.assertIn("event_ended", review["extractions"][0]["reasons"])
+            self.assertEqual(len(review["expired"]), 1)
+            self.assertFalse(refresh(self.root, path, today=TODAY.isoformat(),
+                                     native_collector=lambda p: ([event()], {"test"}))["changed"])
+
     def test_dated_event_and_date_correction_preserve_identity(self):
         data = fixture(self.root, "dated_event")
         first, _, registry, _ = self.adapt(data)
@@ -428,16 +448,17 @@ class ExtractionTest(unittest.TestCase):
         collect = lambda p: (native, set(e["source"] for e in native))
         with patch("crawler.discovery.google_alerts.date") as clock:
             clock.today.return_value = TODAY; clock.fromisoformat.side_effect = date.fromisoformat
-            result = refresh(self.root, path, native_collector=collect)
+            result = refresh(self.root, path, native_collector=collect, today=TODAY.isoformat())
             self.assertEqual((result["added"], result["updated"]), (2, 0))
             actual = json.loads(target.read_text())["events"]
-            self.assertEqual(actual[:len(native)], baseline["events"])
-            self.assertEqual(len(actual), len(native) + 2)
+            eligible = [e for e in native if e["ends_at"] >= TODAY.isoformat()]
+            self.assertEqual(actual[:len(eligible)], eligible)
+            self.assertEqual(len(actual), len(eligible) + 2)
             self.assertTrue(all(len(e) == 30 for e in actual))
             self.assertEqual(len({e["id"] for e in actual}), len(actual))
-            self.assertTrue(any(e["starts_at"] == PERMANENT_START and e["ends_at"] == PERMANENT_END for e in actual[len(native):]))
+            self.assertTrue(any(e["starts_at"] == PERMANENT_START and e["ends_at"] == PERMANENT_END for e in actual[len(eligible):]))
             before = target.read_bytes()
-            self.assertFalse(refresh(self.root, path, native_collector=collect)["changed"])
+            self.assertFalse(refresh(self.root, path, native_collector=collect, today=TODAY.isoformat())["changed"])
             self.assertEqual(target.read_bytes(), before)
 
 

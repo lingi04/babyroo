@@ -12,6 +12,7 @@ from pathlib import Path
 
 from babyroo_crawler.normalize import normalize_raw_event
 from babyroo_crawler.collection import CollectedEvents
+from babyroo_crawler.dates import seoul_today
 
 REMOVED_FIELDS = {"image_url", "admin_updated_at", "publication_status"}
 IGNORED_FIELDS = REMOVED_FIELDS | {"created_at", "updated_at", "last_checked_at"}
@@ -53,8 +54,8 @@ def legacy_namu_exhibition(baseline: list[dict], event: dict) -> dict | None:
 
 
 def validate_events(events: list[dict]) -> None:
-    if not isinstance(events, list) or not events:
-        raise ValueError("catalog must contain a nonempty event list")
+    if not isinstance(events, list):
+        raise ValueError("catalog must contain an event list")
     seen_ids, seen_pairs, seen_sequences = set(), set(), set()
     for event in events:
         if not isinstance(event, dict):
@@ -163,6 +164,8 @@ def report_text(added, changed, review, acquisition_date) -> str:
                         ("Discovery suggestions (not app events)", review["candidates"])]
     if "extractions" in review:
         sections.append(("Extraction outcomes (official evidence still requires PR review)", review["extractions"]))
+    if review.get("expired"):
+        sections.append(("Expired events (excluded from catalog)", review["expired"]))
     for title, rows in sections:
         encoded = json.dumps(rows, ensure_ascii=False, indent=2).replace("`", "\\u0060")
         parts += ["## " + title, "", "```json", encoded, "```", ""]
@@ -170,10 +173,12 @@ def report_text(added, changed, review, acquisition_date) -> str:
     return "\n".join(parts)
 
 
-def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> dict:
+def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None, today=None) -> dict:
     from crawler.discovery.google_alerts import sample
     from crawler.discovery.extracted_events import adapt_extractions
     catalog_path = root / "server/data/events.json"
+    today = today or seoul_today()
+    date.fromisoformat(today)
     state_path = root / "data/discovery/review.json"
     identity_path = root / "data/discovery/identities.json"
     baseline = read_json(catalog_path)
@@ -182,6 +187,11 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         raise ValueError("catalog count does not match events")
     discovery = sample(Path(feeder), max_age_days=max_age_days) if feeder else {"candidates": []}
     old_review = read_json(state_path) if state_path.exists() else {"missing": [], "candidates": []}
+    # Keep excluded records in review history, not the active catalog. This also
+    # preserves IDs/sequences if an official correction extends an ended event.
+    active_ids = {e["id"] for e in baseline["events"]}
+    merge_baseline = [*baseline["events"], *[e for e in old_review.get("expired", []) if e["id"] not in active_ids]]
+    validate_events(merge_baseline)
     old_identities = read_json(identity_path) if identity_path.exists() else {"schema_version": 1, "entries": []}
     identities, outcomes, observations = old_identities, [], []
     with tempfile.TemporaryDirectory(prefix="babyroo-collect-") as tmp:
@@ -204,15 +214,33 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         incoming = complete
         if "extraction_bundle" in discovery:
             extracted, outcomes, identities, observations = adapt_extractions(
-                discovery["extraction_bundle"], baseline["events"], incoming, old_identities, set(SOURCES),
+                discovery["extraction_bundle"], merge_baseline, incoming, old_identities, set(SOURCES),
                 [*old_review.get("extractions", []), *old_review.get("candidates", [])])
             incoming = [*incoming, *extracted]
-        merged, added, changed, missing = merge_events(baseline["events"], incoming, checked)
+        merged, added, changed, missing = merge_events(merge_baseline, incoming, checked)
+        expired = [e for e in merged if e["ends_at"] < today]
+        expired_ids = {e["id"] for e in expired}
+        merged = [e for e in merged if e["id"] not in expired_ids]
+        added = [e for e in added if e["id"] not in expired_ids]
+        changed = [e for e in changed if e["id"] not in expired_ids]
+        missing = [e for e in missing if e["id"] not in expired_ids]
+        for outcome in [*outcomes, *observations]:
+            if outcome.get("event_id") in expired_ids:
+                outcome["status"] = "excluded"
+                outcome["reasons"] = sorted(set([*outcome.get("reasons", []), "event_ended"]))
     # Durable review state is not the latest search snapshot. Preserve pending leads and human notes.
     candidates = {c["discovery_url"]: c for c in old_review.get("candidates", [])}
     candidates.update({c["discovery_url"]: {**candidates.get(c["discovery_url"], {}), **c}
                        for c in [*incomplete, *discovery["candidates"]]})
     review = {**old_review, "missing": missing, "candidates": [candidates[k] for k in sorted(candidates)]}
+    if expired or "expired" in old_review:
+        history = {e["id"]: e for e in old_review.get("expired", [])}
+        for e in expired:
+            history[e["id"]] = e
+        # A corrected/extended event may become eligible again.
+        for e in merged:
+            history.pop(e["id"], None)
+        review["expired"] = [history[k] for k in sorted(history)]
     if outcomes or "extractions" in old_review:
         # New batch outcomes replace machine observations for its candidates; absent pending items survive.
         processed = set(discovery.get("extraction_bundle", {}).get("candidates_by_id", {}))
@@ -233,12 +261,16 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
                 if key not in row and key in candidate_notes.get(row["candidate_id"], {}):
                     row[key] = candidate_notes[row["candidate_id"]][key]
         review["extractions"] = sorted([*prior, *updated], key=lambda r: (r["candidate_id"], r.get("proposal_id") or ""))
+        for index, outcome in enumerate(review["extractions"]):
+            if outcome.get("event_id") in expired_ids and outcome.get("status") == "ready_for_pr":
+                review["extractions"][index] = {**outcome, "status": "excluded",
+                    "reasons": sorted(set([*outcome.get("reasons", []), "event_ended"]))}
     catalog_changed = merged != baseline["events"]
     if not catalog_changed and review == old_review and identities == old_identities:
         return {"changed": False, "added": 0, "updated": 0, "incomplete_native": len(incomplete)}
     payload = {**baseline, "count": len(merged), "events": merged}
     if catalog_changed:
-        payload["generated_at"] = date.today().isoformat()
+        payload["generated_at"] = today
     report_path = root / "data/discovery/reports" / f"refresh-{uuid.uuid4().hex}.md"
     writes = {state_path: json.dumps(review, ensure_ascii=False, indent=2) + "\n",
               report_path: report_text(added, changed, review, discovery.get("fetched_at"))}
@@ -275,4 +307,5 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None) -> d
         for temp in prepared.values():
             temp.unlink(missing_ok=True)
     return {"changed": True, "added": len(added), "updated": len(changed),
-            "missing": len(missing), "incomplete_native": len(incomplete), "report": str(report_path.relative_to(root))}
+            "missing": len(missing), "excluded_expired": len(expired),
+            "incomplete_native": len(incomplete), "report": str(report_path.relative_to(root))}

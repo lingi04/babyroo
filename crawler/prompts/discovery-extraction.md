@@ -101,6 +101,11 @@ Record kinds:
   1970-01-01 and 9999-12-31 as availability sentinels.
 - uncertain: conflicting or incomplete kind/date facts; stays review-only.
 
+Events whose verified end date is before today in Asia/Seoul are excluded from
+the catalog by Python, including existing baseline rows. End dates are inclusive:
+events ending today remain eligible. Keep every selected lead accounted for;
+never invent future dates to make an ended event eligible.
+
 Allowed factual fields: title, venue_name, venue_detail, address, region, locality,
 category, starts_at, ends_at, age_min_months, age_max_months, indoor, price_text,
 price_type, reservation_required, reservation_status, guardian_required,

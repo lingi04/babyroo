@@ -123,7 +123,8 @@ def execute(args) -> dict:
         reports = [p for p in paths if p.startswith("data/discovery/reports/")]
         body.write_text(
             f"Refresh against main `{baseline_sha}`.\n\n"
-            "Review the event diff and discovery report before merging. Missing events were retained.\n\n"
+            "Review the event diff and discovery report before merging. Non-expired missing events were retained; "
+            "ended events were excluded from the catalog and preserved in review history.\n\n"
             + "\n".join(f"- {p}" for p in reports)
             + "\n\nRevalidate against main if it advances before merge.\n"
             "DB import is a separate manual step after merge; this job does not import or merge.\n",

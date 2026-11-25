@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 from typing import Any
 
 from babyroo_crawler.io import list_json_files, read_json, write_json
 from babyroo_crawler.normalize import normalize_raw_event
+from babyroo_crawler.dates import seoul_today
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -67,7 +67,7 @@ def publish(
     today: str | None = None,
 ) -> dict:
     normalized = read_json(normalized_dir / "events.json")
-    today = today or date.today().isoformat()
+    today = today or seoul_today()
     normalized_events = normalized.get("events", [])
     events = [event for event in normalized_events if is_public_event(event, today)]
     payload = {

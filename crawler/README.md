@@ -100,7 +100,7 @@ page slot, normalized exhibition title and opening date. Replacing the show or
 repeating it with a new opening date creates a new event; extending its end date
 updates the same event. The first refresh adopts a legacy slot-only row only if
 its title and opening date match, preserving its catalog ID and sequence. Older
-different shows remain retained. A correction to the title or opening date needs
+different shows remain in review history once ended. A correction to the title or opening date needs
 manual identity review; it is not automatically inferred to be the same show.
 
 `data/discovery/identities.json` preserves date-independent identities and reviewed
@@ -333,8 +333,10 @@ force-replaces it.
 
 No semantic changes means no writes/push/PR. Generated files are limited to:
 
-- `server/data/events.json`: merged catalog, including retained missing/expired rows.
-- `data/discovery/review.json`: stable missing-event and discovery-suggestion state.
+- `server/data/events.json`: merged catalog, excluding events whose end date is
+  before today's date in Asia/Seoul. Events ending today and permanent venues remain.
+- `data/discovery/review.json`: stable missing-event, discovery-suggestion and
+  excluded-expired-event history. Ended records retain their IDs and sequences here.
 - `data/discovery/reports/refresh-*.md`: unique per-change reports. Prior reports
   and annotations are never overwritten. All new events appear, not only a top 25.
 
@@ -343,7 +345,14 @@ Semantic comparison ignores `created_at`, `updated_at`, `last_checked_at`,
 absent from the catalog. Existing IDs, sequence numbers and created/updated
 timestamps are preserved. Unknown/null incoming optional fields retain known
 baseline values. Concrete source values are proposed in the PR for review.
-Missing events are **kept and flagged**, never deleted automatically.
+Missing events that have not ended are **kept and flagged**. Ended records are
+excluded from the catalog even if they were already in the baseline or were
+returned by a native collector or extraction bundle. Review reports add an
+`Expired events (excluded from catalog)` section when this history is nonempty.
+An official end-date extension can restore a record with its original ID and
+sequence. An entirely expired catalog may become empty. Invalid dates still fail
+the refresh rather than being silently filtered out. These changes are proposed
+in the dry run/PR; no database deletion or import happens automatically.
 
 All native outputs are staged in temporary files, with full kids-cafe pagination.
 Exceptions and unverified empty source collections fail the run for operator review;
