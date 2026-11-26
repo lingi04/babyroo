@@ -1,0 +1,1707 @@
+{
+  "batch_id": "batch-8486cee45c9c4af28399e7012115d852",
+  "observations": [
+    {
+      "candidate_id": "candidate-05abc0c23c3221486c28b5ec",
+      "proposal_id": "national-folk-childrens-museum",
+      "discovery_url": "https://www.nfm.go.kr/kids",
+      "source_url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+      "status": "needs_review",
+      "reasons": [
+        "native_precedence"
+      ],
+      "record_kind": "permanent_venue",
+      "evidence": {
+        "title": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "국립민속박물관 어린이박물관은 무료입니다.",
+          "span": [
+            593,
+            615
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "국립민속박물관 어린이박물관은 무료입니다.",
+          "span": [
+            593,
+            615
+          ]
+        },
+        "region": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "[03045] 서울특별시 종로구 삼청로 37",
+          "span": [
+            2534,
+            2558
+          ]
+        },
+        "locality": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "[03045] 서울특별시 종로구 삼청로 37",
+          "span": [
+            2534,
+            2558
+          ]
+        },
+        "address": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "[03045] 서울특별시 종로구 삼청로 37",
+          "span": [
+            2534,
+            2558
+          ]
+        },
+        "category": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "어린이박물관 전시는 인터넷 예약을 통해서 관람하실 수 있습니다.",
+          "span": [
+            653,
+            688
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "국립민속박물관 어린이박물관은 무료입니다.",
+          "span": [
+            593,
+            615
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "박물관 소개\n전시\n상설전시1\n상설전시2\n옥외 전시장",
+          "span": [
+            108,
+            136
+          ]
+        },
+        "authority": {
+          "document_id": "doc-20",
+          "url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:38.396127+00:00",
+          "text_sha256": "545cb3bb06817afa607243478b024fb864c52f0685e7d155bee8bea2f5477959",
+          "quote": "Copyright © 국립민속박물관. All Rights Reserved",
+          "span": [
+            2624,
+            2664
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "국립민속박물관",
+        "role": "venue_operator"
+      },
+      "matching_event_ids": [
+        "nfm-kids-ce2dc366a355"
+      ]
+    },
+    {
+      "candidate_id": "candidate-b7e45b590df8c0c1d8464cdc",
+      "proposal_id": "csc-permanent",
+      "discovery_url": "https://www.sciencecenter.go.kr/csc",
+      "source_url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "permanent_venue",
+      "evidence": {
+        "title": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "Copyright© 2025 NATIONAL CHILDREN’S SCIENCE CENTER. All rights reserved",
+          "span": [
+            713,
+            784
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "Copyright© 2025 NATIONAL CHILDREN’S SCIENCE CENTER. All rights reserved",
+          "span": [
+            713,
+            784
+          ]
+        },
+        "region": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "(03072) 서울특별시 종로구 창경궁로 215",
+          "span": [
+            603,
+            629
+          ]
+        },
+        "locality": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "(03072) 서울특별시 종로구 창경궁로 215",
+          "span": [
+            603,
+            629
+          ]
+        },
+        "address": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "(03072) 서울특별시 종로구 창경궁로 215",
+          "span": [
+            603,
+            629
+          ]
+        },
+        "category": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "개인예약\n상설전시관\n\n오감활용 체험 공간 감각놀이터(1층)",
+          "span": [
+            38,
+            70
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "개인예약\n상설전시관\n\n오감활용 체험 공간 감각놀이터(1층)",
+          "span": [
+            38,
+            70
+          ]
+        },
+        "authority": {
+          "document_id": "doc-2b",
+          "url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:25.417856+00:00",
+          "text_sha256": "ee804a6f6bdd73b36e90e426aaf60b034da08b100dad707281df919d39085dcc",
+          "quote": "Copyright© 2025 NATIONAL CHILDREN’S SCIENCE CENTER. All rights reserved",
+          "span": [
+            713,
+            784
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "NATIONAL CHILDREN’S SCIENCE CENTER",
+        "role": "venue_operator"
+      },
+      "event_id": "discovery-57644efdf34470f6dd53ccf7"
+    },
+    {
+      "candidate_id": "candidate-b85d5f77762d5b3413ed7f2e",
+      "proposal_id": "seoul-childrens-museum",
+      "discovery_url": "https://seoulchildrensmuseum.org/",
+      "source_url": "https://seoulchildrensmuseum.org/",
+      "status": "needs_review",
+      "reasons": [
+        "possible_duplicate"
+      ],
+      "record_kind": "permanent_venue",
+      "evidence": {
+        "title": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1647,
+            1705
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1647,
+            1705
+          ]
+        },
+        "region": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1647,
+            1705
+          ]
+        },
+        "locality": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1647,
+            1705
+          ]
+        },
+        "address": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1647,
+            1705
+          ]
+        },
+        "category": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "마이페이지\n\n1층 상설전시실\n\n매일의 다정함",
+          "span": [
+            58,
+            82
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "마이페이지\n\n1층 상설전시실\n\n매일의 다정함",
+          "span": [
+            58,
+            82
+          ]
+        },
+        "authority": {
+          "document_id": "doc-3",
+          "url": "https://seoulchildrensmuseum.org/",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:03.269088+00:00",
+          "text_sha256": "f561ead632fac7fab96e3d58f80d42a3a0b5cf5fb8453f61e3107440080e2b5b",
+          "quote": "법인명 : 커넥팅더닷츠(주) 서울상상나라, 대표자 : 김희정",
+          "span": [
+            1741,
+            1774
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "서울상상나라",
+        "role": "venue_operator"
+      },
+      "matching_event_ids": [
+        "seoul-family-venues-7c152da04a57"
+      ]
+    },
+    {
+      "candidate_id": "candidate-c2d6a210e96649abb10754b2",
+      "proposal_id": "sejong-christmas-carol",
+      "discovery_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+      "source_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "크리스마스 캐럴\n\n개막알림서비스",
+          "span": [
+            5623,
+            5640
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5888,
+            5933
+          ]
+        },
+        "venue_detail": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "2026.12.02(수) ~ 2026.12.27(일)\t세종M씨어터",
+          "span": [
+            171,
+            207
+          ]
+        },
+        "region": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5888,
+            5933
+          ]
+        },
+        "locality": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5888,
+            5933
+          ]
+        },
+        "address": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5888,
+            5933
+          ]
+        },
+        "category": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "공연일정 중 공연에 대한 정보 테이블로 기간, 장소, 시간 및 세부일정 정보를 제공합니다.",
+          "span": [
+            104,
+            154
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "2026.12.02(수) ~ 2026.12.27(일)\t세종M씨어터",
+          "span": [
+            171,
+            207
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "2026.12.02(수) ~ 2026.12.27(일)\t세종M씨어터",
+          "span": [
+            171,
+            207
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "R석\n80,000원\nS석\n60,000원",
+          "span": [
+            898,
+            919
+          ]
+        },
+        "age_min_months": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "5세 이상 관람 가능\n(2021년 포함 이전 출생자)",
+          "span": [
+            867,
+            896
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "2026.12.02(수) ~ 2026.12.27(일)\t세종M씨어터",
+          "span": [
+            171,
+            207
+          ]
+        },
+        "authority": {
+          "document_id": "doc-4",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:22.270836+00:00",
+          "text_sha256": "a0d106d2929a538858ef6a6b08a9505bdd5297a091112678891943ef36a215ea",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5888,
+            5933
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "세종문화회관",
+        "role": "venue_operator"
+      },
+      "event_id": "discovery-ecb08e737059b0e653dab24e"
+    },
+    {
+      "candidate_id": "candidate-c2e372dc9291889e0439bbca",
+      "proposal_id": "nmok-discovery-empathy-2021",
+      "discovery_url": "https://mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+      "source_url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+      "status": "excluded",
+      "reasons": [
+        "event_ended"
+      ],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "어린이박물관 상설전시 아하! 발견과 공감",
+          "span": [
+            241,
+            263
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "서울 | 국립중앙박물관 어린이박물관",
+          "span": [
+            359,
+            378
+          ]
+        },
+        "region": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "서울 | 국립중앙박물관 어린이박물관",
+          "span": [
+            359,
+            378
+          ]
+        },
+        "category": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "어린이박물관 상설전시 아하! 발견과 공감",
+          "span": [
+            241,
+            263
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "2021.12.15. ~ 2025.12.31.",
+          "span": [
+            274,
+            299
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "2021.12.15. ~ 2025.12.31.",
+          "span": [
+            274,
+            299
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "요금\n무료",
+          "span": [
+            379,
+            384
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "2021.12.15. ~ 2025.12.31.",
+          "span": [
+            274,
+            299
+          ]
+        },
+        "authority": {
+          "document_id": "doc-5",
+          "url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:05.112667+00:00",
+          "text_sha256": "25338b5f590638af9ac21a78307e75c3a54f6ce4514cebb9abc0766fb5daef86",
+          "quote": "Copyright ⓒ Ministry of Culture, Sports and Tourism",
+          "span": [
+            657,
+            708
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "Ministry of Culture, Sports and Tourism",
+        "role": "public_authority"
+      },
+      "event_id": "discovery-05e7776596dc6fa0546eff8d"
+    },
+    {
+      "candidate_id": "candidate-c5e6e27d30a7dfcd8c5af514",
+      "proposal_id": "seoul-expedition-2026",
+      "discovery_url": "https://mediahub.seoul.go.kr/archives/2020092",
+      "source_url": "https://mediahub.seoul.go.kr/archives/2020092",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "내친구서울관 기획전시 ‘서울탐험대’",
+          "span": [
+            1765,
+            1784
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 장소 : 서울 중구 세종대로 110 서울시청 지하 1층 내친구서울관",
+          "span": [
+            1867,
+            1906
+          ]
+        },
+        "region": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 장소 : 서울 중구 세종대로 110 서울시청 지하 1층 내친구서울관",
+          "span": [
+            1867,
+            1906
+          ]
+        },
+        "locality": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 장소 : 서울 중구 세종대로 110 서울시청 지하 1층 내친구서울관",
+          "span": [
+            1867,
+            1906
+          ]
+        },
+        "address": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 장소 : 서울 중구 세종대로 110 서울시청 지하 1층 내친구서울관",
+          "span": [
+            1867,
+            1906
+          ]
+        },
+        "category": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "내친구서울관 기획전시 ‘서울탐험대’",
+          "span": [
+            1765,
+            1784
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 일시 : 2026. 11. 20 ~ 2027. 2. 28 월~목 9:00~19:00 금~토 9:00~21:00",
+          "span": [
+            1785,
+            1848
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 일시 : 2026. 11. 20 ~ 2027. 2. 28 월~목 9:00~19:00 금~토 9:00~21:00",
+          "span": [
+            1785,
+            1848
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 관람료 : 무료",
+          "span": [
+            1907,
+            1917
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "○ 일시 : 2026. 11. 20 ~ 2027. 2. 28 월~목 9:00~19:00 금~토 9:00~21:00",
+          "span": [
+            1785,
+            1848
+          ]
+        },
+        "authority": {
+          "document_id": "doc-6",
+          "url": "https://mediahub.seoul.go.kr/archives/2020092",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:09.149885+00:00",
+          "text_sha256": "bd25df08c52bdb60dd46f83d96bf7837eb8f6f7c9ba337360750dd9a05ee48ff",
+          "quote": "서울특별시청 04524 서울특별시 중구 세종대로 110 콘텐츠담당관",
+          "span": [
+            3740,
+            3777
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "서울특별시청",
+        "role": "public_authority"
+      },
+      "event_id": "discovery-c407d73d3456faf50075cc29"
+    },
+    {
+      "candidate_id": "candidate-c874a7756ee82c2d6376c33d",
+      "proposal_id": "sejong-family-concert-2026",
+      "discovery_url": "https://blog.naver.com/namoo_lms/224477469117",
+      "source_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "공지사항\t＜송년 가족 음악회＞ 추가 오픈 안내",
+          "span": [
+            375,
+            400
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5162,
+            5207
+          ]
+        },
+        "venue_detail": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "2026.12.05(토)\t세종대극장",
+          "span": [
+            171,
+            190
+          ]
+        },
+        "region": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5162,
+            5207
+          ]
+        },
+        "locality": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5162,
+            5207
+          ]
+        },
+        "address": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5162,
+            5207
+          ]
+        },
+        "category": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "공지사항\t＜송년 가족 음악회＞ 추가 오픈 안내",
+          "span": [
+            375,
+            400
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "2026.12.05(토)\t세종대극장",
+          "span": [
+            171,
+            190
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "2026.12.05(토)\t세종대극장",
+          "span": [
+            171,
+            190
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "R석\n50,000원\nS석\n40,000원\nA석\n30,000원",
+          "span": [
+            320,
+            352
+          ]
+        },
+        "age_min_months": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "(인터미션: 20분)\t7세 이상 관람 가능\n(2019년 포함 이전 출생자)",
+          "span": [
+            277,
+            318
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "기간\t장소\t시간 및 세부일정\n2026.12.05(토)\t세종대극장\n위치보기\n\t\n17:00",
+          "span": [
+            155,
+            203
+          ]
+        },
+        "authority": {
+          "document_id": "doc-8",
+          "url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:12.930864+00:00",
+          "text_sha256": "6e45b2988fc006041fe8f794573e1091e2c4fe7c31b85b23ec67f1975ba1b7ac",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            5162,
+            5207
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "세종문화회관",
+        "role": "venue_operator"
+      },
+      "event_id": "discovery-05fc74a3d5c243dbc0718be7"
+    },
+    {
+      "candidate_id": "candidate-ccb698ac01da1cd4b817ff2b",
+      "proposal_id": "baekje-dima",
+      "discovery_url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+      "source_url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "제목\t[전시안내] 서울백제어린이박물관 특별전 <DIMA: 아기 매머드 디마와 함께하는 빙하기 탐험> 개막 안내",
+          "span": [
+            176,
+            237
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "주소:(우)05540 서울특별시 송파구 올림픽로 424 서울백제어린이박물관 TEL02)2152-5900 FAX02)424-4205 MAIL baekje2024@seoul.go.kr",
+          "span": [
+            886,
+            986
+          ]
+        },
+        "region": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "주소:(우)05540 서울특별시 송파구 올림픽로 424 서울백제어린이박물관 TEL02)2152-5900 FAX02)424-4205 MAIL baekje2024@seoul.go.kr",
+          "span": [
+            886,
+            986
+          ]
+        },
+        "locality": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "주소:(우)05540 서울특별시 송파구 올림픽로 424 서울백제어린이박물관 TEL02)2152-5900 FAX02)424-4205 MAIL baekje2024@seoul.go.kr",
+          "span": [
+            886,
+            986
+          ]
+        },
+        "address": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "주소:(우)05540 서울특별시 송파구 올림픽로 424 서울백제어린이박물관 TEL02)2152-5900 FAX02)424-4205 MAIL baekje2024@seoul.go.kr",
+          "span": [
+            886,
+            986
+          ]
+        },
+        "category": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "서울백제어린이박물관은 아기 매머드 '디마'와 함께 빙하기의 자연을 탐험하는 특별전시를 선보입니다.",
+          "span": [
+            381,
+            435
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "📍2026년 11월 17일(화) - 2027년 3월 7일(일)",
+          "span": [
+            341,
+            375
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "📍2026년 11월 17일(화) - 2027년 3월 7일(일)",
+          "span": [
+            341,
+            375
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "📍2026년 11월 17일(화) - 2027년 3월 7일(일)",
+          "span": [
+            341,
+            375
+          ]
+        },
+        "authority": {
+          "document_id": "doc-9",
+          "url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:23.740063+00:00",
+          "text_sha256": "ee34dae3639ce8bc454938cf7fb24f3ee96bd2a12d484a1c86e75e397f55b41e",
+          "quote": "서울백제어린이박물관은 아기 매머드 '디마'와 함께 빙하기의 자연을 탐험하는 특별전시를 선보입니다.",
+          "span": [
+            381,
+            435
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "서울백제어린이박물관",
+        "role": "venue_operator"
+      },
+      "event_id": "discovery-0a10016b02f715da5917c5ed"
+    },
+    {
+      "candidate_id": "candidate-e6e402279912fe62344b2dfb",
+      "proposal_id": "yongsan-christmas-atelier-2026",
+      "discovery_url": "https://festival.seoul.go.kr/festival/main/festivalMain.do",
+      "source_url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "문화/예술\n용산구\n[2026 아트 페스티벌] 용산 크리스마스 아틀리에\n\n2026-12-11 ~ 2026-12-20 \n\n용산문화재단(이태원로 274)",
+          "span": [
+            129,
+            211
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "■ 축제 장소: 용산문화재단(이태원로 274)",
+          "span": [
+            497,
+            522
+          ]
+        },
+        "region": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "우)04520 서울특별시 중구 세종대로 124 한국프레스센터 4층 서울시 문화정책과",
+          "span": [
+            1628,
+            1674
+          ]
+        },
+        "locality": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "문화/예술\n용산구\n[2026 아트 페스티벌] 용산 크리스마스 아틀리에\n\n2026-12-11 ~ 2026-12-20 \n\n용산문화재단(이태원로 274)",
+          "span": [
+            129,
+            211
+          ]
+        },
+        "category": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "■ 축제 일자: 2026.12.11.(금)~12.20.(일) 13:00~19:00",
+          "span": [
+            451,
+            496
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "기간\n2026-12-11 ~ 2026-12-20\n시간\n13:00~19:00",
+          "span": [
+            236,
+            277
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "기간\n2026-12-11 ~ 2026-12-20\n시간\n13:00~19:00",
+          "span": [
+            236,
+            277
+          ]
+        },
+        "price_type": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "대상\n누구나\n요금\n무료\n문의\n02-794-2740",
+          "span": [
+            298,
+            325
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "기간\n2026-12-11 ~ 2026-12-20\n시간\n13:00~19:00\n장소\n용산문화재단(이태원로 274)",
+          "span": [
+            236,
+            297
+          ]
+        },
+        "authority": {
+          "document_id": "doc-13b",
+          "url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:04:51.740407+00:00",
+          "text_sha256": "71ce6bfe743a77ec711e54302cf0c342779bce09ad19a5f583d8f5771bb1b76c",
+          "quote": "우)04520 서울특별시 중구 세종대로 124 한국프레스센터 4층 서울시 문화정책과",
+          "span": [
+            1628,
+            1674
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "서울시 문화정책과",
+        "role": "public_authority"
+      },
+      "event_id": "discovery-06574c2afa42d6e9073a9bd1"
+    },
+    {
+      "candidate_id": "candidate-e7d80ff21bd7485c42313ddc",
+      "proposal_id": "seoul-childrens-museum-culture-play",
+      "discovery_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+      "source_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "permanent_venue",
+      "evidence": {
+        "title": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "전시목록\n문화놀이",
+          "span": [
+            29,
+            38
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1432,
+            1490
+          ]
+        },
+        "region": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1432,
+            1490
+          ]
+        },
+        "locality": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "04991(143-847) 서울특별시 광진구 능동로 216(능동 18번지) 서울상상나라(어린이대공원 내)",
+          "span": [
+            1432,
+            1490
+          ]
+        },
+        "venue_detail": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "주제, 장소, 구분에 따른 전시정보\n주제\t다문화와 건축현장놀이\n장소\t3층 문화놀이\n구분\t상설전시",
+          "span": [
+            234,
+            287
+          ]
+        },
+        "category": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "주제, 장소, 구분에 따른 전시정보\n주제\t다문화와 건축현장놀이\n장소\t3층 문화놀이\n구분\t상설전시",
+          "span": [
+            234,
+            287
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "주제, 장소, 구분에 따른 전시정보\n주제\t다문화와 건축현장놀이\n장소\t3층 문화놀이\n구분\t상설전시",
+          "span": [
+            234,
+            287
+          ]
+        },
+        "authority": {
+          "document_id": "doc-14",
+          "url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:29.707135+00:00",
+          "text_sha256": "e47ae4f44dfd4438898606bfe8f7a22ff2b2688134f2c6964c94ce1215fcbe4b",
+          "quote": "법인명 : 커넥팅더닷츠(주) 서울상상나라, 대표자 : 김희정",
+          "span": [
+            1526,
+            1559
+          ]
+        }
+      },
+      "warnings": [],
+      "authority": {
+        "publisher_name": "서울상상나라",
+        "role": "venue_operator"
+      },
+      "event_id": "discovery-2a3cd4f02234d757bfaa55ca"
+    },
+    {
+      "candidate_id": "candidate-eb229304a7fc79174a3bd8c0",
+      "proposal_id": "jfac-santa-search",
+      "discovery_url": "https://blog.naver.com/chy8001/224479611416",
+      "source_url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "아이들극장 연말공연 <산타찾기>",
+          "span": [
+            135,
+            152
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "(03066) 서울시 종로구 성균관로 91 아이들극장(혜화동 1-21)",
+          "span": [
+            429,
+            468
+          ]
+        },
+        "region": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "(03066) 서울시 종로구 성균관로 91 아이들극장(혜화동 1-21)",
+          "span": [
+            429,
+            468
+          ]
+        },
+        "locality": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "(03066) 서울시 종로구 성균관로 91 아이들극장(혜화동 1-21)",
+          "span": [
+            429,
+            468
+          ]
+        },
+        "address": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "(03066) 서울시 종로구 성균관로 91 아이들극장(혜화동 1-21)",
+          "span": [
+            429,
+            468
+          ]
+        },
+        "category": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "아이들극장 연말공연 <산타찾기>",
+          "span": [
+            135,
+            152
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "기간\t2026-12-04(금) ~ 2026-12-25(금)",
+          "span": [
+            153,
+            185
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "기간\t2026-12-04(금) ~ 2026-12-25(금)",
+          "span": [
+            153,
+            185
+          ]
+        },
+        "age_min_months": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "관람등급\t36개월 이상",
+          "span": [
+            214,
+            226
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "기간\t2026-12-04(금) ~ 2026-12-25(금)",
+          "span": [
+            153,
+            185
+          ]
+        },
+        "authority": {
+          "document_id": "doc-15b",
+          "url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:05:44.295286+00:00",
+          "text_sha256": "0744f8d4a25b601a6e990774b85535b2cd58547fd9499ab2e112d35c02fa93ba",
+          "quote": "종로문화재단\n종로아이들극장",
+          "span": [
+            17,
+            31
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "종로문화재단",
+        "role": "organizer"
+      },
+      "event_id": "discovery-83f1620860592cbe1c4cdeb5"
+    },
+    {
+      "candidate_id": "candidate-fa2ea0697f09032a84e623c5",
+      "proposal_id": "sejong-universal-nutcracker-2026",
+      "discovery_url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+      "source_url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "record_kind": "dated_event",
+      "evidence": {
+        "title": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "공연명 : 유니버설발레단 <호두까기인형>",
+          "span": [
+            336,
+            358
+          ]
+        },
+        "venue_name": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "공연장소 : 세종문화회관 대극장",
+          "span": [
+            389,
+            406
+          ]
+        },
+        "venue_detail": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "공연장소 : 세종문화회관 대극장",
+          "span": [
+            389,
+            406
+          ]
+        },
+        "region": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            1876,
+            1921
+          ]
+        },
+        "locality": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            1876,
+            1921
+          ]
+        },
+        "address": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "재단법인 세종문화회관 서울특별시 종로구 세종대로 175 (세종로) (우)03172",
+          "span": [
+            1876,
+            1921
+          ]
+        },
+        "category": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "공연명 : 유니버설발레단 <호두까기인형>",
+          "span": [
+            336,
+            358
+          ]
+        },
+        "starts_at": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "티켓오픈회차\t2026년 12월 17일(목) ~ 2026년 12월 30일(수)",
+          "span": [
+            287,
+            329
+          ]
+        },
+        "ends_at": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "티켓오픈회차\t2026년 12월 17일(목) ~ 2026년 12월 30일(수)",
+          "span": [
+            287,
+            329
+          ]
+        },
+        "price_text": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "티켓가격 : VIP석 14만원ㅣ R석 12만원ㅣ S석 9만원ㅣA석 6만원ㅣB석 3만원",
+          "span": [
+            486,
+            533
+          ]
+        },
+        "age_min_months": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "관람등급 : 4세 이상(2022년 12월 31일 이전 출생자)",
+          "span": [
+            407,
+            441
+          ]
+        },
+        "record_kind": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "티켓오픈회차\t2026년 12월 17일(목) ~ 2026년 12월 30일(수)",
+          "span": [
+            287,
+            329
+          ]
+        },
+        "authority": {
+          "document_id": "doc-16",
+          "url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+          "kind": "official_detail",
+          "fetched_at": "2026-11-26T03:03:30.939300+00:00",
+          "text_sha256": "1b84a22de813e74a2dac825ce2d5a7c8ea572534c68043d1ca2a19cd86781df9",
+          "quote": "주최 : (재)세종문화회관, 유니버설발레단",
+          "span": [
+            1633,
+            1656
+          ]
+        }
+      },
+      "warnings": [
+        "new_publisher_domain_requires_human_confirmation"
+      ],
+      "authority": {
+        "publisher_name": "세종문화회관",
+        "role": "organizer"
+      },
+      "event_id": "discovery-74eb611ab04986b6f376f9cc"
+    }
+  ]
+}
