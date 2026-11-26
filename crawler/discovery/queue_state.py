@@ -9,6 +9,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import re
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -118,6 +119,29 @@ def validate_outcome_path(state, outcome_path):
     return outcome_path
 
 
+def close_stage(owner, now, status):
+    stages = owner.get("stages", [])
+    if stages and stages[-1]["status"] == "running":
+        stage = stages[-1]
+        stage.update(status=status, finished_at=now.isoformat(), duration_seconds=round(max(0,
+            (now - datetime.fromisoformat(stage["started_at"])).total_seconds()), 3))
+
+
+def stage_run(state, run_id, name):
+    if not re.fullmatch(r"[a-z][a-z0-9_-]{0,63}", name):
+        raise ValueError("invalid stage name")
+    with state_lock(state):
+        require_owner(state, run_id)
+        owner = active_run(state)
+        now = datetime.now(timezone.utc)
+        stages = owner.setdefault("stages", [])
+        if not stages or stages[-1]["name"] != name or stages[-1]["status"] != "running":
+            close_stage(owner, now, "completed")
+            stages.append({"name": name, "started_at": now.isoformat(), "status": "running"})
+            atomic_json(coordination_paths(state)[2], owner)
+        return {"status": "stage-started", "run_id": run_id, "stage": stages[-1]}
+
+
 def finish_run(state, run_id, outcome_path, status, details=None):
     """Finish a known-stopped owner; never use this for uncertain/live work."""
     if status not in {"completed", "failed"}:
@@ -125,10 +149,17 @@ def finish_run(state, run_id, outcome_path, status, details=None):
     outcome_path = validate_outcome_path(state, outcome_path)
     with state_lock(state):
         require_owner(state, run_id)
+        owner = active_run(state)
+        now = datetime.now(timezone.utc)
+        close_stage(owner, now, status)
+        timings = {"started_at": owner["started_at"], "finished_at": now.isoformat(),
+                   "total_seconds": round(max(0, (now - datetime.fromisoformat(owner["started_at"])).total_seconds()), 3),
+                   "stages": owner.get("stages", [])}
         report = {"status": status, "run_id": run_id,
-                  "finished_at": datetime.now(timezone.utc).isoformat(), "details": details or {}}
+                  "finished_at": now.isoformat(), "timings": timings, "details": details or {}}
         result = {"status": status, "run_id": run_id, "outcome": str(outcome_path),
                   "ownership": "released", "outcome_saved": False}
+        result["timings"] = timings
         try:
             atomic_json(outcome_path, report)
             result["outcome_saved"] = True

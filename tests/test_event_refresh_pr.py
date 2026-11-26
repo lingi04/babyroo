@@ -132,6 +132,8 @@ class RunnerTest(unittest.TestCase):
     def test_extraction_artifact_allowlist_does_not_allow_raw_source_documents(self):
         for name in ('data/discovery/identities.json', 'data/discovery/reports/extraction-test.json'):
             self.assertTrue(runner.allowed(name))
+        self.assertTrue(runner.allowed('data/discovery/reports/refresh-test.sql'))
+        self.assertFalse(runner.allowed('data/discovery/reports/refresh-test.sql/../../secret.sql'))
         for name in ('data/discovery/documents/source.txt', 'data/discovery/reports/extraction-test.json/../../secret',
                      'data/discovery/reports/extraction-test.json.txt', 'crawler/prompts/discovery-extraction.md'):
             self.assertFalse(runner.allowed(name))

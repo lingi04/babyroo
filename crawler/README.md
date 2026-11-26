@@ -381,6 +381,51 @@ No semantic changes means no writes/push/PR. Generated files are limited to:
   excluded-expired-event history. Ended records retain their IDs and sequences here.
 - `data/discovery/reports/refresh-*.md`: unique per-change reports. Prior reports
   and annotations are never overwritten. All new events appear, not only a top 25.
+- `data/discovery/reports/refresh-*.sql`: one reviewable PostgreSQL script per
+  catalog change. Included in the PR alongside the matching Markdown report.
+
+### Stage durations
+
+The prompt records `search`, `checkout`, `queue`, `extraction` and `validation`
+boundaries with `discovery_run.py stage --state ... --run-id ... --name ...`.
+Each boundary closes the preceding phase; repeated starts of the same active
+phase do not reset its clock. The execute wrapper starts `catalog` automatically.
+`outcome.json` stores phase durations/statuses and total seconds from ownership
+acquisition to completion (bootstrap preflight before acquisition is excluded).
+These wall-clock phase intervals include model and tool waits; no model-estimated
+durations are used. Known failed runs also retain their final phase timing.
+
+`outcome.timings.jsonl` records monotonic elapsed durations for each native source,
+evidence validation, catalog merge, SQL generation and Git/GitHub command. These
+events also appear as `[TIMING]` lines in terminal/refresh logs. Nested command
+and collector durations overlap; do not sum them with the parent catalog phase.
+The bot should include a concise timing table and both artifact paths in its
+final response. Timing files are operational batch artifacts, not app data.
+
+### Manually executing the PR's SQL
+
+No new schema/DDL is required for this workflow. Open the PR's **single**
+`refresh-*.sql` file, review it, and run the entire file in your PostgreSQL/Neon
+SQL editor after applying the PR. Alternatively:
+
+```sh
+psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f data/discovery/reports/refresh-ACTUAL_ID.sql
+```
+
+Replace `ACTUAL_ID` with the report ID. The job never executes this SQL. The file
+uses one transaction and contains inserts for new events, updates for changed
+fields, and soft archival of ended published baseline events. New events are
+published only when you manually execute the script; new records already ended
+by execution time are skipped. Existing images, publication status, admin edit
+timestamps and creation timestamps are preserved. Only archival changes an
+existing published event to `archived`; no hard deletes are generated.
+
+Updates check the baseline values of the touched fields before writing; a stale
+or missing DB row aborts the entire transaction. Applying the same script again
+is a no-op when its data already matches. SQL quotes source text as data rather
+than executable statements. Apply reviewed PR scripts in order; an unapplied
+earlier PR or intervening DB edit may require reconciling the diff first. Review
+notes and suggestions never become SQL inserts.
 
 Semantic comparison ignores `created_at`, `updated_at`, `last_checked_at`,
 `image_url`, `admin_updated_at`, and `publication_status`. The last three remain

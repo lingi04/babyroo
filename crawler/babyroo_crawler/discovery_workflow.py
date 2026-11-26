@@ -13,6 +13,7 @@ from pathlib import Path
 from babyroo_crawler.normalize import normalize_raw_event
 from babyroo_crawler.collection import CollectedEvents
 from babyroo_crawler.dates import seoul_today
+from babyroo_crawler.timing import timed_step
 
 REMOVED_FIELDS = {"image_url", "admin_updated_at", "publication_status"}
 IGNORED_FIELDS = REMOVED_FIELDS | {"created_at", "updated_at", "last_checked_at"}
@@ -135,21 +136,22 @@ def collect_native(staging: Path) -> tuple[list[dict], set[str]]:
     events, checked = [], set()
     for source in SOURCES:
         try:
-            collector = importlib.import_module("sources." + source).collect
-            # No page cap for the full replacement kids-cafe collector.
-            rows = collector(output_path=staging / f"{source}.json")
-            if not isinstance(rows, list) or (not rows and not (
-                    isinstance(rows, CollectedEvents) and isinstance(rows.verified_empty_reason, str)
-                    and rows.verified_empty_reason.strip())):
-                raise ValueError("empty or malformed collection; needs operator review")
-            if not rows:
-                logging.getLogger(__name__).info("%s: verified empty collection (%s)",
-                                                 source, rows.verified_empty_reason)
-            for raw in rows:
-                if not isinstance(raw, dict) or raw.get("source") != source:
-                    raise ValueError("collector returned wrong source or invalid raw record")
-                events.append(normalize_raw_event(raw).to_dict())
-            checked.add(source)
+            with timed_step("collector." + source):
+                collector = importlib.import_module("sources." + source).collect
+                # No page cap for the full replacement kids-cafe collector.
+                rows = collector(output_path=staging / f"{source}.json")
+                if not isinstance(rows, list) or (not rows and not (
+                        isinstance(rows, CollectedEvents) and isinstance(rows.verified_empty_reason, str)
+                        and rows.verified_empty_reason.strip())):
+                    raise ValueError("empty or malformed collection; needs operator review")
+                if not rows:
+                    logging.getLogger(__name__).info("%s: verified empty collection (%s)",
+                                                     source, rows.verified_empty_reason)
+                for raw in rows:
+                    if not isinstance(raw, dict) or raw.get("source") != source:
+                        raise ValueError("collector returned wrong source or invalid raw record")
+                    events.append(normalize_raw_event(raw).to_dict())
+                checked.add(source)
         except Exception as exc:
             raise ValueError(f"collection failed for {source}: {exc}") from exc
     return events, checked
@@ -213,11 +215,13 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None, toda
                 complete.append(row)
         incoming = complete
         if "extraction_bundle" in discovery:
-            extracted, outcomes, identities, observations = adapt_extractions(
-                discovery["extraction_bundle"], merge_baseline, incoming, old_identities, set(SOURCES),
-                [*old_review.get("extractions", []), *old_review.get("candidates", [])])
+            with timed_step("evidence.validation"):
+                extracted, outcomes, identities, observations = adapt_extractions(
+                    discovery["extraction_bundle"], merge_baseline, incoming, old_identities, set(SOURCES),
+                    [*old_review.get("extractions", []), *old_review.get("candidates", [])])
             incoming = [*incoming, *extracted]
-        merged, added, changed, missing = merge_events(merge_baseline, incoming, checked)
+        with timed_step("catalog.merge"):
+            merged, added, changed, missing = merge_events(merge_baseline, incoming, checked)
         expired = [e for e in merged if e["ends_at"] < today]
         expired_ids = {e["id"] for e in expired}
         merged = [e for e in merged if e["id"] not in expired_ids]
@@ -274,6 +278,20 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None, toda
     report_path = root / "data/discovery/reports" / f"refresh-{uuid.uuid4().hex}.md"
     writes = {state_path: json.dumps(review, ensure_ascii=False, indent=2) + "\n",
               report_path: report_text(added, changed, review, discovery.get("fetched_at"))}
+    sql_paths = {}
+    if catalog_changed:
+        from babyroo_crawler.db_sql import generate_sql
+        with timed_step("sql.generate"):
+            sql = generate_sql(merge_baseline, added, changed, expired)
+        sql_path = report_path.with_suffix(".sql")
+        writes[sql_path] = sql
+        sql_paths["apply"] = str(sql_path.relative_to(root))
+        writes[report_path] += ("\n## Manual database application\n\n"
+            "No schema changes (DDL) required. Review and run `" + sql_path.name +
+            "` in PostgreSQL. New events are published only when the operator executes "
+            "this file. Existing image/publication/admin fields are preserved; ended "
+            "published events are archived. No SQL is executed by the job.\n")
+
     if identities != old_identities:
         writes[identity_path] = json.dumps(identities, ensure_ascii=False, indent=2) + "\n"
     if observations:
@@ -308,4 +326,5 @@ def refresh(root: Path, feeder=None, max_age_days=8, native_collector=None, toda
             temp.unlink(missing_ok=True)
     return {"changed": True, "added": len(added), "updated": len(changed),
             "missing": len(missing), "excluded_expired": len(expired),
-            "incomplete_native": len(incomplete), "report": str(report_path.relative_to(root))}
+            "incomplete_native": len(incomplete), "report": str(report_path.relative_to(root)),
+            "db_sql": sql_paths}

@@ -29,6 +29,19 @@ filesystem sandbox; use the operator's configured permissions without widening t
    Use a new external batch directory outside every repository; keep checkpoint
    and batch paths distinct. Ensure PATH includes Git and authenticated GitHub
    CLI installations (on this Mac, /opt/homebrew/bin).
+   Record phase boundaries with the same exact owner token. Before each phase,
+   call this helper (it closes the preceding phase and starts the named one):
+
+   ```sh
+   python3 <bootstrap-checkout>/scripts/discovery_run.py stage \
+     --state <external-state>/queue.json --run-id <acquired-run-id> --name search
+   ```
+
+   Use `search` before searches, `checkout` before cloning main, `queue` before
+   queue preparation, `extraction` before reading official pages/model extraction,
+   and `validation` before bundle finalization. Do not invent elapsed times.
+   The execute wrapper starts `catalog` automatically and finishes the timing
+   summary even on an ordinary command failure. Timings include model/tool waits.
 2. Search for Seoul outings suitable for young children, including dated events
    and permanent venues. Write the actual successful acquisition time and search
    hits to a version-1 search feeder. Do not restamp cached results after failure.
@@ -184,6 +197,8 @@ preserves native-source precedence, reports possible duplicates and incomplete
 items, and never deletes missing records. Report the PR URL, no-op or failure.
 The human reviews/merges and imports DB separately. Source hashes/evidence quote
 matches verify internal consistency; they are not proof of source authenticity.
+When a catalog diff exists, also deliver the single generated `refresh-*.sql` path from the refresh result/PR. No DDL is needed. These are for
+the operator to execute manually; never open a DB connection or run the SQL.
 
 ## Complete or recover the run
 
@@ -195,6 +210,10 @@ this is still a failed job even though ownership was released. Retain the batch,
 logs, queue and evidence for review/retry. Do not release a second time when the
 wrapper reports `ownership: released`. Save the detailed command output in the
 batch's refresh.log and include the saved outcome/release status in your report.
+`outcome.json` contains total and phase elapsed seconds. Its sibling
+`outcome.timings.jsonl` contains individual Git/refresh/collector/validation steps,
+including failed steps. Deliver both paths and a short timing table. Nested
+durations overlap; do not sum the parent catalog duration with its child steps.
 
 For failures before the wrapper starts (search, queue preparation, extraction,
 validation, etc.), first ensure any commands you launched have stopped, then

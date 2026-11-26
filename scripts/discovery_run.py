@@ -2,13 +2,14 @@
 """Acquire/release persistent ownership for one complete Hermes discovery run."""
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from crawler.discovery.queue_state import (AlreadyRunning, acquire_run, finish_run,
-    release_run, require_owner, state_lock, atomic_json, validate_outcome_path)
+    release_run, require_owner, state_lock, atomic_json, validate_outcome_path, stage_run)
 
 
 def execute_owned(state, run_id, outcome, command):
@@ -16,12 +17,22 @@ def execute_owned(state, run_id, outcome, command):
     # Check before starting any command. A skipped/wrong-token run owns nothing.
     with state_lock(state):
         require_owner(state, run_id)
+    timing_path = validate_outcome_path(state, outcome.with_suffix(".timings.jsonl"))
     try:
-        code = subprocess.run(command, stdin=subprocess.DEVNULL).returncode
-        details = {"returncode": code}
+        timing_path.parent.mkdir(parents=True, exist_ok=True)
+        timing_path.touch(exist_ok=True)
+        stage_run(state, run_id, "catalog")
+    except OSError as exc:
+        # Observability must not strand an owner or prevent normal cleanup.
+        print(f"[TIMING_WRITE_FAILED] {type(exc).__name__}", file=sys.stderr)
+    try:
+        code = subprocess.run(command, stdin=subprocess.DEVNULL, env={**os.environ,
+            "BABYROO_RUN_ID": run_id, "BABYROO_TIMING_FILE": str(timing_path)}).returncode
+        details = {"returncode": code, "timing_log": str(timing_path)}
     except OSError as exc:
         # Failure to start the command is terminal too: no child is running.
         code, details = 1, {"start_error": str(exc)}
+    details["timing_log"] = str(timing_path)
     if code < 0:
         # A signalled child may have orphaned grandchildren. Do not unlock until
         # the operator has checked the whole process tree.
@@ -35,12 +46,13 @@ def execute_owned(state, run_id, outcome, command):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("acquire", "release", "finish", "execute"))
+    parser.add_argument("action", choices=("acquire", "release", "finish", "execute", "stage"))
     parser.add_argument("--state", type=Path, required=True, help="Same external checkpoint used by discovery_queue.py")
     parser.add_argument("--run-id", help="Exact token returned by acquire; required except for acquire")
     parser.add_argument("--outcome", type=Path, help="External outcome JSON for finish/execute")
     parser.add_argument("--status", choices=("completed", "failed"), help="Known terminal status for finish")
     parser.add_argument("--error", help="Failure details for finish")
+    parser.add_argument("--name", help="Stage name for stage; closes the preceding stage")
     parser.add_argument("--command", nargs=argparse.REMAINDER, help="Command and arguments; must be last")
     args = parser.parse_args(argv)
     if (args.action != "acquire") != (args.run_id is not None):
@@ -51,12 +63,16 @@ def main(argv=None):
         parser.error("--status is required only for finish")
     if (args.action == "execute") != bool(args.command):
         parser.error("--command is required only for execute")
+    if (args.action == "stage") != (args.name is not None):
+        parser.error("--name is required only for stage")
     exit_code = 0
     try:
         if args.action == "acquire":
             result = acquire_run(args.state)
         elif args.action == "release":
             result = release_run(args.state, args.run_id)
+        elif args.action == "stage":
+            result = stage_run(args.state, args.run_id, args.name)
         elif args.action == "finish":
             result = finish_run(args.state, args.run_id, args.outcome, args.status, {"error": args.error} if args.error else {})
             exit_code = 0 if result["outcome_saved"] else 1

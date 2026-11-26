@@ -19,16 +19,35 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from crawler.babyroo_crawler.timing import timed_step
+
 BRANCH_PREFIX = "automation/event-refresh/"
 CATALOG = "server/data/events.json"
 REVIEW = "data/discovery/review.json"
 
 
 def run(args, cwd=None):
+    executable = Path(str(args[0])).name
+    if executable == "git":
+        name = "git." + next((str(a) for a in args[1:] if str(a) in {
+            "clone", "rev-parse", "checkout", "fetch", "diff", "ls-files", "add", "commit", "push"}), "command")
+    elif executable == "gh":
+        name = ".".join(str(a) for a in args[:3])
+    else:
+        name = "catalog.refresh"
+    with timed_step(name):
+        return _run(args, cwd)
+
+
+def _run(args, cwd=None):
     result = subprocess.run([str(a) for a in args], cwd=cwd, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             stdin=subprocess.DEVNULL, timeout=1800,
                             env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GH_PROMPT_DISABLED": "1"})
+    for line in result.stderr.splitlines():
+        if line.startswith("[TIMING] "):
+            print(line, file=sys.stderr, flush=True)
     if result.returncode:
         # Avoid echoing command arguments (which may contain private repository URLs).
         raise RuntimeError(f"{Path(str(args[0])).name} failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()}")
@@ -54,6 +73,8 @@ def allowed(path: str) -> bool:
         path.startswith("data/discovery/reports/refresh-") and path.endswith(".md")
         and "/" not in path[len("data/discovery/reports/"):]) or (
         path.startswith("data/discovery/reports/extraction-") and path.endswith(".json")
+        and "/" not in path[len("data/discovery/reports/"):]) or (
+        path.startswith("data/discovery/reports/refresh-") and path.endswith(".sql")
         and "/" not in path[len("data/discovery/reports/"):])
 
 
