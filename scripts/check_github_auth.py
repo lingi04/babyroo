@@ -8,13 +8,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from crawler.discovery.github_auth import github_env
+from crawler.discovery.github_auth import github_env, github_repository
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default="lingi04/babyroo")
     args = parser.parse_args(argv)
+    args.repo = github_repository(args.repo)
     if not shutil.which("gh"):
         print("[FAILED] gh is not on the job's PATH", file=sys.stderr)
         return 1
@@ -34,6 +35,7 @@ def main(argv=None):
             print(f"[FAILED] GitHub {label} check failed; verify profile token/login and repository permissions", file=sys.stderr)
             return 1
     print(json.dumps({"status": "ready", "repository": args.repo,
+                      "git_transport": "https", "git_credential_helper": "gh",
                       "profile_token_present": bool(env.get("BABYROO_GITHUB_TOKEN", "").strip())}))
     return 0
 

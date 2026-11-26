@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from crawler.babyroo_crawler.timing import timed_step
-from crawler.discovery.github_auth import github_env
+from crawler.discovery.github_auth import github_env, github_repository, github_url
 
 BRANCH_PREFIX = "automation/event-refresh/"
 CATALOG = "server/data/events.json"
@@ -42,7 +42,7 @@ def run(args, cwd=None):
 
 
 def _run(args, cwd=None):
-    env = github_env() if Path(str(args[0])).name == "gh" else dict(os.environ)
+    env = github_env() if Path(str(args[0])).name in {"gh", "git"} else dict(os.environ)
     result = subprocess.run([str(a) for a in args], cwd=cwd, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             stdin=subprocess.DEVNULL, timeout=1800,
@@ -99,13 +99,27 @@ def ensure_main_unchanged(checkout: Path, baseline_sha: str):
         raise RuntimeError("origin/main advanced during refresh; rerun against its new baseline")
 
 
+def clone_repository(repository, checkout):
+    if Path(repository).is_dir():
+        # Offline fixtures/local mirrors retain real Git isolation tests.
+        run(["git", "clone", "--depth", "1", "--single-branch", "--branch", "main", "--", repository, checkout])
+    else:
+        if not shutil.which("gh"):
+            raise RuntimeError("GitHub CLI gh is required for GitHub clone")
+        run(["gh", "repo", "clone", github_url(repository), checkout,
+             "--", "--depth", "1", "--single-branch", "--branch", "main"])
+
+
 def execute(args) -> dict:
     if not shutil.which("git"):
         raise RuntimeError("git is required on PATH")
-    if args.submit and not shutil.which("gh"):
-        raise RuntimeError("GitHub CLI gh is required for --submit; install and run gh auth login")
+    remote = not Path(args.repository).is_dir()
+    if (args.submit or remote) and not shutil.which("gh"):
+        raise RuntimeError("GitHub CLI gh is required; configure the profile GitHub token")
     if args.submit and not args.github_repo:
         raise ValueError("--github-repo OWNER/REPO is required for --submit")
+    if remote and args.submit and github_repository(args.repository) != github_repository(args.github_repo):
+        raise ValueError("clone repository and PR repository must match")
     feeder = args.discovery_input.expanduser().resolve()
     # Validate feeder before cloning or any GitHub mutations.
     project = Path(__file__).resolve().parents[1]
@@ -113,8 +127,9 @@ def execute(args) -> dict:
     from crawler.discovery.google_alerts import sample
     sample(feeder, args.discovery_max_age_days)
     with lock(args.state_dir):
-        if args.submit:
+        if args.submit or remote:
             run(["gh", "auth", "status"])
+        if args.submit:
             prs = json.loads(run(["gh", "pr", "list", "--repo", args.github_repo,
                                   "--state", "open", "--json", "number,headRefName,url"]))
             for pr in prs:
@@ -122,8 +137,7 @@ def execute(args) -> dict:
                     return {"status": "skipped-open-pr", "url": pr["url"]}
         directory = Path(tempfile.mkdtemp(prefix="run-", dir=args.state_dir))
         checkout = directory / "repo"
-        run(["git", "clone", "--depth", "1", "--single-branch", "--branch", "main",
-             "--", args.repository, checkout])
+        clone_repository(args.repository, checkout)
         baseline_sha = run(["git", "rev-parse", "HEAD"], cwd=checkout)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         branch = BRANCH_PREFIX + stamp + "-" + uuid.uuid4().hex[:8]
@@ -164,7 +178,7 @@ def execute(args) -> dict:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repository", default="git@github.com:lingi04/babyroo.git")
+    parser.add_argument("--repository", default="lingi04/babyroo")
     parser.add_argument("--github-repo", help="OWNER/REPO for GitHub CLI")
     parser.add_argument("--discovery-input", required=True, type=Path)
     parser.add_argument("--discovery-max-age-days", type=int, default=8)

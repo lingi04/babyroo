@@ -195,8 +195,8 @@ terminal:
     - BABYROO_GITHUB_TOKEN
 ```
 
-The PR runner maps this variable to `GH_TOKEN` only when spawning `gh`. Git
-SSH authentication stays unchanged. No token value is logged or written to the
+The helpers map this variable to `GH_TOKEN` for `gh` and Git subprocesses. Git
+uses HTTPS and `gh auth git-credential` as its credential helper. No token value is logged or written to the
 catalog or reports. A stored `gh` login under the profile's tool HOME remains
 supported as an alternative. Reload/restart the gateway after changing config.
 Run this read-only preflight **in the Hermes job's terminal environment**:
@@ -207,9 +207,37 @@ python3 /opt/data/babyroo/scripts/check_github_auth.py --repo lingi04/babyroo
 
 It checks executable availability, authentication and PR-list access using the
 same bridge as submission. A root shell invocation does not itself load Hermes
-profile dotenv/config. A `ready` result does not prove Git SSH push permissions;
+profile dotenv/config. A `ready` result does not prove actual push permissions;
 it verifies the GitHub API credentials without acquiring ownership or creating a
-PR. The scheduled prompt runs it before research whenever submission is enabled.
+PR. The scheduled prompt runs it before research, including dry runs.
+Give the fine-grained token access to `babyroo` with **Contents: Read and write**
+and **Pull requests: Read and write** (Metadata read is included by GitHub).
+
+All GitHub network operations now use the same gh authentication:
+
+- Clone: `gh repo clone` with an explicit HTTPS URL.
+- Fetch/pull/push: HTTPS Git with a per-command gh credential helper.
+- PR list/create: `gh pr` using the same token.
+
+No `gh push` command exists; push is Git using gh credentials. The helpers do
+not change account-wide `gh config` or Git config, save tokens in remote URLs,
+or fall back to SSH. Legacy GitHub SSH URLs are normalized to HTTPS. A local
+filesystem repository remains supported for offline tests/mirrors.
+
+For the bootstrap checkout, replace the job prompt's bare `git pull --ff-only`
+with this helper after deploying the updated scripts:
+
+```sh
+python3 /opt/data/babyroo/scripts/github_repo.py pull --checkout /opt/data/babyroo
+```
+
+It refuses a dirty/non-main checkout or an unexpected repository. It updates
+only that checkout's verified `origin` URL to HTTPS, then runs a fast-forward-only
+pull. For a new research checkout:
+
+```sh
+python3 /opt/data/babyroo/scripts/github_repo.py clone --checkout /absolute/new/main-checkout
+```
 
 References: [Hermes cron credential forwarding](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron#giving-a-script-a-credential)
 and [GitHub CLI environment](https://cli.github.com/manual/gh_help_environment).
@@ -409,7 +437,7 @@ before the next run. If main advances during collection, rerun the job. Main can
 also advance after PR creation, so revalidate the PR against current main before
 merging. The runner never rebases, force-pushes, auto-merges or imports DB data.
 Subprocesses run without interactive stdin/auth prompts and have a 30-minute
-timeout; configure SSH/GitHub authentication before enabling the schedule.
+timeout; configure the profile's gh/GitHub token before enabling the schedule.
 If pushing succeeds but PR creation fails, the remote branch may remain. Inspect
 the retained checkout/remote branch before retrying; the runner never deletes or
 force-replaces it.

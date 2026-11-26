@@ -10,7 +10,7 @@ filesystem sandbox; use the operator's configured permissions without widening t
 
 ## Run setup and discovery
 
-When submission is authorized, before acquiring ownership or starting discovery,
+Before acquiring ownership or starting discovery (including dry runs),
 run `python3 <bootstrap-checkout>/scripts/check_github_auth.py --repo lingi04/babyroo`
 in this job's terminal environment. This checks `gh` using the same credential
 bridge as the PR runner. Do not replace it with a bare `gh auth status`:
@@ -18,6 +18,10 @@ Hermes may strip GH_TOKEN/GITHUB_TOKEN before spawning tools. The operator can
 configure BABYROO_GITHUB_TOKEN in this profile's .env and explicitly declare it
 in terminal.env_passthrough. Never print token values or load another profile's
 credentials. Stop on a failed preflight; no ownership has been acquired yet.
+If the invoking prompt asks to update the bootstrap checkout, use
+`python3 <bootstrap-checkout>/scripts/github_repo.py pull --checkout <bootstrap-checkout>`
+instead of a bare `git pull`. It verifies clean main, converts the verified
+origin to HTTPS and fast-forwards using the same gh credential. No SSH fallback.
 
 1. Before any search, record the absolute bootstrap checkout path (the working
    directory containing this template). Use the checkpoint path from the invoking
@@ -58,7 +62,10 @@ credentials. Stop on a failed preflight; no ownership has been acquired yet.
    Google Trends may suggest additional keywords when accessible; report its
    absence and continue ordinary search. Trends is not official event evidence.
 3. Make a fresh read-only main checkout in a new temporary directory, for example
-   `git clone --depth 1 --single-branch --branch main git@github.com:lingi04/babyroo.git <new-main-checkout>`.
+   `python3 <bootstrap-checkout>/scripts/github_repo.py clone --checkout <new-main-checkout>`.
+   This uses `gh repo clone` with an explicit GitHub HTTPS URL; fetch/push use
+   Git with `gh auth git-credential` and the same profile token. Do not substitute
+   an SSH clone or change global gh/Git configuration.
    Use scripts from that checkout once the implementation is merged into main.
    Do not reset or modify the developer's checkout.
 4. Build the extraction queue:
