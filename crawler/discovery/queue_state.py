@@ -109,3 +109,33 @@ def release_run(state, run_id):
         require_owner(state, run_id)
         coordination_paths(state)[2].unlink()
         return {"status": "released", "run_id": run_id}
+
+
+def validate_outcome_path(state, outcome_path):
+    outcome_path = Path(outcome_path).expanduser().resolve()
+    if outcome_path in coordination_paths(state):
+        raise ValueError("outcome must not overwrite checkpoint or coordination files")
+    return outcome_path
+
+
+def finish_run(state, run_id, outcome_path, status, details=None):
+    """Finish a known-stopped owner; never use this for uncertain/live work."""
+    if status not in {"completed", "failed"}:
+        raise ValueError("only completed or failed runs may be finalized")
+    outcome_path = validate_outcome_path(state, outcome_path)
+    with state_lock(state):
+        require_owner(state, run_id)
+        report = {"status": status, "run_id": run_id,
+                  "finished_at": datetime.now(timezone.utc).isoformat(), "details": details or {}}
+        result = {"status": status, "run_id": run_id, "outcome": str(outcome_path),
+                  "ownership": "released", "outcome_saved": False}
+        try:
+            atomic_json(outcome_path, report)
+            result["outcome_saved"] = True
+        except Exception as exc:
+            result["outcome_error"] = str(exc)
+        finally:
+            # The command has ended. Even a full disk must not strand its owner.
+            # This exact-token check and unlink share the same transaction lock.
+            coordination_paths(state)[2].unlink()
+        return result

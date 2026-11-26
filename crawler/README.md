@@ -202,7 +202,7 @@ This prompt schedules the complete Hermes task, not just Python refresh:
 ```sh
 cd /Users/hanjangho/Documents/repos/babyroo
 hermes -p babyroo cron create "0 9 * * *" \
-  'Read crawler/prompts/discovery-extraction.md and follow the complete workflow. Use ~/.cache/babyroo-hermes/queue.json as the persistent checkpoint and a new batch directory under ~/.cache/babyroo-hermes/batches for each run. Discover Seoul outings for young children, optionally using Google Trends for keywords; verify facts on official pages. Acquire ownership before research and stop on skipped-already-running. Dry-run only: do not pass --submit. Save a final report; release the exact token only after a completed outcome. Report failures and leave their ownership marker for manual recovery.' \
+  'Read crawler/prompts/discovery-extraction.md and follow the complete workflow. Use ~/.cache/babyroo-hermes/queue.json as the persistent checkpoint and a new batch directory under ~/.cache/babyroo-hermes/batches for each run. Discover Seoul outings for young children, optionally using Google Trends for keywords; verify facts on official pages. Acquire ownership before research and stop on skipped-already-running. Dry-run only: do not pass --submit. Use discovery_run.py execute around the catalog helper so success and ordinary failure both release this run. Finalize known-stopped earlier failures with discovery_run.py finish --status failed. Retain ownership only for interrupted or uncertain execution.' \
   --workdir /Users/hanjangho/Documents/repos/babyroo \
   --timezone Asia/Seoul --name babyroo-events --paused
 
@@ -242,23 +242,56 @@ run returns `skipped-already-running` before research. The active marker is
 cooperative coordination, not security enforcement. All scheduled invocations
 must follow this protocol and use the same checkpoint path.
 
-On a successfully saved dry-run/no-op/PR or `skipped-open-pr` report, release the
-exact acquired token. An existing open PR is a normal completed skip; save its
-URL/status and release this run so the next schedule can try again. An acquisition
-returning `skipped-already-running` owns nothing and must not release a marker:
+Wrap the catalog command so Python, rather than a final model response, handles
+normal success/failure cleanup:
+
+```sh
+python3 scripts/discovery_run.py execute \
+  --state "$HOME/.cache/babyroo-hermes/queue.json" --run-id ACTUAL_RUN_ID \
+  --outcome /absolute/path/to/batch/outcome.json \
+  --command python3 scripts/event_refresh_pr.py \
+  --discovery-input /absolute/path/to/batch/bundle.json
+```
+
+`--command` must be last. Omit `--submit` for dry runs. The wrapper verifies the
+exact owner before starting, waits for command completion, saves its exit status
+and releases ownership on both exit 0 and ordinary nonzero exit. A failure still
+returns nonzero and must be delivered as `[CRON_FAILURE]`; it is not a successful
+refresh. Save stdout/stderr in the batch's refresh.log. Keep the batch, queue,
+evidence and any isolated checkout for diagnostics. If outcome writing fails
+(e.g. a full disk), report that failure and still release a known-stopped owner.
+Never double-release after the wrapper reports `ownership: released`.
+
+For a known-stopped failure before the wrapper starts (search, queue preparation,
+extraction or validation), finalize with the same exact acquired token:
+
+```sh
+python3 scripts/discovery_run.py finish \
+  --state "$HOME/.cache/babyroo-hermes/queue.json" --run-id ACTUAL_RUN_ID \
+  --outcome /absolute/path/to/batch/outcome.json \
+  --status failed --error "failed stage and cause"
+```
+
+Use `--status completed` for a normal completed skip not already finalized by the
+wrapper, such as `skipped-open-pr`. This command reports cleanup success separately
+from the saved failed/completed job outcome. Acquisition `skipped-already-running`
+owns nothing and must never finalize/release any marker.
+
+Only uncertain/interrupted runs retain ownership: a process is still running,
+a terminal timeout does not prove its process tree stopped, or the wrapper/child
+was killed by a signal. For that case, confirm the old Hermes session and child
+processes have stopped, inspect retained artifacts, then manually release:
 
 ```sh
 python3 scripts/discovery_run.py release \
   --state "$HOME/.cache/babyroo-hermes/queue.json" --run-id ACTUAL_RUN_ID
 ```
 
-Replace `ACTUAL_RUN_ID` with the token returned by acquire. A failed/interrupted
-run deliberately retains ownership and its batch; subsequent schedules skip.
-Confirm the old Hermes session is stopped, inspect its batch/PR outcome and read
-the marker's `run_id` before using that release command for recovery. Never
-release a still-running job, clear another owner's token, or delete/replace the
-`.lock` file. There is no automatic expiry/retry of an uncertain run. Canonical
-input/output aliases to checkpoint/lock/marker, or to each other, are rejected.
+Replace `ACTUAL_RUN_ID` with the acquired token. No marker expires on a timer.
+Never release a still-running job, clear another owner's token, or delete/replace
+the `.lock` file. Canonical aliases of outcome/input/output paths to coordination
+files are rejected. Old markers created before this lifecycle change still need
+one exact-token recovery after confirming the old run has stopped.
 
 Command references (official Hermes documentation, checked 2026-11-24):
 [Profiles](https://hermes-agent.nousresearch.com/docs/user-guide/profiles),

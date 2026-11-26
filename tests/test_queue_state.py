@@ -14,7 +14,7 @@ from unittest.mock import patch
 from crawler.discovery.extraction_queue import build_queue
 from crawler.discovery.extraction_schema import BundleError, read_json
 from crawler.discovery.queue_state import (AlreadyRunning, acquire_run, active_run,
-    atomic_json, coordination_paths, encode_json, release_run, require_owner, state_lock)
+    atomic_json, coordination_paths, encode_json, finish_run, release_run, require_owner, state_lock)
 from test_discovery_workflow import event
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -100,6 +100,80 @@ class OwnershipTest(unittest.TestCase):
     def test_release_cli_requires_token(self):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             discovery_run.main(["release", "--state", str(self.state)])
+
+    def execute_cli(self, token, command):
+        return subprocess.run([sys.executable, str(SCRIPTS / "discovery_run.py"), "execute",
+            "--state", str(self.state), "--run-id", token, "--outcome", str(self.root / "outcome.json"),
+            "--command", *command], capture_output=True, text=True, timeout=10)
+
+    def test_real_command_success_and_failure_both_release_exact_owner(self):
+        self.state.write_text('{"checkpoint": "keep"}')
+        for code in (0, 1, 7):
+            with self.subTest(code=code):
+                token = acquire_run(self.state)["run_id"]
+                result = self.execute_cli(token, [sys.executable, "-c", f"raise SystemExit({code})"])
+                self.assertEqual(result.returncode, 0 if code == 0 else 1, result.stderr)
+                report = json.loads(result.stdout)
+                self.assertEqual(report["ownership"], "released")
+                self.assertEqual(report["status"], "completed" if code == 0 else "failed")
+                self.assertIsNone(active_run(self.state))
+                self.assertEqual(read_json(self.root / "outcome.json")["details"]["returncode"], code)
+                self.assertEqual(self.state.read_text(), '{"checkpoint": "keep"}')
+
+    def test_command_start_failure_also_releases(self):
+        token = acquire_run(self.state)["run_id"]
+        result = self.execute_cli(token, [str(self.root / "nonexistent")])
+        self.assertEqual(result.returncode, 1)
+        self.assertIsNone(active_run(self.state))
+        self.assertIn("start_error", read_json(self.root / "outcome.json")["details"])
+
+    def test_wrong_owner_cannot_start_command_or_release(self):
+        token = acquire_run(self.state)["run_id"]
+        result = self.execute_cli("wrong", [sys.executable, "-c", "raise SystemExit(0)"])
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(active_run(self.state)["run_id"], token)
+        self.assertFalse((self.root / "outcome.json").exists())
+
+    def test_signalled_child_retains_uncertain_owner(self):
+        token = acquire_run(self.state)["run_id"]
+        result = self.execute_cli(token, [sys.executable, "-c",
+            "import os, signal; os.kill(os.getpid(), signal.SIGTERM)"])
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(active_run(self.state)["run_id"], token)
+        self.assertEqual(read_json(self.root / "outcome.json")["status"], "interrupted")
+
+    def test_wrapper_interruption_retains_owner(self):
+        token = acquire_run(self.state)["run_id"]
+        with patch.object(discovery_run.subprocess, "run", side_effect=KeyboardInterrupt), self.assertRaises(KeyboardInterrupt):
+            discovery_run.execute_owned(self.state, token, self.root / "outcome.json", ["command"])
+        self.assertEqual(active_run(self.state)["run_id"], token)
+
+    def test_outcome_save_failure_cannot_strand_stopped_run(self):
+        token = acquire_run(self.state)["run_id"]
+        with patch("crawler.discovery.queue_state.atomic_json", side_effect=OSError("disk full")):
+            result = finish_run(self.state, token, self.root / "outcome.json", "failed")
+        self.assertIsNone(active_run(self.state))
+        self.assertFalse(result["outcome_saved"])
+        self.assertEqual(result["ownership"], "released")
+        self.assertIn("disk full", result["outcome_error"])
+
+    def test_finish_early_failed_stage_releases_and_retains_failure(self):
+        token = acquire_run(self.state)["run_id"]
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = discovery_run.main(["finish", "--state", str(self.state), "--run-id", token,
+                "--outcome", str(self.root / "outcome.json"), "--status", "failed", "--error", "queue invalid"])
+        self.assertEqual(code, 0)
+        self.assertIsNone(active_run(self.state))
+        report = read_json(self.root / "outcome.json")
+        self.assertEqual((report["status"], report["details"]["error"]), ("failed", "queue invalid"))
+
+    def test_outcome_alias_rejected_before_command_runs(self):
+        token = acquire_run(self.state)["run_id"]
+        for path in coordination_paths(self.state):
+            with self.subTest(path=path), patch.object(discovery_run.subprocess, "run") as command, self.assertRaises(ValueError):
+                discovery_run.execute_owned(self.state, token, path, ["command"])
+            command.assert_not_called()
+        self.assertEqual(active_run(self.state)["run_id"], token)
 
 
 class QueueTransactionTest(unittest.TestCase):

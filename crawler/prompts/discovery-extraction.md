@@ -23,7 +23,9 @@ filesystem sandbox; use the operator's configured permissions without widening t
    search, prepare a queue, refresh, or release another run. On `acquired`, retain
    the returned run_id for every queue operation and the final release. Never
    invent a token, remove a lock/marker, or automatically recover a stale owner.
-   This persistent marker coordinates the entire run across tool processes.
+   On any known terminal failure after acquisition, run the `finish --status failed`
+   cleanup below before delivering the failure. This persistent marker coordinates
+   the entire run across tool processes.
    Use a new external batch directory outside every repository; keep checkpoint
    and batch paths distinct. Ensure PATH includes Git and authenticated GitHub
    CLI installations (on this Mac, /opt/homebrew/bin).
@@ -169,8 +171,11 @@ Do not modify documents or the final bundle after finalization.
 Run a dry run first when configuring this agent; for authorized routine runs:
 
 ```sh
-python3 scripts/event_refresh_pr.py --discovery-input <batch>/bundle.json \
-  --github-repo lingi04/babyroo --submit
+python3 <bootstrap-checkout>/scripts/discovery_run.py execute \
+  --state <external-state>/queue.json --run-id <acquired-run-id> \
+  --outcome <batch>/outcome.json \
+  --command python3 <bootstrap-checkout>/scripts/event_refresh_pr.py \
+  --discovery-input <batch>/bundle.json --github-repo lingi04/babyroo --submit
 ```
 
 The runner independently starts from latest main, stages only allowlisted catalog,
@@ -182,23 +187,37 @@ matches verify internal consistency; they are not proof of source authenticity.
 
 ## Complete or recover the run
 
-For completed dry-run/no-change/PR or `skipped-open-pr` outcomes, first save the final outcome report
-in the external batch directory, then release the exact acquired token using
-the bootstrap checkout (not a different run's script/path):
+Always invoke the catalog/PR helper through `discovery_run.py execute` above,
+including dry runs (omit `--submit` unless explicitly authorized). The wrapper
+waits for the command to exit, saves outcome.json and releases exactly this run's
+owner on both exit 0 and ordinary nonzero exit. It returns nonzero on failure;
+this is still a failed job even though ownership was released. Retain the batch,
+logs, queue and evidence for review/retry. Do not release a second time when the
+wrapper reports `ownership: released`. Save the detailed command output in the
+batch's refresh.log and include the saved outcome/release status in your report.
+
+For failures before the wrapper starts (search, queue preparation, extraction,
+validation, etc.), first ensure any commands you launched have stopped, then
+finalize the failed run using the exact token:
 
 ```sh
-python3 <bootstrap-checkout>/scripts/discovery_run.py release \
-  --state <external-state>/queue.json --run-id <acquired-run-id>
+python3 <bootstrap-checkout>/scripts/discovery_run.py finish \
+  --state <external-state>/queue.json --run-id <acquired-run-id> \
+  --outcome <batch>/outcome.json --status failed --error "<failed stage and cause>"
 ```
 
-Deliver the saved outcome and release status. On failed, interrupted or uncertain
-runs, report the error, batch path and run_id and leave ownership in place. The
-operator must confirm the old Hermes run has stopped and inspect retained data
-before running the same exact-token release command. Markers never expire on a
-timer; do not delete the `.lock` file to recover a run.
-An existing open automation PR is a normal completed skip, not an uncertain run;
-save its URL/status and release this run's owner. A `skipped-already-running`
-result from acquisition owns nothing and must never release a marker.
+Use the same command with `--status completed` (without `--error`) for a known
+completed outcome not already finalized by the wrapper. Outcome-write failure
+is reported explicitly but does not strand a known-stopped owner. Cleanup must
+not hide the original failure or convert it to success.
+
+Only interrupted/uncertain runs retain ownership: a command is still running,
+its tool timed out without proving the process tree stopped, the wrapper/child
+was killed by a signal, or its execution state cannot be established. Report
+that uncertainty, the batch path and run_id. The operator must confirm the old
+run has stopped before an exact-token `discovery_run.py release` recovery.
+Markers never expire on a timer; never delete the `.lock` file. Acquisition
+`skipped-already-running` owns nothing and must never finalize/release a marker.
 
 If collection, validation or refresh failed and the requested work did not finish,
 put `[CRON_FAILURE]` alone on the first line of the final response, followed by
