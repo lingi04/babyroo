@@ -173,6 +173,47 @@ dates still fail validation; no dates are inferred from month-only text.
 
 ## Create the Hermes assistant and schedule (operator commands)
 
+### GitHub authentication inside Hermes Docker/cron
+
+Hermes loads the owning profile's `.env` for a scheduled run, but its terminal
+environment sanitizes Hermes-managed `GH_TOKEN`/`GITHUB_TOKEN`. Simply putting
+one of those names in `/opt/data/.env` does not ensure `gh` sees it in a named
+profile's terminal. Do not load another profile's secrets or disable sanitization.
+
+For `babyroo-md`, store the repository token in
+`/opt/data/profiles/babyroo-md/.env` under an explicit application-owned name:
+
+```dotenv
+BABYROO_GITHUB_TOKEN=YOUR_PERSONAL_ACCESS_TOKEN
+```
+
+Merge this into that profile's existing `config.yaml` `terminal` section:
+
+```yaml
+terminal:
+  env_passthrough:
+    - BABYROO_GITHUB_TOKEN
+```
+
+The PR runner maps this variable to `GH_TOKEN` only when spawning `gh`. Git
+SSH authentication stays unchanged. No token value is logged or written to the
+catalog or reports. A stored `gh` login under the profile's tool HOME remains
+supported as an alternative. Reload/restart the gateway after changing config.
+Run this read-only preflight **in the Hermes job's terminal environment**:
+
+```sh
+python3 /opt/data/babyroo/scripts/check_github_auth.py --repo lingi04/babyroo
+```
+
+It checks executable availability, authentication and PR-list access using the
+same bridge as submission. A root shell invocation does not itself load Hermes
+profile dotenv/config. A `ready` result does not prove Git SSH push permissions;
+it verifies the GitHub API credentials without acquiring ownership or creating a
+PR. The scheduled prompt runs it before research whenever submission is enabled.
+
+References: [Hermes cron credential forwarding](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron#giving-a-script-a-credential)
+and [GitHub CLI environment](https://cli.github.com/manual/gh_help_environment).
+
 These commands are for you to run; no bot or schedule is installed by this change.
 First merge these scripts into remote main: every scheduled run clones main, so
 uncommitted local fixes alone do not update its workflow code. Use an installed

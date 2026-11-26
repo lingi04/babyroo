@@ -10,6 +10,15 @@ filesystem sandbox; use the operator's configured permissions without widening t
 
 ## Run setup and discovery
 
+When submission is authorized, before acquiring ownership or starting discovery,
+run `python3 <bootstrap-checkout>/scripts/check_github_auth.py --repo lingi04/babyroo`
+in this job's terminal environment. This checks `gh` using the same credential
+bridge as the PR runner. Do not replace it with a bare `gh auth status`:
+Hermes may strip GH_TOKEN/GITHUB_TOKEN before spawning tools. The operator can
+configure BABYROO_GITHUB_TOKEN in this profile's .env and explicitly declare it
+in terminal.env_passthrough. Never print token values or load another profile's
+credentials. Stop on a failed preflight; no ownership has been acquired yet.
+
 1. Before any search, record the absolute bootstrap checkout path (the working
    directory containing this template). Use the checkpoint path from the invoking
    task, or default to `~/.cache/babyroo-hermes/queue.json`. Expand `~` to an

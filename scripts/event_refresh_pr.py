@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from crawler.babyroo_crawler.timing import timed_step
+from crawler.discovery.github_auth import github_env
 
 BRANCH_PREFIX = "automation/event-refresh/"
 CATALOG = "server/data/events.json"
@@ -41,16 +42,21 @@ def run(args, cwd=None):
 
 
 def _run(args, cwd=None):
+    env = github_env() if Path(str(args[0])).name == "gh" else dict(os.environ)
     result = subprocess.run([str(a) for a in args], cwd=cwd, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             stdin=subprocess.DEVNULL, timeout=1800,
-                            env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GH_PROMPT_DISABLED": "1"})
+                            env={**env, "GIT_TERMINAL_PROMPT": "0", "GH_PROMPT_DISABLED": "1"})
     for line in result.stderr.splitlines():
         if line.startswith("[TIMING] "):
             print(line, file=sys.stderr, flush=True)
     if result.returncode:
         # Avoid echoing command arguments (which may contain private repository URLs).
-        raise RuntimeError(f"{Path(str(args[0])).name} failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()}")
+        error = (result.stderr or result.stdout).strip()
+        for key in ("BABYROO_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"):
+            if env.get(key):
+                error = error.replace(env[key], "[REDACTED]")
+        raise RuntimeError(f"{Path(str(args[0])).name} failed (exit {result.returncode}): {error}")
     return result.stdout.strip()
 
 
