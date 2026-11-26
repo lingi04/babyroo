@@ -415,17 +415,19 @@ psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -f data/discovery/reports/refresh-ACT
 Replace `ACTUAL_ID` with the report ID. The job never executes this SQL. The file
 uses one transaction and contains inserts for new events, updates for changed
 fields, and soft archival of ended published baseline events. New events are
-published only when you manually execute the script; new records already ended
-by execution time are skipped. Existing images, publication status, admin edit
+published only when you manually execute the script. Eligibility is determined
+when the catalog diff is generated. Existing images, publication status, admin edit
 timestamps and creation timestamps are preserved. Only archival changes an
 existing published event to `archived`; no hard deletes are generated.
 
-Updates check the baseline values of the touched fields before writing; a stale
-or missing DB row aborts the entire transaction. Applying the same script again
-is a no-op when its data already matches. SQL quotes source text as data rather
-than executable statements. Apply reviewed PR scripts in order; an unapplied
-earlier PR or intervening DB edit may require reconciling the diff first. Review
-notes and suggestions never become SQL inserts.
+The script is a plain list of `INSERT ... VALUES` and `UPDATE ... WHERE id = ...`
+statements inside `BEGIN`/`COMMIT`. Baseline versions remain in Git; there are no
+procedural blocks, JSON-to-record conversions or before-value checks in SQL.
+Inserts use `ON CONFLICT (id) DO NOTHING`; updates assign the reviewed values and
+refresh `updated_at` on each execution. A missing update target affects zero rows,
+and an intervening DB edit to a touched field is overwritten. Apply reviewed PR
+scripts in order. SQL quotes source text as data rather than executable statements.
+Review notes and suggestions never become SQL inserts.
 
 Semantic comparison ignores `created_at`, `updated_at`, `last_checked_at`,
 `image_url`, `admin_updated_at`, and `publication_status`. The last three remain
