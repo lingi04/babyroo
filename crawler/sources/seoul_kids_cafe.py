@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import errno
 import html
+import logging
 import re
+import socket
+import ssl
 import time
+from http.client import IncompleteRead, RemoteDisconnected
 from pathlib import Path
 from typing import Any, Callable
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request, urlopen
 
@@ -18,6 +24,9 @@ BASE_URL = "https://umppa.seoul.go.kr"
 LIST_URL = f"{BASE_URL}/icare/user/kidsCafe/BD_selectKidsCafeList.do"
 SOURCE = "seoul_kids_cafe"
 USER_AGENT = "BabyrooCrawler/0.1"
+REQUEST_TIMEOUT = 30
+MAX_FETCH_ATTEMPTS = 3
+RETRYABLE_HTTP_CODES = {408, 429, 500, 502, 503, 504}
 DEFAULT_FCLTY_STLE = "2001"
 FCLTY_STLES = ("2001", "2002")
 FCLTY_STLE_LABELS = {
@@ -225,6 +234,42 @@ def clean_html(value: Any) -> str | None:
 
 
 def fetch_text_url(url: str) -> str:
-    request = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(request, timeout=20) as response:
-        return response.read().decode("utf-8")
+    for attempt in range(1, MAX_FETCH_ATTEMPTS + 1):
+        try:
+            request = Request(url, headers={"User-Agent": USER_AGENT})
+            with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+                return response.read().decode("utf-8")
+        except (OSError, IncompleteRead) as exc:
+            if not retryable_fetch_error(exc):
+                raise
+            if isinstance(exc, HTTPError) and exc.fp is not None:
+                exc.close()
+            if attempt == MAX_FETCH_ATTEMPTS:
+                raise RuntimeError(f"kids cafe request failed after {attempt} attempts "
+                                   f"(timeout={REQUEST_TIMEOUT}s): {url}: {exc}") from exc
+            delay = 2 ** attempt
+            if isinstance(exc, HTTPError):
+                retry_after = exc.headers.get("Retry-After", "") if exc.headers else ""
+                if retry_after.isdigit():
+                    delay = min(30, max(delay, int(retry_after)))
+            logging.getLogger(__name__).warning(
+                "kids cafe request attempt %s/%s failed; retrying same URL in %ss: %s: %s",
+                attempt, MAX_FETCH_ATTEMPTS, delay, url, exc)
+            time.sleep(delay)
+
+
+def retryable_fetch_error(exc: BaseException) -> bool:
+    if isinstance(exc, HTTPError):
+        return exc.code in RETRYABLE_HTTP_CODES
+    reason = exc.reason if isinstance(exc, URLError) else exc
+    if isinstance(reason, ssl.SSLError):
+        # Certificate/other TLS protocol errors require investigation, not bypass.
+        return False
+    if isinstance(reason, (TimeoutError, ConnectionError, IncompleteRead, RemoteDisconnected)):
+        return True
+    if isinstance(reason, socket.gaierror):
+        return reason.errno == socket.EAI_AGAIN
+    return isinstance(reason, OSError) and reason.errno in {
+        errno.ETIMEDOUT, errno.ECONNRESET, errno.ECONNABORTED, errno.ECONNREFUSED,
+        errno.ENETUNREACH, errno.EHOSTUNREACH,
+    }

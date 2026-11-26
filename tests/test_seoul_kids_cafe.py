@@ -1,9 +1,14 @@
 import tempfile
 import unittest
+import ssl
+from email.message import Message
+from http.client import IncompleteRead
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+from urllib.error import HTTPError, URLError
 
 from babyroo_crawler.io import read_json
-from sources.seoul_kids_cafe import collect, make_list_url, parse_last_page, parse_list_page
+from sources.seoul_kids_cafe import collect, fetch_text_url, make_list_url, parse_last_page, parse_list_page
 
 
 LIST_HTML = """
@@ -39,6 +44,58 @@ LIST_HTML = """
 
 
 class SeoulKidsCafeCollectorTest(unittest.TestCase):
+    def response(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = LIST_HTML.encode("utf-8")
+        return response
+
+    def test_tls_timeout_retries_same_page_without_restarting_collection(self):
+        with tempfile.TemporaryDirectory() as tmp, patch("sources.seoul_kids_cafe.urlopen") as opening, patch(
+                "sources.seoul_kids_cafe.time.sleep") as sleeping:
+            opening.side_effect = [self.response(), URLError(TimeoutError("TLS handshake timed out")),
+                                   TimeoutError("TLS handshake timed out"), self.response()]
+            rows = collect(output_path=Path(tmp) / "raw.json", request_delay=0,
+                           max_pages=2, fclty_stles=("2001",))
+            self.assertEqual(len(rows), 2)
+            self.assertEqual([call.args[0].full_url for call in opening.call_args_list],
+                             [make_list_url(1), make_list_url(2), make_list_url(2), make_list_url(2)])
+            self.assertTrue(all(call.kwargs["timeout"] == 30 for call in opening.call_args_list))
+            self.assertEqual([call.args[0] for call in sleeping.call_args_list], [2, 4])
+
+    def test_exhausted_timeout_keeps_existing_output_and_identifies_failed_url(self):
+        with tempfile.TemporaryDirectory() as tmp, patch("sources.seoul_kids_cafe.urlopen") as opening, patch(
+                "sources.seoul_kids_cafe.time.sleep"):
+            output = Path(tmp) / "raw.json"
+            output.write_text("keep")
+            opening.side_effect = [self.response(), *[TimeoutError("TLS handshake timed out") for _ in range(3)]]
+            with self.assertRaisesRegex(RuntimeError, "after 3 attempts") as caught:
+                collect(output_path=output, request_delay=0, max_pages=2, fclty_stles=("2001",))
+            self.assertIn(make_list_url(2), str(caught.exception))
+            self.assertEqual(output.read_text(), "keep")
+            self.assertEqual(opening.call_count, 4)
+
+    def test_certificate_errors_and_permanent_http_errors_are_not_retried(self):
+        for error in (URLError(ssl.SSLCertVerificationError("bad certificate")),
+                      HTTPError(make_list_url(1), 403, "Forbidden", {}, None),
+                      HTTPError(make_list_url(1), 404, "Not found", {}, None)):
+            with self.subTest(error=error), patch("sources.seoul_kids_cafe.urlopen", side_effect=error) as opening, patch(
+                    "sources.seoul_kids_cafe.time.sleep") as sleeping:
+                with self.assertRaises(type(error)):
+                    fetch_text_url(make_list_url(1))
+                self.assertEqual(opening.call_count, 1)
+                sleeping.assert_not_called()
+
+    def test_retryable_http_error_and_incomplete_body_can_recover(self):
+        headers = Message()
+        headers["Retry-After"] = "5"
+        for error in (HTTPError(make_list_url(1), 429, "Busy", headers, None),
+                      HTTPError(make_list_url(1), 503, "Unavailable", {}, None),
+                      URLError(ConnectionResetError("reset")), IncompleteRead(b"partial")):
+            with self.subTest(error=error), patch("sources.seoul_kids_cafe.urlopen", side_effect=[error, self.response()]), patch(
+                    "sources.seoul_kids_cafe.time.sleep") as sleeping:
+                self.assertEqual(fetch_text_url(make_list_url(1)), LIST_HTML)
+                sleeping.assert_called_once_with(5 if isinstance(error, HTTPError) and error.code == 429 else 2)
+
     def test_saved_live_card_is_not_discarded(self):
         page = (Path(__file__).parent / "fixtures/seoul-kids-cafe-live-20261125.html").read_text()
         rows = parse_list_page(page, "2026-11-25")

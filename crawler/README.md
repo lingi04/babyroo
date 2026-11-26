@@ -155,6 +155,15 @@ The 2026-11-25 live kids-cafe page used `h3` headings while the old parser only
 accepted `h5`, discarding all five visible cards. Both versions are now supported,
 with one actual public venue card retained as a regression fixture. A malformed
 card or missing expected page aborts rather than installing a partial catalog.
+Kids-cafe HTTPS requests use a 30-second socket timeout and at most three attempts
+per page. Transient connection/TLS-handshake timeouts, connection resets, truncated
+responses and HTTP 408/429/500/502/503/504 retry the same URL after 2 then 4 seconds.
+Numeric `Retry-After` values can increase that delay, capped at 30 seconds.
+Certificate/protocol failures and permanent HTTP errors are not retried; TLS
+verification remains enabled. Exhaustion identifies the URL and attempt count
+and aborts without installing partial data. Run the source-only verification
+inside the Hermes Docker container after deploying a fix; a local live pass
+cannot establish that the remote container's network is healthy.
 The same full live check found three SWR links without exact event dates
 (recurring reservation instructions and an imprecise month-only program period).
 Native rows missing either date now remain durable `missing_event_dates` review
