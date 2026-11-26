@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "identity_key": "05e7776596dc6fa0546eff8d",
+      "event_id": "discovery-05e7776596dc6fa0546eff8d",
+      "source": "external:www.mcst.go.kr",
+      "source_event_id": "05e7776596dc6fa0546eff8d",
+      "canonical_url": "https://www.mcst.go.kr/usr/child/enter/culture/cultureView.jsp?pSeq=37765&pRo=-1",
+      "url_aliases": [],
+      "venue_key": "국립중앙박물관어린이박물관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "05fc74a3d5c243dbc0718be7",
+      "event_id": "discovery-05fc74a3d5c243dbc0718be7",
+      "source": "external:www.sejongpac.or.kr",
+      "source_event_id": "05fc74a3d5c243dbc0718be7",
+      "canonical_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+      "url_aliases": [],
+      "venue_key": "세종문화회관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "06574c2afa42d6e9073a9bd1",
+      "event_id": "discovery-06574c2afa42d6e9073a9bd1",
+      "source": "external:festival.seoul.go.kr",
+      "source_event_id": "06574c2afa42d6e9073a9bd1",
+      "canonical_url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=989",
+      "url_aliases": [],
+      "venue_key": "용산문화재단",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "0a10016b02f715da5917c5ed",
+      "event_id": "discovery-0a10016b02f715da5917c5ed",
+      "source": "external:baekjemuseum.seoul.go.kr",
+      "source_event_id": "0a10016b02f715da5917c5ed",
+      "canonical_url": "https://baekjemuseum.seoul.go.kr/dreamvillage/board/notice/index.jsp?boardid=SDM0401000000&mmode=content&mpid=SDM0401000000&skin=notice&pid=23671&pg=1&cpage=1",
+      "url_aliases": [],
+      "venue_key": "서울백제어린이박물관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "2a3cd4f02234d757bfaa55ca",
+      "event_id": "discovery-2a3cd4f02234d757bfaa55ca",
+      "source": "external:www.seoulchildrensmuseum.org",
+      "source_event_id": "2a3cd4f02234d757bfaa55ca",
+      "canonical_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
+      "url_aliases": [],
+      "venue_key": "서울상상나라",
+      "record_kind": "permanent_venue",
+      "edition": null
+    },
+    {
+      "identity_key": "57644efdf34470f6dd53ccf7",
+      "event_id": "discovery-57644efdf34470f6dd53ccf7",
+      "source": "external:www.sciencecenter.go.kr",
+      "source_event_id": "57644efdf34470f6dd53ccf7",
+      "canonical_url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
+      "url_aliases": [],
+      "venue_key": "nationalchildrenssciencecenter",
+      "record_kind": "permanent_venue",
+      "edition": null
+    },
+    {
+      "identity_key": "74eb611ab04986b6f376f9cc",
+      "event_id": "discovery-74eb611ab04986b6f376f9cc",
+      "source": "external:www.sejongpac.or.kr",
+      "source_event_id": "74eb611ab04986b6f376f9cc",
+      "canonical_url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
+      "url_aliases": [],
+      "venue_key": "세종문화회관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "83f1620860592cbe1c4cdeb5",
+      "event_id": "discovery-83f1620860592cbe1c4cdeb5",
+      "source": "external:www.jfac.or.kr",
+      "source_event_id": "83f1620860592cbe1c4cdeb5",
+      "canonical_url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+      "url_aliases": [],
+      "venue_key": "아이들극장",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "c407d73d3456faf50075cc29",
+      "event_id": "discovery-c407d73d3456faf50075cc29",
+      "source": "external:mediahub.seoul.go.kr",
+      "source_event_id": "c407d73d3456faf50075cc29",
+      "canonical_url": "https://mediahub.seoul.go.kr/archives/2020092",
+      "url_aliases": [],
+      "venue_key": "내친구서울관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "ecb08e737059b0e653dab24e",
+      "event_id": "discovery-ecb08e737059b0e653dab24e",
+      "source": "external:www.sejongpac.or.kr",
+      "source_event_id": "ecb08e737059b0e653dab24e",
+      "canonical_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+      "url_aliases": [],
+      "venue_key": "세종문화회관",
+      "record_kind": "dated_event",
+      "edition": null
+    }
+  ]
+}
