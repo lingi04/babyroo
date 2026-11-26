@@ -24,6 +24,17 @@
       "edition": null
     },
     {
+      "identity_key": "06010f7c5df144464c2ee450",
+      "event_id": "discovery-06010f7c5df144464c2ee450",
+      "source": "external:festival.seoul.go.kr",
+      "source_event_id": "06010f7c5df144464c2ee450",
+      "canonical_url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=373",
+      "url_aliases": [],
+      "venue_key": "광화문광장외6곳",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
       "identity_key": "06574c2afa42d6e9073a9bd1",
       "event_id": "discovery-06574c2afa42d6e9073a9bd1",
       "source": "external:festival.seoul.go.kr",
@@ -108,6 +119,17 @@
       "canonical_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
       "url_aliases": [],
       "venue_key": "세종문화회관",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "f46361a2166ff859ffc1598e",
+      "event_id": "discovery-f46361a2166ff859ffc1598e",
+      "source": "external:www.jfac.or.kr",
+      "source_event_id": "f46361a2166ff859ffc1598e",
+      "canonical_url": "https://www.jfac.or.kr/site/main/program/perf_show_list_view?pgIdx=2891",
+      "url_aliases": [],
+      "venue_key": "jcc재능문화센터콘서트홀",
       "record_kind": "dated_event",
       "edition": null
     }
