@@ -157,6 +157,9 @@ export function deterministicPicks(plan: RecommendationPlan): RecommendationPick
   );
 }
 
+// Booking availability can change, so it is not a default benefit.
+const reasonFactPriority = ['district', 'interest', 'duration', 'free', 'noReservation', 'activity', 'place'];
+
 export function renderRecommendationResults(picks: RecommendationPick[]): RecommendationResult[] {
   const byEvent = new Map<string, RecommendationPick[]>();
   for (const pick of picks) {
@@ -169,11 +172,11 @@ export function renderRecommendationResults(picks: RecommendationPick[]): Recomm
   return Array.from(byEvent, ([eventId, group]) => {
     const { event, facts, closedWeekdays } = group[0].option.ranked;
     const attendanceReasons = group.flatMap(({ option }) => attendanceReason(option));
-    const details = new Set(group.flatMap(({ fact }) => fact && fact !== 'published' && facts.facts[fact] ? [facts.facts[fact]] : []));
-    for (const [key, detail] of Object.entries(facts.facts)) {
-      if (key !== 'published') details.add(detail);
-    }
-    const reasons = [...new Set(attendanceReasons), ...Array.from(details).slice(0, attendanceReasons.length ? 2 : 3)];
+    const selectedFact = group.find(({ fact }) => fact && fact !== 'published' && fact !== 'place' &&
+      Object.hasOwn(facts.facts, fact))?.fact;
+    const reasonFact = selectedFact ?? reasonFactPriority.find(key => Object.hasOwn(facts.facts, key));
+    const reasons = Array.from(new Set(attendanceReasons));
+    if (reasonFact) reasons.unshift(facts.facts[reasonFact]);
     if (reasons.length === 0) reasons.push(facts.facts.published);
 
     const cautions = [];
@@ -196,7 +199,7 @@ function attendanceReason({ attendance, children }: RecommendationOption): strin
     child.nickname + '(' + completedMonths(child.birthDate, start) + '개월)',
   );
   const eligibleChildren = namesAndAges.join(', ') + (children.length > 1 ? ' 모두' : '도');
-  const visit = koreanDate(start) + '에 방문한다면 ' + eligibleChildren + ' 참여할 수 있어요.';
+  const visit = koreanDate(start) + ' 기준으로 ' + eligibleChildren + ' 연령 조건을 충족해요.';
   if (!ageLimited) return [visit];
   const dates = start === end ? koreanDate(start) : koreanDate(start) + '~' + koreanDate(end);
   return [visit + ' 연령 기준으로 가능한 날짜는 ' + dates + '이에요.'];

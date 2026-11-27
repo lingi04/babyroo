@@ -79,17 +79,18 @@ test('shared match after public inventory and model shortlist cutoffs uses one c
 });
 
 test('one card merges siblings assigned the same event on different days', async t => {
-  const request = input([event('separate-days', { ageMinMonths: 24, ageMaxMonths: 24 })],
+  const request = input([event('separate-days', { ageMinMonths: 24, ageMaxMonths: 24, priceType: 'free' })],
     [child('older', '2024-10-29'), junior]);
   const expected = await ruleBased.recommend(request);
   assert.equal(expected.length, 1);
-  assert.match(expected[0].reasons[0], /11월 28일.*별명-older\(24개월\)/);
-  assert.match(expected[0].reasons[1], /11월 29일.*별명-junior\(24개월\)/);
+  assert.match(expected[0].reasons[0], /무료/);
+  assert.ok(expected[0].reasons.some(reason => /11월 28일.*별명-older\(24개월\)/.test(reason)));
+  assert.ok(expected[0].reasons.some(reason => /11월 29일.*별명-junior\(24개월\)/.test(reason)));
   const provider = mockProvider(t, [
     { eventId: 'separate-days', assignment: 'child-1', fact: 'published' },
     { eventId: 'separate-days', assignment: 'child-2', fact: 'published' },
   ], 1);
-  assert.deepEqual((await provider.engine.recommend(request))[0].reasons.slice(0, 2), expected[0].reasons);
+  assert.deepEqual(await provider.engine.recommend(request), expected);
   assert.equal(provider.requests[0].text.format.schema.properties.results.maxItems, 2);
 });
 
@@ -210,6 +211,35 @@ test('uses a verified district pair and sourced duration as ranking signals', as
   assert.equal(short.eventId, 'same-district');
   assert.match(short.reasons.join(' '), /40분/);
 });
+
+test('leads with one supported benefit and keeps age fit separate from booking', async t => {
+  const museum = event('museum', {
+    ageMinMonths: 0, indoor: true, priceType: 'free', reservationStatus: 'unknown', tags: ['소요 시간 40분'],
+  });
+  const request = input([museum], [junior, senior], { price: 'any', duration: 'short' });
+  const [fallback] = await ruleBased.recommend(request);
+  assert.equal(fallback.reasons.length, 2);
+  assert.match(fallback.reasons[0], /40분/);
+  assert.match(fallback.reasons[1], /11월 28일.*별명-junior.*별명-senior.*모두 연령 조건을 충족해요/);
+  assert.doesNotMatch(fallback.reasons.join(' '), /참여할 수|예약/);
+  assert.match(fallback.caution, /예약 가능 여부를 확인/);
+
+  const provider = mockProvider(t, [{ eventId: 'museum', assignment: 'all', fact: 'free' }], 1);
+  const [modelPick] = await provider.engine.recommend(request);
+  assert.equal(modelPick.reasons[0], '입장료가 무료로 안내된 실내 나들이예요.');
+  assert.equal(modelPick.reasons[1], fallback.reasons[1]);
+  assert.equal(modelPick.caution, fallback.caution);
+});
+
+for (const fact of ['published', 'place', 'unsupported', undefined]) {
+  test(`uses the same benefit fallback when the selected fact is ${fact}`, async t => {
+    const request = input([event('museum', { ageMinMonths: 0, indoor: true, priceType: 'free' })], [senior]);
+    const provider = mockProvider(t, [{ eventId: 'museum', assignment: 'all', fact }], 1);
+    const [fallback] = await ruleBased.recommend(request);
+    assert.match(fallback.reasons[0], /무료/);
+    assert.deepEqual(await provider.engine.recommend(request), [fallback]);
+  });
+}
 
 test('stores date, departure and answer snapshots and sanitizes stored provider errors', async t => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date(requestedAt) });

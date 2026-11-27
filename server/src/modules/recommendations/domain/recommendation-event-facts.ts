@@ -33,7 +33,9 @@ export function recommendationEventFacts(event: BabyrooEvent, preferences: Recom
   }
   if (event.priceType === 'free') {
     if (preferences.price === 'free' || preferences.price === 'low') practical += 15;
-    facts.free = '입장료가 무료로 안내돼 있어요.';
+    facts.free = event.indoor === true
+      ? '입장료가 무료로 안내된 실내 나들이예요.'
+      : '입장료가 무료로 안내돼 있어요.';
   }
   if (event.reservationRequired === false) {
     if (preferences.reservation === 'no_reservation') practical += 15;
