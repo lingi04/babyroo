@@ -4,6 +4,7 @@ import {
   recommendationInterestQuestion,
 } from './src/recommendation/questionnaire';
 import { QuestionnaireCard } from './src/recommendation/QuestionnaireCard';
+import { RECOMMENDATION_CREDIT_COST } from './src/recommendation/recommendationPricing';
 import { RecommendationWelcome } from './src/recommendation/RecommendationWelcome';
 import { CurrentCrowdingCard } from './src/crowding/CurrentCrowdingCard';
 import { useFreshCrowdingArea } from './src/crowding/useFreshCrowdingArea';
@@ -1523,7 +1524,7 @@ function HomeScreen({
   const availableCredits = creditStatus?.balance.available ?? 0;
   const hasLoadedCreditStatus = !creditStatusLoading && creditStatus !== null;
   const shouldTopUpBeforeRecommendation =
-    hasLoadedCreditStatus && availableCredits <= 0;
+    hasLoadedCreditStatus && availableCredits < RECOMMENDATION_CREDIT_COST;
   const hasCurrentRecommendation = visibleRecommendationSessions.some(
     session => !isPastRecommendationSession(session, today),
   );
@@ -1532,9 +1533,9 @@ function HomeScreen({
     : '추천 시작하기';
 
   if (creditStatusLoading) {
-    recommendationCtaLabel = '추천권 확인 중...';
+    recommendationCtaLabel = '크레딧 확인 중...';
   } else if (shouldTopUpBeforeRecommendation) {
-    recommendationCtaLabel = '추천권 구매하고 추천 받기';
+    recommendationCtaLabel = '크레딧 충전하기';
   }
   const loadingRecommendationSessionIds = recommendationSessions
     .filter(session => session.status === 'loading')
@@ -1770,8 +1771,8 @@ function HomeScreen({
         error.code === 'INSUFFICIENT_CREDITS'
       ) {
         Alert.alert(
-          '추천권이 부족해요',
-          '추천권을 충전한 뒤 다시 추천을 받아보세요.',
+          '크레딧이 부족해요',
+          '크레딧을 충전한 뒤 다시 추천을 받아보세요.',
           [{ text: '확인', onPress: onOpenCredits }],
         );
         return;
@@ -2199,7 +2200,7 @@ function RecommendationConfirmationCard({
         </Pressable>
       </View>
       <Text style={styles.settingsMeta}>
-        추천 결과가 생성되면 추천권 1회가 사용돼요.
+        추천 결과를 받으면 {RECOMMENDATION_CREDIT_COST} 크레딧을 사용해요.
       </Text>
       <RecommendationAnswerSummary
         answers={answers}
@@ -2214,12 +2215,14 @@ function RecommendationConfirmationCard({
         ]}
         onPress={onConfirm}
         disabled={creating}
-        accessibilityLabel="Confirm recommendation request"
+        accessibilityLabel={`${RECOMMENDATION_CREDIT_COST} 크레딧으로 추천받기`}
         accessibilityRole="button"
         accessibilityState={{ disabled: creating, busy: creating }}
       >
         <Text style={styles.recommendationPrimaryButtonText}>
-          {creating ? '추천 요청 생성중...' : '추천 받기'}
+          {creating
+            ? '추천 요청 생성 중...'
+            : `${RECOMMENDATION_CREDIT_COST} 크레딧으로 추천받기`}
         </Text>
       </Pressable>
     </View>
@@ -2355,7 +2358,7 @@ function RecommendationFailureState({
       <Text style={styles.emptyStateTitle}>추천을 완료하지 못했어요</Text>
       <Text style={styles.emptyStateText}>{message.body}</Text>
       <Text style={styles.emptyStateText}>
-        이번 요청에는 추천권이 사용되지 않았어요.
+        이번 요청에는 크레딧이 사용되지 않았어요.
       </Text>
       {retryable ? (
         <>
@@ -2363,12 +2366,12 @@ function RecommendationFailureState({
             style={[styles.primaryButton, styles.failureRetryButton]}
             onPress={onRetry}
             accessibilityRole="button"
-            accessibilityLabel="다시 시도, 추천 완료 시 추천권 1회 사용"
+            accessibilityLabel={`다시 시도, 추천 완료 시 ${RECOMMENDATION_CREDIT_COST} 크레딧 사용`}
           >
             <Text style={styles.primaryButtonText}>다시 시도</Text>
           </Pressable>
           <Text style={[styles.emptyStateText, styles.failureCreditNotice]}>
-            추천 완료 시 추천권 1회 사용
+            추천 완료 시 {RECOMMENDATION_CREDIT_COST} 크레딧 사용
           </Text>
         </>
       ) : null}
@@ -2519,10 +2522,10 @@ function CreditStatusContent({
       setStatus(await getCreditStatusFromBabyrooApi(accessToken));
     } catch (error) {
       Alert.alert(
-        '추천권 조회 실패',
+        '크레딧 조회 실패',
         error instanceof Error
           ? error.message
-          : '추천권 정보를 불러오지 못했습니다.',
+          : '크레딧 정보를 불러오지 못했습니다.',
       );
     } finally {
       setLoading(false);
@@ -2591,15 +2594,15 @@ function CreditStatusContent({
 
     if (Platform.OS !== 'android') {
       Alert.alert(
-        '추천권 충전 안내',
-        '현재 추천권 결제는 Android Google Play에서 사용할 수 있습니다.',
+        '크레딧 충전 안내',
+        '현재 크레딧 결제는 Android Google Play에서 사용할 수 있습니다.',
       );
       return;
     }
 
     if (!billingConnected) {
       Alert.alert(
-        '추천권 충전 준비 중',
+        '크레딧 충전 준비 중',
         'Google Play 결제 연결을 준비하고 있습니다. 잠시 후 다시 시도해주세요.',
       );
       return;
@@ -2617,31 +2620,38 @@ function CreditStatusContent({
     <ScrollView contentContainerStyle={styles.settingsScreen}>
       <View style={styles.headerRow}>
         <View>
-          <Text style={styles.pageTitle}>추천권 현황</Text>
+          <Text style={styles.pageTitle}>크레딧 현황</Text>
         </View>
         <Pressable
           style={styles.iconButton}
           onPress={onBack}
-          accessibilityLabel="Close credit status"
+          accessibilityLabel="크레딧 현황 닫기"
+          accessibilityRole="button"
         >
           <Text style={styles.iconButtonText}>×</Text>
         </Pressable>
       </View>
 
       <View style={styles.creditBalanceCard}>
-        <Text style={styles.settingsLabel}>잔여 추천권</Text>
-        <Text style={styles.creditBalanceValue}>
-          {loading ? '-' : status?.balance.available ?? 0}
+        <Text style={styles.settingsLabel}>보유 크레딧</Text>
+        <Text
+          style={styles.creditBalanceValue}
+          accessibilityLabel={
+            loading ? '보유 크레딧 불러오는 중' : `보유 크레딧 ${status?.balance.available ?? 0}`
+          }
+        >
+          {loading ? '–' : status?.balance.available ?? 0}
+          <Text style={styles.creditBalanceUnit}> 크레딧</Text>
         </Text>
         <Text style={styles.settingsMeta}>
-          추천 결과가 생성되면 1회 차감돼요.
+          추천 결과를 받으면 {RECOMMENDATION_CREDIT_COST} 크레딧을 사용해요.
         </Text>
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>추천권 충전</Text>
+        <Text style={styles.sectionTitle}>크레딧 충전</Text>
         {status?.packages
-          .filter(creditPackage => creditPackage.credits !== 12)
+          .filter(creditPackage => googlePlayProductId(creditPackage) !== 'family_12')
           .map(creditPackage => {
             const billingProduct = billingProductById.get(
               googlePlayProductId(creditPackage),
@@ -2652,6 +2662,9 @@ function CreditStatusContent({
                 key={creditPackage.id}
                 label={creditPackage.label}
                 price={billingProduct?.price ?? formatKrw(creditPackage.priceKrw)}
+                recommendationCount={Math.floor(
+                  creditPackage.credits / RECOMMENDATION_CREDIT_COST,
+                )}
                 status={purchaseStatuses[googlePlayProductId(creditPackage)]}
                 checking={billingBusy}
                 onPress={() => purchasePackage(creditPackage.id)}
@@ -2661,16 +2674,23 @@ function CreditStatusContent({
       </View>
 
       <View style={styles.settingsSection}>
-        <Text style={styles.sectionTitle}>사용 내역</Text>
+        <Text style={styles.sectionTitle}>크레딧 내역</Text>
         {status && status.ledger.length > 0 ? (
-          status.ledger.map(entry => (
-            <View key={entry.id} style={styles.creditLedgerItem}>
-              <View>
+          status.ledger.map((entry, index) => (
+            <View
+              key={entry.id}
+              style={[
+                styles.creditLedgerItem,
+                index > 0 && styles.creditLedgerDivider,
+              ]}
+            >
+              <View style={styles.creditLedgerDetails}>
                 <Text style={styles.creditLedgerReason}>
                   {formatCreditReason(entry.reason)}
                 </Text>
                 <Text style={styles.creditLedgerDate}>
                   {formatRecommendationSessionTime(entry.createdAt)}
+                  {entry.reason === 'google_play_credit_purchase' ? ' · Google Play' : ''}
                 </Text>
               </View>
               <Text
@@ -2679,18 +2699,19 @@ function CreditStatusContent({
                   entry.amount > 0 && styles.creditLedgerAmountPositive,
                 ]}
               >
-                {entry.amount > 0 ? '+' : ''}
-                {entry.amount}
+                {entry.amount > 0 ? '+' : entry.amount < 0 ? '−' : ''}
+                {Math.abs(entry.amount)}
+                <Text style={styles.creditLedgerUnit}> 크레딧</Text>
               </Text>
             </View>
           ))
         ) : (
           <View style={styles.recommendationHistoryEmpty}>
             <Text style={styles.emptyStateTitle}>
-              아직 사용 내역이 없어요
+              아직 크레딧 내역이 없어요
             </Text>
             <Text style={styles.emptyStateText}>
-              추천권을 충전하거나 추천을 완료하면 여기에 기록됩니다.
+              크레딧을 충전하거나 추천을 완료하면 여기에 기록됩니다.
             </Text>
           </View>
         )}
@@ -5646,8 +5667,8 @@ function recommendationErrorMessage(errorCode: RecommendationErrorCode) {
       body: '잠시 후 다시 시도해 주세요.',
     },
     insufficient_credits: {
-      title: '추천권이 부족해요',
-      body: '추천권을 충전한 뒤 다시 추천을 받아보세요.',
+      title: '크레딧이 부족해요',
+      body: '크레딧을 충전한 뒤 다시 추천을 받아보세요.',
     },
     invalid_response: {
       title: '추천 결과를 정리하지 못했어요',
@@ -6039,21 +6060,21 @@ function formatRecommendationSessionTime(createdAt: string) {
 
 function formatCreditReason(reason: string) {
   if (reason === 'starting_credits') {
-    return '가입 추천권';
+    return '가입 크레딧';
   }
 
   if (
     reason === 'manual_credit_purchase' ||
     reason === 'google_play_credit_purchase'
   ) {
-    return '추천권 충전';
+    return '크레딧 충전';
   }
 
   if (reason === 'recommendation_session') {
-    return '추천 사용';
+    return '나들이 추천 완료';
   }
 
-  return reason;
+  return '크레딧 조정';
 }
 
 function googlePlayProductId(
@@ -7211,16 +7232,26 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: spacing.xs,
   },
+  creditBalanceUnit: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
   creditLedgerItem: {
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    borderWidth: 1,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     justifyContent: 'space-between',
-    marginTop: spacing.md,
-    padding: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  creditLedgerDivider: {
+    borderTopColor: colors.borderSubtle,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  creditLedgerDetails: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 130,
   },
   creditLedgerReason: {
     color: colors.text,
@@ -7234,12 +7265,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   creditLedgerAmount: {
-    color: colors.danger,
+    color: colors.text,
     fontSize: 16,
+    fontVariant: ['tabular-nums'],
     fontWeight: '900',
+    marginLeft: 'auto',
   },
   creditLedgerAmountPositive: {
-    color: colors.mintText,
+    color: colors.exploreSelectedLabel,
+  },
+  creditLedgerUnit: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   settingsWarmRoot: { flex: 1, backgroundColor: '#FCF3EE' },
   settingsPageTitle: { fontFamily: 'Pretendard-Bold', fontSize: 24, lineHeight: 30, color: colors.text },

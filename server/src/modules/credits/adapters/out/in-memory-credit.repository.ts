@@ -1,3 +1,4 @@
+import { DEFAULT_STARTING_CREDITS } from '../../domain/credit-pricing';
 import { Injectable } from '@nestjs/common';
 import { ApplicationError } from '../../../../common/application-error';
 import { createId } from '../../../../common/id';
@@ -14,9 +15,13 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
   private readonly balances = new Map<string, number>();
   private readonly ledger: CreditLedgerEntry[] = [];
   private readonly googlePlayPurchases = new Map<string, GooglePlayPurchaseRecord>();
-  private readonly defaultStartingCredits = Number(process.env.DEFAULT_RECOMMENDATION_CREDITS ?? 3);
+  private readonly defaultStartingCredits = Number(process.env.DEFAULT_RECOMMENDATION_CREDITS ?? DEFAULT_STARTING_CREDITS);
 
   async getBalance(userId: string): Promise<CreditBalance> {
+    return this.ensureBalance(userId);
+  }
+
+  private ensureBalance(userId: string): CreditBalance {
     if (!this.balances.has(userId)) {
       this.balances.set(userId, this.defaultStartingCredits);
       this.ledger.push({
@@ -36,7 +41,7 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
     reason: string,
     metadata?: Record<string, unknown>,
   ): Promise<{ balance: CreditBalance; ledgerEntry: CreditLedgerEntry }> {
-    const balance = await this.getBalance(userId);
+    const balance = this.ensureBalance(userId);
     const next = balance.available + amount;
     const ledgerEntry = {
       id: createId('credit'),
@@ -57,7 +62,7 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
   }
 
   async consume(userId: string, amount: number, reason: string): Promise<CreditBalance> {
-    const balance = await this.getBalance(userId);
+    const balance = this.ensureBalance(userId);
     if (balance.available < amount) {
       throw new ApplicationError(
         'INSUFFICIENT_CREDITS',
@@ -137,7 +142,7 @@ export class InMemoryCreditRepository implements CreditRepositoryPort {
           409,
         );
       }
-      const balance = await this.getBalance(existingPurchase.userId);
+      const balance = this.ensureBalance(existingPurchase.userId);
       const ledgerEntry =
         this.ledger.find(entry => entry.id === existingPurchase.creditedLedgerEntryId) ??
         this.ledger[0];

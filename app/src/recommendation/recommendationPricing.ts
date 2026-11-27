@@ -1,0 +1,1 @@
+export const RECOMMENDATION_CREDIT_COST = 10;

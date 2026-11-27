@@ -81,7 +81,7 @@ export function RecommendationWelcome({
         accessibilityRole="button"
         accessibilityLabel="Open recommendation credit purchases and history"
       >
-        <Text style={styles.creditText}>추천권 구매 · 사용 기록</Text>
+        <Text style={styles.creditText}>크레딧 충전 · 내역</Text>
       </Pressable>
     </View>
   );

@@ -140,7 +140,7 @@ test('retains failed history without a duplicate panel and retries original inpu
   try {
     await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
     const root=renderer!.root;
-    expect(root.findAllByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toHaveLength(0);
+    expect(root.findAllByProps({children:'이번 요청에는 크레딧이 사용되지 않았어요.'})).toHaveLength(0);
     const row=root.findAll(node=>node.props.accessibilityRole==='button' &&
       typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('원래 아이') &&
       typeof node.props.onPress==='function')[0];
@@ -148,8 +148,8 @@ test('retains failed history without a duplicate panel and retries original inpu
     await ReactTestRenderer.act(()=>row.props.onPress());
     expect(root.findByProps({children:'추천 요청 실패'})).toBeTruthy();
     expect(root.findAllByProps({children:'조건에 맞춰 고른 후보 0개'})).toHaveLength(0);
-    expect(root.findByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toBeTruthy();
-    const retry=root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'});
+    expect(root.findByProps({children:'이번 요청에는 크레딧이 사용되지 않았어요.'})).toBeTruthy();
+    const retry=root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 10 크레딧 사용'});
     await ReactTestRenderer.act(()=>{retry.props.onPress();retry.props.onPress();});
     expect(createRequest).toHaveBeenCalledTimes(1);
     expect(createRequest).toHaveBeenCalledWith(expect.objectContaining({
@@ -160,17 +160,17 @@ test('retains failed history without a duplicate panel and retries original inpu
     }));
     await ReactTestRenderer.act(()=>resolveRequest({...failedRecommendation,id:'retry-record',status:'loading',error:undefined}));
     expect(root.findAllByProps({children:'추천 요청 실패'})).toHaveLength(0);
-    expect(root.findAllByProps({children:'이번 요청에는 추천권이 사용되지 않았어요.'})).toHaveLength(0);
+    expect(root.findAllByProps({children:'이번 요청에는 크레딧이 사용되지 않았어요.'})).toHaveLength(0);
     const alert=jest.spyOn(Alert,'alert').mockImplementation(()=>{});
     try {
       createRequest.mockRejectedValueOnce(new Error('network unavailable'));
       await ReactTestRenderer.act(()=>row.props.onPress());
-      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'}).props.onPress());
+      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 10 크레딧 사용'}).props.onPress());
       expect(createRequest).toHaveBeenCalledTimes(2);
       expect(alert).toHaveBeenCalledWith('추천 요청 실패','network unavailable');
       createRequest.mockResolvedValueOnce({...failedRecommendation,id:'retry-after-error',status:'loading',error:undefined});
       await ReactTestRenderer.act(()=>row.props.onPress());
-      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'}).props.onPress());
+      await ReactTestRenderer.act(()=>root.findByProps({accessibilityLabel:'다시 시도, 추천 완료 시 10 크레딧 사용'}).props.onPress());
       expect(createRequest).toHaveBeenCalledTimes(3);
     } finally {alert.mockRestore();}
   } finally {
@@ -228,7 +228,7 @@ test.each(['nonretryable','missing-child','legacy-child'])('failed detail handle
       typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('방문 예정') &&
       typeof node.props.onPress==='function')[0];
     await ReactTestRenderer.act(()=>row.props.onPress());
-    const retries=root.findAllByProps({accessibilityLabel:'다시 시도, 추천 완료 시 추천권 1회 사용'});
+    const retries=root.findAllByProps({accessibilityLabel:'다시 시도, 추천 완료 시 10 크레딧 사용'});
     if(scenario==='nonretryable') {
       expect(retries).toHaveLength(0);
     } else {
@@ -815,7 +815,7 @@ test('completes eight UI questions and submits the edited interest', async () =>
     });
     await ReactTestRenderer.act(async () => {
       await renderer!.root
-        .findByProps({ accessibilityLabel: 'Confirm recommendation request' })
+        .findByProps({ accessibilityLabel: '10 크레딧으로 추천받기' })
         .props.onPress();
     });
     expect(createSession).toHaveBeenCalledTimes(1);

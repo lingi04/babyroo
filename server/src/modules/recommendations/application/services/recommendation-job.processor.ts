@@ -1,3 +1,4 @@
+import { RECOMMENDATION_CREDIT_COST } from '../../../credits/domain/credit-pricing';
 import { debugLog } from '../../../../common/debug-log';
 import { ApplicationError } from '../../../../common/application-error';
 import { Logger } from '@nestjs/common';
@@ -69,7 +70,25 @@ export class RecommendationJobProcessor {
 
     // Keep delivery outside recommendation error handling: a push failure must
     // not overwrite the saved outcome or run credit consumption again.
-    const savedSession = await this.sessions.update(completedSession);
+    const debit = async () => {
+      await this.consumeRecommendationCreditUseCase.consumeRecommendationCredit(job.userId);
+    };
+    let savedSession: RecommendationSession | null;
+    try {
+      savedSession = await this.sessions.update(completedSession, debit);
+    } catch (error) {
+      if (!(error instanceof ApplicationError) || error.code !== 'INSUFFICIENT_CREDITS') {
+        throw error;
+      }
+      savedSession = await this.sessions.update({
+        ...session,
+        status: 'failed',
+        results: [],
+        creditCost: 0,
+        error: recommendationJobError(error),
+      }, debit);
+    }
+    if (!savedSession) return;
     debugLog('recommendations.job.completed', {
       ...job,
       status: savedSession.status,
@@ -110,16 +129,10 @@ export class RecommendationJobProcessor {
       requestedAt: session.createdAt,
     });
 
-    if (results.length > 0) {
-      await this.consumeRecommendationCreditUseCase.consumeRecommendationCredit(
-        job.userId,
-      );
-    }
-
     return {
       ...session,
       results,
-      creditCost: results.length > 0 ? 1 : 0,
+      creditCost: results.length > 0 ? RECOMMENDATION_CREDIT_COST : 0,
       status: results.length > 0 ? 'success' : 'failed',
       error:
         results.length > 0

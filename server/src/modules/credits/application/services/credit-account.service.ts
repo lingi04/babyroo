@@ -1,3 +1,4 @@
+import { RECOMMENDATION_CREDIT_COST } from '../../domain/credit-pricing';
 import { ApplicationError } from '../../../../common/application-error';
 import { ConsumeRecommendationCreditUseCase } from '../ports/in/consume-recommendation-credit.use-case';
 import { debugLog } from '../../../../common/debug-log';
@@ -25,16 +26,16 @@ const CREDIT_PACKAGES: CreditPackage[] = [
   {
     id: 'starter_5',
     googlePlayProductId: 'starter_5',
-    credits: 5,
-    priceKrw: 4900,
-    label: '추천권 5회',
+    credits: 50,
+    priceKrw: 2500,
+    label: '50 크레딧',
   },
   {
     id: 'family_12',
     googlePlayProductId: 'family_12',
-    credits: 12,
+    credits: 120,
     priceKrw: 9900,
-    label: '추천권 12회',
+    label: '120 크레딧',
   },
 ];
 
@@ -75,10 +76,10 @@ export class CreditAccountService
   }
 
   async checkRecommendationCredit(userId: string) {
-    debugLog('credits.checkRecommendation.start', { userId, amount: 1 });
+    debugLog('credits.checkRecommendation.start', { userId, amount: RECOMMENDATION_CREDIT_COST });
     const balance = await this.credits.getBalance(userId);
 
-    if (balance.available < 1) {
+    if (balance.available < RECOMMENDATION_CREDIT_COST) {
       throw new ApplicationError(
         'INSUFFICIENT_CREDITS',
         'Not enough recommendation credits',
@@ -88,8 +89,8 @@ export class CreditAccountService
   }
 
   async consumeRecommendationCredit(userId: string) {
-    debugLog('credits.consumeRecommendation.start', { userId, amount: 1 });
-    const balance = await this.credits.consume(userId, 1, 'recommendation_session');
+    debugLog('credits.consumeRecommendation.start', { userId, amount: RECOMMENDATION_CREDIT_COST });
+    const balance = await this.credits.consume(userId, RECOMMENDATION_CREDIT_COST, 'recommendation_session');
     debugLog('credits.consumeRecommendation.success', {
       userId,
       available: balance.available,

@@ -1,3 +1,4 @@
+import { DEFAULT_STARTING_CREDITS } from '../../domain/credit-pricing';
 import { Injectable } from '@nestjs/common';
 import { ApplicationError } from '../../../../common/application-error';
 import { createId } from '../../../../common/id';
@@ -20,7 +21,7 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
   private readonly prisma = getPrismaClient();
 
   private readonly defaultStartingCredits = Number(
-    process.env.DEFAULT_RECOMMENDATION_CREDITS ?? 3,
+    process.env.DEFAULT_RECOMMENDATION_CREDITS ?? DEFAULT_STARTING_CREDITS,
   );
 
   async getBalance(userId: string): Promise<CreditBalance> {
@@ -76,37 +77,8 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
     reason: string,
   ): Promise<CreditBalance> {
     return this.prisma.$transaction(async tx => {
-      const account = await this.ensureAccount(userId, tx);
-
-      if (account.available < amount) {
-        throw new ApplicationError(
-          'INSUFFICIENT_CREDITS',
-          'Not enough recommendation credits',
-          402,
-        );
-      }
-
-      const updatedAccount = await tx.creditAccount.update({
-        where: { userId },
-        data: {
-          available: {
-            decrement: amount,
-          },
-        },
-      });
-      await tx.creditLedgerEntry.create({
-        data: {
-          id: createId('credit'),
-          userId,
-          amount: -amount,
-          reason,
-        },
-      });
-
-      return {
-        userId,
-        available: updatedAccount.available,
-      };
+      await this.ensureAccount(userId, tx);
+      return debitCreditAccount(tx, userId, amount, reason);
     });
   }
 
@@ -277,4 +249,25 @@ export class PrismaCreditRepository implements CreditRepositoryPort {
       createdAt: purchase.createdAt.toISOString(),
     };
   }
+}
+
+export async function debitCreditAccount(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  amount: number,
+  reason: string,
+  metadata?: Prisma.InputJsonObject,
+): Promise<CreditBalance> {
+  const account = await tx.creditAccount.updateManyAndReturn({
+    where: { userId, available: { gte: amount } },
+    data: { available: { decrement: amount } },
+  });
+  if (account.length === 0) {
+    throw new ApplicationError('INSUFFICIENT_CREDITS', 'Not enough credits', 402);
+  }
+
+  await tx.creditLedgerEntry.create({
+    data: { id: createId('credit'), userId, amount: -amount, reason, metadata },
+  });
+  return { userId, available: account[0].available };
 }

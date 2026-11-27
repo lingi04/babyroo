@@ -153,13 +153,13 @@ test("repeated verification grants once and revalidates a later refund before co
   const retry = await service.verifyGooglePlayPurchase("user", input);
   assert.equal(retry.status, "already_credited");
   assert.equal(first.ledgerEntry.id, retry.ledgerEntry.id);
-  assert.equal((await repository.getBalance("user")).available, initial + 5);
+  assert.equal((await repository.getBalance("user")).available, initial + 50);
   assert.equal(calls.length, 2);
   setResult({ purchaseState: 1, consumptionState: 0, rawResponse: {} });
   await assert.rejects(service.verifyGooglePlayPurchase("user", input), {
     code: "GOOGLE_PLAY_PURCHASE_CANCELED",
   });
-  assert.equal((await repository.getBalance("user")).available, initial + 5);
+  assert.equal((await repository.getBalance("user")).available, initial + 50);
 });
 
 test("concurrent verification of one token grants credits once", async () => {
@@ -171,7 +171,7 @@ test("concurrent verification of one token grants credits once", async () => {
     )
   );
   assert.equal(new Set(results.map((result) => result.ledgerEntry.id)).size, 1);
-  assert.equal((await repository.getBalance("user")).available, initial + 5);
+  assert.equal((await repository.getBalance("user")).available, initial + 50);
 });
 
 test("concurrent users cannot receive each other’s purchase grant", async () => {

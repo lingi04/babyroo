@@ -1,3 +1,4 @@
+import { debitCreditAccount } from '../../../credits/adapters/out/prisma-credit.repository';
 import { Injectable } from '@nestjs/common';
 import { getPrismaClient } from '../../../../common/prisma-client';
 import {
@@ -41,15 +42,22 @@ export class PrismaRecommendationSessionRepository
     return this.toDomainSession(createdSession);
   }
 
-  async update(session: RecommendationSession): Promise<RecommendationSession> {
-    const updatedSession = await this.prisma.recommendationSession.update({
-      where: {
-        id: session.id,
-      },
-      data: this.toPersistenceData(session),
-    });
+  async update(session: RecommendationSession): Promise<RecommendationSession | null> {
+    return this.prisma.$transaction(async tx => {
+      const [updatedSession] = await tx.recommendationSession.updateManyAndReturn({
+        where: { id: session.id, userId: session.userId, status: 'running' },
+        data: this.toPersistenceData(session),
+      });
+      if (!updatedSession) return null;
 
-    return this.toDomainSession(updatedSession);
+      if (session.creditCost > 0) {
+        await debitCreditAccount(
+          tx, session.userId, session.creditCost, 'recommendation_session',
+          { recommendationSessionId: session.id },
+        );
+      }
+      return this.toDomainSession(updatedSession);
+    });
   }
 
   async listByUser(userId: string): Promise<RecommendationSession[]> {

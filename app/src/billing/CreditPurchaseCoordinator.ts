@@ -19,7 +19,7 @@ export const purchaseStatusCopy: Record<CreditPurchaseStatus, BillingNotice> = {
   },
   'completion-delayed': {
     title: '구매 처리 지연',
-    message: '추천권은 충전됐어요. 구매 처리를 마무리하려면 다시 확인해주세요.',
+    message: '크레딧은 충전됐어요. 구매 처리를 마무리하려면 다시 확인해주세요.',
   },
 };
 

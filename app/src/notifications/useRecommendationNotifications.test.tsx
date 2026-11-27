@@ -80,10 +80,10 @@ test.each(['failed', 'timeout'])('foreground %s overrides old completion copy an
   expect(Alert.alert).toHaveBeenCalledTimes(1);
   expect(Alert.alert).toHaveBeenCalledWith(
     '추천을 완료하지 못했어요',
-    expect.stringContaining('추천권은 차감되지 않았어요'),
+    expect.stringContaining('크레딧은 차감되지 않았어요'),
     [{text:'확인'}],
   );
-  expect(jest.mocked(Alert.alert).mock.calls[0][1]).toContain('추천이 완료되면 추천권 1회');
+  expect(jest.mocked(Alert.alert).mock.calls[0][1]).toContain('추천이 완료되면 10 크레딧');
   expect(onOpen).not.toHaveBeenCalled();
 });
 

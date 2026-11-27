@@ -112,7 +112,7 @@ Optional:
 PORT=3000
 HOST=127.0.0.1
 EVENT_DATA_PATH=data/events.json
-DEFAULT_RECOMMENDATION_CREDITS=3
+DEFAULT_RECOMMENDATION_CREDITS=30
 BABYROO_DEBUG_LOGS=true
 BABYROO_RECOMMENDATION_ENGINE=rule-based
 OPENAI_API_KEY=replace-me-openai-api-key
@@ -173,9 +173,9 @@ Replace `OPENAI_API_KEY` with a real key before expecting successful LLM respons
 
 Credits are modeled as a persisted account plus ledger:
 
-- `credit_accounts` stores the current available recommendation-credit balance per user.
+- `credit_accounts` stores the current shared credit balance per user.
 - `credit_ledger_entries` records grants and debits.
-- `DEFAULT_RECOMMENDATION_CREDITS` controls the first balance created for a user. It defaults to `3`.
+- `DEFAULT_RECOMMENDATION_CREDITS` controls the first balance created for a user. It defaults to `30` shared credits (three recommendations). Update existing overrides to the new credit unit before deployment.
 
 Recommendation flow:
 

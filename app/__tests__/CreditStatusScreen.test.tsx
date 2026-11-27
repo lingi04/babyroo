@@ -50,9 +50,9 @@ const purchase: Purchase = {
 const creditPackage = {
   id: 'starter_5',
   googlePlayProductId: 'starter_5',
-  credits: 5,
-  priceKrw: 4900,
-  label: '추천권 5회',
+  credits: 50,
+  priceKrw: 2500,
+  label: '50 크레딧',
 };
 const owned = Object.assign(new Error('owned'), { code: 'already-owned' });
 const configuration = Object.assign(new Error('private diagnostic detail'), {
@@ -88,7 +88,7 @@ test('screen blocks checkout when server configuration is unavailable and releas
   });
   try {
     const button = () =>
-      renderer.root.findByProps({ accessibilityLabel: 'Purchase 추천권 5회' });
+      renderer.root.findByProps({ accessibilityLabel: 'Purchase 50 크레딧' });
     await ReactTestRenderer.act(async () => {
       await button().props.onPress();
     });
@@ -100,7 +100,7 @@ test('screen blocks checkout when server configuration is unavailable and releas
       [{ text: '확인' }],
     );
     expect(button().props.disabled).toBe(false);
-    expect(renderer.root.findByProps({ children: '₩2,500' })).toBeDefined();
+    expect(renderer.root.findByProps({ children: '₩2,500 · 나들이 추천 5회분' })).toBeDefined();
   } finally {
     await ReactTestRenderer.act(async () => renderer.unmount());
   }
@@ -131,7 +131,7 @@ test('video flow through screen hooks: owned error, Play resume, configuration f
   });
   try {
     const button = () =>
-      renderer.root.findByProps({ accessibilityLabel: 'Purchase 추천권 5회' });
+      renderer.root.findByProps({ accessibilityLabel: 'Purchase 50 크레딧' });
     await ReactTestRenderer.act(async () => {
       await button().props.onPress();
     });
@@ -145,7 +145,7 @@ test('video flow through screen hooks: owned error, Play resume, configuration f
       [{ text: '확인' }],
     );
     expect(
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' })
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' })
         .props.disabled,
     ).toBe(false);
     expect(
@@ -154,7 +154,7 @@ test('video flow through screen hooks: owned error, Play resume, configuration f
     await ReactTestRenderer.act(async () => resume?.('active'));
     expect(Alert.alert).toHaveBeenCalledTimes(1);
     expect(
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' })
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' })
         .props.disabled,
     ).toBe(false);
   } finally {
@@ -166,7 +166,7 @@ test('purchase callback updates visible balance and consumes once, including a d
   const ledgerEntry = {
     id: 'entry',
     userId: 'user',
-    amount: 5,
+    amount: 50,
     reason: 'google_play_credit_purchase',
     createdAt: '2026-11-20T00:00:00Z',
   };
@@ -174,7 +174,7 @@ test('purchase callback updates visible balance and consumes once, including a d
     id: 'credit',
     status: 'credited',
     package: creditPackage,
-    balance: { userId: 'user', available: 5 },
+    balance: { userId: 'user', available: 50 },
     ledgerEntry,
   });
   let renderer!: ReactTestRenderer.ReactTestRenderer;
@@ -190,7 +190,7 @@ test('purchase callback updates visible balance and consumes once, including a d
     });
     expect(verifyGooglePlayPurchaseInBabyrooApi).toHaveBeenCalledTimes(1);
     expect(mockFinish).toHaveBeenCalledTimes(1);
-    expect(renderer.root.findByProps({ children: 5 })).toBeDefined();
+    expect(renderer.root.findByProps({ accessibilityLabel: '보유 크레딧 50' })).toBeDefined();
     expect(Alert.alert).not.toHaveBeenCalled();
   } finally {
     await ReactTestRenderer.act(async () => renderer.unmount());
@@ -208,7 +208,7 @@ test('pending remains visible after the alert and recheck failure, then resolves
   });
   try {
     const button = () =>
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' });
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' });
     expect(
       renderer.root.findByProps({ children: '결제 대기 중' }),
     ).toBeDefined();
@@ -231,11 +231,11 @@ test('pending remains visible after the alert and recheck failure, then resolves
       id: 'credit',
       status: 'credited',
       package: creditPackage,
-      balance: { userId: 'user', available: 5 },
+      balance: { userId: 'user', available: 50 },
       ledgerEntry: {
         id: 'entry',
         userId: 'user',
-        amount: 5,
+        amount: 50,
         reason: 'google_play_credit_purchase',
         createdAt: '2026-11-21T00:00:00Z',
       },
@@ -247,10 +247,10 @@ test('pending remains visible after the alert and recheck failure, then resolves
       renderer.root.findAllByProps({ children: '결제 대기 중' }),
     ).toHaveLength(0);
     expect(
-      renderer.root.findByProps({ accessibilityLabel: 'Purchase 추천권 5회' })
+      renderer.root.findByProps({ accessibilityLabel: 'Purchase 50 크레딧' })
         .props.disabled,
     ).toBe(false);
-    expect(renderer.root.findByProps({ children: 5 })).toBeDefined();
+    expect(renderer.root.findByProps({ accessibilityLabel: '보유 크레딧 50' })).toBeDefined();
     expect(mockFinish).toHaveBeenCalledTimes(1);
     expect(mockRequest).not.toHaveBeenCalled();
     expect(getGooglePlayBillingReadiness).not.toHaveBeenCalled();
@@ -270,7 +270,7 @@ test('recheck exposes accessible checking state and returns to stable pending in
   });
   try {
     const button = () =>
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' });
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' });
     let release!: (purchases: Purchase[]) => void;
     jest.mocked(getAvailablePurchases).mockImplementationOnce(
       () =>
@@ -319,7 +319,7 @@ test('server verification errors stay visible without being labeled payment pend
       renderer.root.findAllByProps({ children: '결제 대기 중' }),
     ).toHaveLength(0);
     const button = () =>
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' });
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' });
     await ReactTestRenderer.act(async () => {
       await button().props.onPress();
     });
@@ -361,9 +361,9 @@ test('switching accounts resets visible purchase status and balance before resto
     expect(
       renderer.root.findAllByProps({ children: '결제 대기 중' }),
     ).toHaveLength(0);
-    expect(renderer.root.findByProps({ children: 9 })).toBeDefined();
+    expect(renderer.root.findByProps({ accessibilityLabel: '보유 크레딧 9' })).toBeDefined();
     expect(
-      renderer.root.findByProps({ accessibilityLabel: 'Purchase 추천권 5회' }),
+      renderer.root.findByProps({ accessibilityLabel: 'Purchase 50 크레딧' }),
     ).toBeDefined();
     expect(mockRequest).not.toHaveBeenCalled();
   } finally {
@@ -377,11 +377,11 @@ test('already delivered credits are described truthfully when consumption needs 
     id: 'credit',
     status: 'already_credited',
     package: creditPackage,
-    balance: { userId: 'user', available: 5 },
+    balance: { userId: 'user', available: 50 },
     ledgerEntry: {
       id: 'entry',
       userId: 'user',
-      amount: 5,
+      amount: 50,
       reason: 'google_play_credit_purchase',
       createdAt: '2026-11-21T00:00:00Z',
     },
@@ -394,28 +394,60 @@ test('already delivered credits are described truthfully when consumption needs 
     );
   });
   try {
-    expect(renderer.root.findByProps({ children: 5 })).toBeDefined();
+    expect(renderer.root.findByProps({ accessibilityLabel: '보유 크레딧 50' })).toBeDefined();
     expect(
       renderer.root.findByProps({ children: '구매 처리 지연' }),
     ).toBeDefined();
     expect(Alert.alert).toHaveBeenCalledWith(
       '구매 처리 지연',
-      expect.stringContaining('추천권은 충전됐어요.'),
+      expect.stringContaining('크레딧은 충전됐어요.'),
       [{ text: '확인' }],
     );
     expect(
       renderer.root.findByProps({
         children:
-          '추천권은 충전됐어요. 구매 처리를 마무리하려면 다시 확인해주세요.',
+          '크레딧은 충전됐어요. 구매 처리를 마무리하려면 다시 확인해주세요.',
       }),
     ).toBeDefined();
     expect(
       renderer.root.findAllByProps({ children: '결제 대기 중' }),
     ).toHaveLength(0);
     expect(
-      renderer.root.findByProps({ accessibilityLabel: 'Recheck 추천권 5회' })
+      renderer.root.findByProps({ accessibilityLabel: 'Recheck 50 크레딧' })
         .props.disabled,
     ).toBe(false);
+  } finally {
+    await ReactTestRenderer.act(async () => renderer.unmount());
+  }
+});
+
+test('shows signed history with written units and keeps the family pack hidden', async () => {
+  jest.mocked(getCreditStatusFromBabyrooApi).mockResolvedValue({
+    balance: { userId: 'user', available: 40 },
+    ledger: [
+      { id: 'spend', userId: 'user', amount: -10, reason: 'recommendation_session', createdAt: '2026-11-21T00:00:00Z' },
+      { id: 'grant', userId: 'user', amount: 50, reason: 'google_play_credit_purchase', createdAt: '2026-11-20T00:00:00Z' },
+    ],
+    packages: [
+      creditPackage,
+      { id: 'family_12', googlePlayProductId: 'family_12', credits: 120, priceKrw: 9900, label: '120 크레딧' },
+    ],
+  });
+  let renderer!: ReactTestRenderer.ReactTestRenderer;
+  await ReactTestRenderer.act(async () => {
+    renderer = ReactTestRenderer.create(
+      <CreditStatusScreen accessToken="session" onBack={() => {}} />,
+    );
+  });
+  try {
+    const tree = renderer.toJSON();
+    const output = JSON.stringify(tree);
+    expect(output).toContain('크레딧 내역');
+    expect(output).toContain('나들이 추천 완료');
+    expect(output).toContain('Google Play');
+    expect(output).toMatch(/"−","10".*?크레딧/);
+    expect(output).toMatch(/"\+","50".*?크레딧/);
+    expect(output).not.toContain('120 크레딧');
   } finally {
     await ReactTestRenderer.act(async () => renderer.unmount());
   }

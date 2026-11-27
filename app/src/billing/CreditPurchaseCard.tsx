@@ -15,12 +15,14 @@ import {
 export function CreditPurchaseCard({
   label,
   price,
+  recommendationCount,
   status,
   checking,
   onPress,
 }: {
   label: string;
   price: string;
+  recommendationCount?: number;
   status?: CreditPurchaseStatus;
   checking: boolean;
   onPress: () => void;
@@ -47,7 +49,9 @@ export function CreditPurchaseCard({
       >
         <View style={styles.details}>
           <Text style={styles.title}>{label}</Text>
-          <Text style={styles.price}>{price}</Text>
+          <Text style={styles.price}>
+            {recommendationCount ? `${price} · 나들이 추천 ${recommendationCount}회분` : price}
+          </Text>
         </View>
         <Text style={styles.action}>
           {checking ? '확인 중' : status ? '다시 확인' : '구매'}

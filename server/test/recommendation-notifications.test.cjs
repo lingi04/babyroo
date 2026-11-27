@@ -58,11 +58,11 @@ test('push failure preserves saved results and credit cost', async () => {
   const saved = await f.sessions.findById('user-1', 'rec-1');
   assert.equal(saved.status, 'success');
   assert.equal(saved.results.length, 1);
-  assert.equal(saved.creditCost, 1);
+  assert.equal(saved.creditCost, 10);
   assert.equal(f.charges(), 1);
 });
 
-test('a failed request costs zero and a new successful retry costs exactly one', async () => {
+test('a failed request costs zero and a new successful retry costs ten credits once', async () => {
   const f = await fixture({ error: new Error('insufficient provider quota') });
   await f.processor.process(f.job);
   assert.equal(f.charges(), 0);
@@ -81,7 +81,7 @@ test('a failed request costs zero and a new successful retry costs exactly one',
   await processor.process({...f.job,sessionId:'retry-1'});
   await f.processor.process(f.job);
   assert.equal(charges,1);
-  assert.equal((await f.sessions.findById('user-1','retry-1')).creditCost,1);
+  assert.equal((await f.sessions.findById('user-1','retry-1')).creditCost,10);
   assert.equal((await f.sessions.findById('user-1','rec-1')).creditCost,0);
 });
 
@@ -94,8 +94,8 @@ for (const status of ['success','failed','timeout']) {
       .sendRecommendationCompleted({userId:'user-1',sessionId:'rec-1',status});
     assert.equal(sent.title,status==='success'?'추천 요청이 완료됐어요':'추천을 완료하지 못했어요');
     if(status!=='success') {
-      assert.match(sent.body,/추천권은 차감되지 않았어요/);
-      assert.match(sent.body,/추천이 완료되면 추천권 1회/);
+      assert.match(sent.body,/크레딧은 차감되지 않았어요/);
+      assert.match(sent.body,/추천이 완료되면 10 크레딧/);
     }
   });
 }
@@ -217,4 +217,46 @@ test('older registrations default to FCM; new clients identify their provider', 
   await controller.register(user, { installationId: 'installation-12345', token: 'token', platform: 'android', provider: 'other' });
   assert.equal((await devices.listByUser(user.id))[0].provider, 'other');
   await assert.rejects(controller.register(user, { installationId: 'installation-12345', token: 'token', platform: 'android', provider: '' }), /Invalid push device/);
+});
+
+test('competing completions and duplicate jobs spend the last ten credits once', async () => {
+  const { CreditAccountService } = require('../dist/modules/credits/application/services/credit-account.service');
+  const { InMemoryCreditRepository } = require('../dist/modules/credits/adapters/out/in-memory-credit.repository');
+  const repository = new InMemoryCreditRepository();
+  const credits = new CreditAccountService(repository, {});
+  const userId = 'credit-race';
+  const balance = await repository.getBalance(userId);
+  if (balance.available > 0) await repository.consume(userId, balance.available, 'test_setup');
+  await repository.grant(userId, 9, 'test_setup');
+  await assert.rejects(() => credits.checkRecommendationCredit(userId), { code: 'INSUFFICIENT_CREDITS' });
+  await repository.grant(userId, 1, 'test_setup');
+  await credits.checkRecommendationCredit(userId);
+
+  const sessions = new InMemoryRecommendationSessionRepository();
+  for (const id of ['first', 'second']) {
+    await sessions.create({
+      id, userId, selectedChildIds: [], selectedChildrenSnapshot: [], answers: {},
+      preferences: {}, results: [], creditCost: 0, status: 'running',
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  const notifications = [];
+  const processor = new RecommendationJobProcessor(
+    sessions,
+    { listPublishedSnapshot: async () => [] },
+    credits,
+    { recommend: async () => [{ eventId: 'event', reasons: [] }] },
+    { sendRecommendationCompleted: async notification => notifications.push(notification) },
+  );
+  await Promise.all(['first', 'first', 'second'].map(sessionId =>
+    processor.process({ userId, sessionId }),
+  ));
+  const outcomes = await sessions.listByUser(userId);
+  assert.deepEqual(outcomes.map(outcome => outcome.creditCost).sort((a, b) => a - b), [0, 10]);
+  assert.equal(outcomes.find(outcome => outcome.status === 'failed').error.code, 'insufficient_credits');
+  assert.equal((await repository.getBalance(userId)).available, 0);
+  assert.deepEqual((await repository.listLedger(userId))
+    .filter(entry => entry.reason === 'recommendation_session').map(entry => entry.amount), [-10]);
+  assert.equal(notifications.length, 2);
 });

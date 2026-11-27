@@ -1,3 +1,4 @@
+import { RECOMMENDATION_CREDIT_COST } from '../recommendation/recommendationPricing';
 import { useEffect, useRef } from 'react';
 import { Alert, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -64,7 +65,7 @@ export function useRecommendationNotifications(
       if (completion.status !== 'success') {
         Alert.alert(
           '추천을 완료하지 못했어요',
-          '추천권은 차감되지 않았어요. 다시 시도해 추천이 완료되면 추천권 1회가 사용돼요. 지난 추천에서 요청을 확인하고 다시 시도해 주세요.',
+          `크레딧은 차감되지 않았어요. 다시 시도해 추천이 완료되면 ${RECOMMENDATION_CREDIT_COST} 크레딧을 사용해요. 지난 추천에서 요청을 확인하고 다시 시도해 주세요.`,
           [{ text: '확인' }],
         );
         return;

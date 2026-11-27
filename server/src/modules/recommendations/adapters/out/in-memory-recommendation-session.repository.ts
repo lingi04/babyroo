@@ -7,15 +7,29 @@ export class InMemoryRecommendationSessionRepository
   implements RecommendationSessionRepositoryPort
 {
   private readonly sessions = new Map<string, RecommendationSession>();
+  private readonly completing = new Set<string>();
 
   async create(session: RecommendationSession): Promise<RecommendationSession> {
     this.sessions.set(session.id, session);
     return session;
   }
 
-  async update(session: RecommendationSession): Promise<RecommendationSession> {
-    this.sessions.set(session.id, session);
-    return session;
+  async update(
+    session: RecommendationSession,
+    debitInMemory: () => Promise<void>,
+  ): Promise<RecommendationSession | null> {
+    const current = this.sessions.get(session.id);
+    if (current?.userId !== session.userId || current.status !== 'running' ||
+        this.completing.has(session.id)) return null;
+
+    this.completing.add(session.id);
+    try {
+      if (session.creditCost > 0) await debitInMemory();
+      this.sessions.set(session.id, session);
+      return session;
+    } finally {
+      this.completing.delete(session.id);
+    }
   }
 
   async listByUser(userId: string): Promise<RecommendationSession[]> {
