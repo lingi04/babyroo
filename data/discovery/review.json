@@ -843,6 +843,41 @@
       "last_checked_at": "2026-11-26"
     },
     {
+      "title": "【제1강】 2026 노벨물리학상 해설",
+      "category": "experience",
+      "starts_at": "2026-11-26",
+      "ends_at": "2026-11-26",
+      "region": "서울",
+      "locality": "서대문구",
+      "venue_name": "서대문자연사박물관",
+      "venue_detail": "1층 시청각실",
+      "address": "서울시 서대문구 연희로32길 51",
+      "age_min_months": null,
+      "age_max_months": null,
+      "guardian_required": null,
+      "price_type": "paid",
+      "price_text": "12,000원 연간회원(일반) 10,000원",
+      "reservation_required": null,
+      "reservation_status": "closed",
+      "indoor": null,
+      "stroller_friendly": null,
+      "nursing_room": null,
+      "parking": null,
+      "tags": [
+        "실내",
+        "예약필요"
+      ],
+      "summary": "● 강연 내용 2026년 노벨 물리학상은 남극의 아이스큐브 중성미자 관측소에 대한 결정적인 기여와 천체물리학적 기원의 고에너지 중성미자 발견으로 미국 위스콘신대학교의 프랜시스 할젠 교수가 수상했습니다.할젠 교수는 남극점의 얼음을 이용해 우주에서 날아오는 고에너지 중성미자를 검출한다는 대담한 아이디어를 제안하고,그 가능성을 입증했으며 국제공동연구단을 구성해 거대한 관측소의 건설을 이끌었습니다.이번 노벨 물리학상의 과학적 의미와 성과를 살펴봅니다. ● 강연자 : 하창현 교수(중앙대학교 물리학과) 미국 펜실베이니아주립대에서 물리학 박사 학위를 받았다. 미국 로런스버클리국립연구소(LBNL)에서 박사후연구원을 마치고 2015년부터 2020년까지 기초과학연구원(IBS) 지하실험연구단 연구위원으로 활동했다. 2020년 3월 중앙대 물리학과 교수로 부임했다.",
+      "source": "namu",
+      "source_url": "https://namu.sdm.go.kr/web/main/education/science/view?epIdx=26256",
+      "source_event_id": "education-science-26256-2026-11-26-1",
+      "id": "namu-0af7cebf622f",
+      "csv_sequence": 226,
+      "created_at": null,
+      "updated_at": null,
+      "last_checked_at": "2026-11-27"
+    },
+    {
       "title": "(유)박물관 속 공룡 친구들",
       "category": "experience",
       "starts_at": "2026-11-15",
@@ -1560,29 +1595,160 @@
       "discovery_url": "https://mediahub.seoul.go.kr/archives/2017950",
       "status": "needs_review",
       "reasons": [
-        "permanence_not_confirmed"
+        "family_booking_terms_need_confirmation"
       ]
     },
     {
       "candidate_id": "candidate-03f7fe92fd836fcdba0a00b2",
-      "proposal_id": null,
+      "proposal_id": "nmk-childrens-museum",
       "discovery_url": "https://www.museum.go.kr/MUSEUM/contents/M0104010000.do?schM=",
-      "status": "needs_review",
-      "reasons": [
-        "permanence_not_confirmed"
-      ]
+      "source_url": "https://www.museum.go.kr/MUSEUM/contents/M0104010000.do?schM=",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-de0c58cf8990b46cfddd79dd"
     },
     {
       "candidate_id": "candidate-05abc0c23c3221486c28b5ec",
-      "proposal_id": "national-folk-childrens-museum",
+      "proposal_id": "nfm-childrens-museum",
       "discovery_url": "https://www.nfm.go.kr/kids",
-      "source_url": "https://www.nfm.go.kr/kids/user/content.do?pageId=PAGE_000000000000003",
+      "source_url": "https://www.nfm.go.kr/kids",
       "status": "needs_review",
       "reasons": [
-        "native_precedence"
+        "possible_duplicate"
       ],
       "matching_event_ids": [
         "nfm-kids-ce2dc366a355"
+      ]
+    },
+    {
+      "candidate_id": "candidate-1ab249562fcf044a87e2c9b8",
+      "proposal_id": null,
+      "discovery_url": "https://swr.or.kr/museum/cpage/board/edu_museum_press/view.do?board_seq=326&board_gb=edu_museum_press&menu_cd=C0015&currRow=1",
+      "status": "needs_review",
+      "reasons": [
+        "school_group_only_and_dates_incomplete"
+      ]
+    },
+    {
+      "candidate_id": "candidate-22149c3446df1557758d4010",
+      "proposal_id": "sejong-year-end-family-concert-2026",
+      "discovery_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+      "source_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36794&menuNo=200320",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-05fc74a3d5c243dbc0718be7"
+    },
+    {
+      "candidate_id": "candidate-390128fd6524fd553e4eea8e",
+      "proposal_id": "jfac-santa-search-2026",
+      "discovery_url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+      "source_url": "https://www.jfac.or.kr/site/child/childProgram/view?pgIdx=372",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-83f1620860592cbe1c4cdeb5"
+    },
+    {
+      "candidate_id": "candidate-58612dae555778ae82870627",
+      "proposal_id": null,
+      "discovery_url": "https://swr.or.kr/museum/cpage/contents/C0017.do?menu_cd=C0017",
+      "status": "needs_review",
+      "reasons": [
+        "school_age_group_only_and_seasonal_closure"
+      ]
+    },
+    {
+      "candidate_id": "candidate-714e0a948eea482e3b44e404",
+      "proposal_id": "seoul-baekje-childrens-museum",
+      "discovery_url": "https://baekjemuseum.seoul.go.kr/dreamvillage",
+      "source_url": "https://baekjemuseum.seoul.go.kr/dreamvillage",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-6c4db400cf6b876b2c056249"
+    },
+    {
+      "candidate_id": "candidate-71fbb7a6c53806ca821efcad",
+      "proposal_id": null,
+      "discovery_url": "https://blog.naver.com/tldktlsgk/224399697045",
+      "status": "needs_review",
+      "reasons": [
+        "source_no_visible_text"
+      ]
+    },
+    {
+      "candidate_id": "candidate-7b7de3559ad6e7a30413ffae",
+      "proposal_id": "seoul-childrens-museum-permanent",
+      "discovery_url": "https://www.seoulchildrensmuseum.org/display/displayAlways.do",
+      "source_url": "https://www.seoulchildrensmuseum.org/display/displayAlways.do",
+      "status": "needs_review",
+      "reasons": [
+        "possible_duplicate"
+      ],
+      "matching_event_ids": [
+        "seoul-family-venues-7c152da04a57"
+      ]
+    },
+    {
+      "candidate_id": "candidate-8fd2cc14214f4e712a48f0d4",
+      "proposal_id": null,
+      "discovery_url": "https://www.newsis.com/view/NISX20261124_0003881774",
+      "status": "needs_review",
+      "reasons": [
+        "same_festival_opening_checked_under_official_lead"
+      ]
+    },
+    {
+      "candidate_id": "candidate-93966816f0ddf6b518b2d713",
+      "proposal_id": null,
+      "discovery_url": "https://gemoim.com/kids-places/festival/e-aece2ed0b23be2f5",
+      "status": "needs_review",
+      "reasons": [
+        "same_festival_opening_checked_under_official_lead"
+      ]
+    },
+    {
+      "candidate_id": "candidate-93dc7752103faa9738c48fbc",
+      "proposal_id": null,
+      "discovery_url": "https://news.seoul.go.kr/gov/archives/582162",
+      "status": "needs_review",
+      "reasons": [
+        "aggregated_notice_without_program_detail"
+      ]
+    },
+    {
+      "candidate_id": "candidate-93ed3e2a6e3480c1499a2d66",
+      "proposal_id": "seoul-winter-festival-opening-2026",
+      "discovery_url": "https://festival.seoul.go.kr/festival/main/festivalView.do?festacode=373",
+      "source_url": "https://www.winterfestival.co.kr/program-opening",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-3652b9b29879b974fae42c24"
+    },
+    {
+      "candidate_id": "candidate-9d45a5ecc76504a7a1858f89",
+      "proposal_id": null,
+      "discovery_url": "http://www.jfac.or.kr/site/artdb/home",
+      "status": "needs_review",
+      "reasons": [
+        "same_santa_program_checked_under_specific_lead"
+      ]
+    },
+    {
+      "candidate_id": "candidate-9ea99a6379692e1d9826e472",
+      "proposal_id": null,
+      "discovery_url": "https://www.sejongpac.or.kr/portal/main/main.do",
+      "status": "needs_review",
+      "reasons": [
+        "performances_checked_under_specific_leads"
+      ]
+    },
+    {
+      "candidate_id": "candidate-a212362eb850db2e20b4e41b",
+      "proposal_id": "seoul-exploration-team-2026",
+      "discovery_url": "https://blog.naver.com/seo1papa/224484369164",
+      "source_url": "https://mediahub.seoul.go.kr/archives/2020092",
+      "status": "needs_review",
+      "reasons": [
+        "ambiguous_venue_identity"
       ]
     },
     {
@@ -1710,12 +1876,12 @@
     },
     {
       "candidate_id": "candidate-e7d80ff21bd7485c42313ddc",
-      "proposal_id": "seoul-childrens-museum-culture-play",
+      "proposal_id": null,
       "discovery_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
-      "source_url": "https://www.seoulchildrensmuseum.org/display/displayExhibition07.do",
-      "status": "ready_for_pr",
-      "reasons": [],
-      "event_id": "discovery-2a3cd4f02234d757bfaa55ca"
+      "status": "needs_review",
+      "reasons": [
+        "official_exhibit_descriptions_conflict"
+      ]
     },
     {
       "candidate_id": "candidate-eb229304a7fc79174a3bd8c0",
@@ -1728,21 +1894,25 @@
     },
     {
       "candidate_id": "candidate-fa2ea0697f09032a84e623c5",
-      "proposal_id": "sejong-universal-nutcracker-2026",
+      "proposal_id": "sejong-nutcracker-2026",
       "discovery_url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
-      "source_url": "https://www.sejongpac.or.kr/portal/bbs/B0000049/view.do?nttId=50200&menuNo=200440&pageIndex=1",
-      "status": "ready_for_pr",
-      "reasons": [],
-      "event_id": "discovery-74eb611ab04986b6f376f9cc"
+      "source_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=37726&menuNo=200320",
+      "status": "needs_review",
+      "reasons": [
+        "possible_duplicate"
+      ],
+      "matching_event_ids": [
+        "discovery-74eb611ab04986b6f376f9cc"
+      ]
     },
     {
       "candidate_id": "candidate-fcc4feef2faa9220f848ccb5",
-      "proposal_id": null,
+      "proposal_id": "sejong-christmas-carol-2026",
       "discovery_url": "https://www.mcst.go.kr/site/s_culture/culture/cultureView.jsp?pSeq=76651",
-      "status": "needs_review",
-      "reasons": [
-        "duplicate_lead"
-      ]
+      "source_url": "https://www.sejongpac.or.kr/portal/performance/performance/performTicket.do?performIdx=36793&menuNo=200320",
+      "status": "ready_for_pr",
+      "reasons": [],
+      "event_id": "discovery-ecb08e737059b0e653dab24e"
     }
   ]
 }

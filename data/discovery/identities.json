@@ -57,6 +57,17 @@
       "edition": null
     },
     {
+      "identity_key": "3652b9b29879b974fae42c24",
+      "event_id": "discovery-3652b9b29879b974fae42c24",
+      "source": "external:www.winterfestival.co.kr",
+      "source_event_id": "3652b9b29879b974fae42c24",
+      "canonical_url": "https://www.winterfestival.co.kr/program-opening",
+      "url_aliases": [],
+      "venue_key": "광화문광장",
+      "record_kind": "dated_event",
+      "edition": null
+    },
+    {
       "identity_key": "57644efdf34470f6dd53ccf7",
       "event_id": "discovery-57644efdf34470f6dd53ccf7",
       "source": "external:www.sciencecenter.go.kr",
@@ -64,6 +75,17 @@
       "canonical_url": "https://www.sciencecenter.go.kr/csc/reserve/personal",
       "url_aliases": [],
       "venue_key": "nationalchildrenssciencecenter",
+      "record_kind": "permanent_venue",
+      "edition": null
+    },
+    {
+      "identity_key": "6c4db400cf6b876b2c056249",
+      "event_id": "discovery-6c4db400cf6b876b2c056249",
+      "source": "external:baekjemuseum.seoul.go.kr",
+      "source_event_id": "6c4db400cf6b876b2c056249",
+      "canonical_url": "https://baekjemuseum.seoul.go.kr/dreamvillage",
+      "url_aliases": [],
+      "venue_key": "서울백제어린이박물관",
       "record_kind": "permanent_venue",
       "edition": null
     },
@@ -98,6 +120,17 @@
       "url_aliases": [],
       "venue_key": "내친구서울관",
       "record_kind": "dated_event",
+      "edition": null
+    },
+    {
+      "identity_key": "de0c58cf8990b46cfddd79dd",
+      "event_id": "discovery-de0c58cf8990b46cfddd79dd",
+      "source": "external:www.museum.go.kr",
+      "source_event_id": "de0c58cf8990b46cfddd79dd",
+      "canonical_url": "https://www.museum.go.kr/MUSEUM/contents/M0104010000.do?schM=",
+      "url_aliases": [],
+      "venue_key": "어린이박물관",
+      "record_kind": "permanent_venue",
       "edition": null
     },
     {
