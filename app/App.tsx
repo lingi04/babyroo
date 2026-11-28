@@ -1007,7 +1007,12 @@ function BabyrooApp() {
         />
       ) : (
         <>
-          <View style={styles.tabShell} testID="tab-shell">
+          <View
+            style={styles.tabShell}
+            testID="tab-shell"
+            accessibilityElementsHidden={Boolean(selectedRecommendationSession)}
+            importantForAccessibility={selectedRecommendationSession ? 'no-hide-descendants' : 'auto'}
+          >
           <SwipeableTabs
             activeTab={tab}
             onChangeTab={setTab}
@@ -1052,6 +1057,7 @@ function BabyrooApp() {
           ) : null}
           {selectedRecommendationSession ? (
             <RecommendationSessionDetail
+              covered={Boolean(selectedEvent)}
               bottomInset={bottomInset}
               events={events}
               session={selectedRecommendationSession}
@@ -2137,10 +2143,11 @@ function RecommendationAnswerSummary({
               onEditAnswer && pressed && styles.outlineControlPressed,
             ]}
             onPress={onEditAnswer ? () => onEditAnswer(question.id) : undefined}
+            accessible={Boolean(onEditAnswer)}
             accessibilityRole={onEditAnswer ? 'button' : undefined}
-            accessibilityLabel={`Edit answer ${recommendationQuestionLabel(
-              question,
-            )}`}
+            accessibilityLabel={onEditAnswer
+              ? `Edit answer ${recommendationQuestionLabel(question)}`
+              : undefined}
           >
             <Text
               style={[
@@ -3120,7 +3127,6 @@ function ExploreScreen({
           <EventCard
             event={item}
             tone={index}
-            explore
             onPress={() => onOpenEvent(item, hasPreviousResults)}
           />
         )}
@@ -3532,6 +3538,7 @@ export function EventDetail({
 
 function RecommendationSessionDetail({
   bottomInset,
+  covered,
   events,
   onBack,
   onOpenEvent,
@@ -3540,6 +3547,7 @@ function RecommendationSessionDetail({
   topInset,
 }: {
   bottomInset: number;
+  covered: boolean;
   events: BabyrooEvent[];
   onBack: () => void;
   onOpenEvent: (event: BabyrooEvent) => void;
@@ -3547,20 +3555,23 @@ function RecommendationSessionDetail({
   session: RecommendationSession;
   topInset: number;
 }) {
+  const [conditionsExpanded, setConditionsExpanded] = useState(false);
   const today = useLocalToday();
   const visitRange = recommendationSessionVisitRange(session);
   const answers = recommendationSessionAnswers(session);
   const isPast = isPastRecommendationSession(session, today);
-  const recommendedEvents = session.results
-    .map(result =>
-      [...(session.eventSnapshots ?? []), ...events].find(
-        event => event.id === result.eventId,
-      ),
-    )
-    .filter((event): event is BabyrooEvent => Boolean(event));
+  const availableEvents = [...(session.eventSnapshots ?? []), ...events];
+  const recommendations = session.results.flatMap(result => {
+    const event = availableEvents.find(item => item.id === result.eventId);
+    return event ? [{ event, result }] : [];
+  });
 
   return (
-    <View style={styles.detailRoot}>
+    <View
+      style={styles.detailRoot}
+      accessibilityElementsHidden={covered}
+      importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
+    >
       <ScrollView
         contentContainerStyle={[
           styles.recommendationDetailContent,
@@ -3572,36 +3583,20 @@ function RecommendationSessionDetail({
           <Pressable
             style={styles.recommendationDetailBackButton}
             onPress={onBack}
+            accessibilityRole="button"
             accessibilityLabel="Go back to recommendations"
           >
             <Text style={styles.recommendationDetailBackText}>‹</Text>
           </Pressable>
-          <View style={[
-            styles.recommendationDetailHeaderText,
-            session.status === 'failed' && styles.failureDetailHeaderText,
-          ]}>
-            <Text style={styles.recommendationDetailTitle}>
-              {session.status === 'failed' ? '추천 요청 실패' : '추천 결과'}
-            </Text>
-            <Text style={[
-              styles.recommendationDetailTime,
-              session.status === 'failed' && styles.failureDetailTime,
-            ]}>
-              {formatRecommendationSessionTime(session.createdAt)}{session.status === 'failed' ? '에 요청' : '에 저장된 추천'}
-            </Text>
-            <Text style={[
-              styles.recommendationDetailTime,
-              session.status === 'failed' && styles.failureDetailTime,
-            ]}>
-              {formatRecommendationSessionChildSummary(session)} 기준
-            </Text>
-          </View>
+          <Text style={styles.recommendationDetailTitle} accessibilityRole="header">
+            {session.status === 'failed' ? '추천 요청 실패' : '추천 결과'}
+          </Text>
         </View>
 
         {visitRange ? (
           <View style={styles.recommendationDetailVisit}>
             <Text style={styles.recommendationHistoryMeta}>
-              방문 예정 {formatVisitRange(visitRange)}
+              {`방문 예정 ${formatVisitRange(visitRange)}`}
             </Text>
             {isPast ? (
               <View style={styles.recommendationHistoryBadge}>
@@ -3613,39 +3608,18 @@ function RecommendationSessionDetail({
           </View>
         ) : null}
 
-        <RecommendationAnswerSummary
-          answers={answers}
-          questions={recommendationHistoryQuestions(session, answers)}
-        />
-
-        {__DEV__ && session.debug ? (
-          <RecommendationDebugPrompt debug={session.debug} />
-        ) : null}
-
-        {session.status !== 'failed' && (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>추천 결과</Text>
-            <Text style={styles.sectionMeta}>
-              조건에 맞춰 고른 후보 {recommendedEvents.length}개
-            </Text>
-          </View>
-        )}
-
         {session.status === 'failed' ? (
           <RecommendationFailureState
             errorCode={session.error?.code ?? 'unknown'}
             retryable={session.error?.retryable ?? true}
             onRetry={onRetry}
           />
-        ) : recommendedEvents.length > 0 ? (
-          recommendedEvents.map((event, index) => (
+        ) : recommendations.length > 0 ? (
+          recommendations.map(({ event, result }, index) => (
             <EventCard
               key={event.id}
               event={event}
-              compact
-              recommendationResult={session.results.find(
-                result => result.eventId === event.id,
-              )}
+              result={result}
               tone={index}
               onPress={() => onOpenEvent(event)}
             />
@@ -3660,6 +3634,47 @@ function RecommendationSessionDetail({
             </Text>
           </View>
         )}
+
+        <View style={styles.recommendationConditions}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.recommendationConditionsToggle,
+              pressed && styles.outlineControlPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: conditionsExpanded }}
+            accessibilityLabel="선택한 조건 보기"
+            onPress={() => setConditionsExpanded(expanded => !expanded)}
+          >
+            <Text style={styles.recommendationConditionsTitle}>선택한 조건 보기</Text>
+            <Text
+              accessible={false}
+              style={[
+                styles.recommendationConditionsChevron,
+                conditionsExpanded && styles.recommendationConditionsChevronExpanded,
+              ]}
+            >
+              ›
+            </Text>
+          </Pressable>
+          {conditionsExpanded ? (
+            <>
+              <Text style={styles.recommendationConditionsMeta}>
+                {formatRecommendationSessionTime(session.createdAt)}{session.status === 'failed' ? '에 요청' : '에 저장된 추천'}
+              </Text>
+              <Text style={styles.recommendationConditionsMeta}>
+                {formatRecommendationSessionChildSummary(session)} 기준
+              </Text>
+              <RecommendationAnswerSummary
+                answers={answers}
+                questions={recommendationHistoryQuestions(session, answers)}
+              />
+            </>
+          ) : null}
+        </View>
+        {__DEV__ && session.debug ? (
+          <RecommendationDebugPrompt debug={session.debug} />
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -4775,16 +4790,12 @@ function FilterSheet({
 
 function EventCard({
   event,
-  compact,
-  recommendationResult,
-  explore,
+  result,
   tone,
   onPress,
 }: {
   event: BabyrooEvent;
-  compact?: boolean;
-  recommendationResult?: RecommendationResult;
-  explore?: boolean;
+  result?: RecommendationResult;
   tone: number;
   onPress: () => void;
 }) {
@@ -4792,99 +4803,82 @@ function EventCard({
     tone % 4
   ];
   const tabSwipePress = useTabSwipePressGuard(onPress);
-  const chipLabels = eventCardChipLabels(event).slice(0, compact ? 3 : 4);
+  const venue = result ? event.venueName?.trim() : undefined;
+  const price = event.priceText?.trim() ||
+    (event.priceType === 'free' || event.priceType === 'paid'
+      ? formatPriceType(event.priceType)
+      : undefined);
+  const facts = [
+    venue && !event.title.includes(venue) ? venue : undefined,
+    [event.region, event.locality].filter(Boolean).join(' '),
+    event.indoor == null ? undefined : event.indoor ? '실내' : '야외',
+    price,
+  ].filter(Boolean).join(' · ');
+  const caution = result?.caution ? `확인할 점. ${result.caution}` : undefined;
+  const thumbnail = (
+    <View
+      style={[
+        styles.thumbnail,
+        result ? styles.recommendationThumbnail : [styles.thumbnailFeature, styles.exploreThumbnail],
+        { backgroundColor: color },
+      ]}
+    >
+      {event.imageUrl ? (
+        <Image
+          source={{ uri: event.imageUrl }}
+          resizeMode="cover"
+          style={styles.thumbnailImage}
+          accessibilityIgnoresInvertColors
+        />
+      ) : (
+        <EventThumbnailFallback event={event} tone={tone} showSourceLabel={!result} />
+      )}
+    </View>
+  );
 
   return (
     <Pressable
       style={[
         styles.eventCard,
-        compact && styles.eventCardCompact,
-        explore && styles.exploreCard,
+        result ? styles.recommendationVenueCard : styles.exploreCard,
       ]}
       onPress={tabSwipePress.onPress}
       onTouchStart={tabSwipePress.onTouchStart}
       onTouchMove={tabSwipePress.onTouchMove}
       onTouchEnd={tabSwipePress.onTouchEnd}
-      accessibilityLabel={`Open ${event.title}`}
+      accessibilityRole={result ? 'button' : undefined}
+      accessibilityLabel={result
+        ? [event.title, facts, ...result.reasons, caution, '상세 보기'].filter(Boolean).join('. ')
+        : `Open ${event.title}`}
     >
-      <View
-        style={[
-          styles.thumbnail,
-          !compact && styles.thumbnailFeature,
-          explore && styles.exploreThumbnail,
-          { backgroundColor: color },
-        ]}
-      >
-        {event.imageUrl ? (
-          <Image
-            source={{ uri: event.imageUrl }}
-            resizeMode="cover"
-            style={styles.thumbnailImage}
-            accessibilityIgnoresInvertColors
-          />
-        ) : (
-          <EventThumbnailFallback event={event} tone={tone} />
-        )}
-      </View>
-      {explore ? (
-        <ExploreListingText event={event} />
-      ) : (
-        <View style={[styles.cardBody, !compact && styles.cardBodyFeature]}>
-          {!compact ? (
-            <View style={styles.cardKickerRow}>
-              <Text style={styles.cardKickerText} numberOfLines={1}>
-                {event.locality || '지역 확인'}
-              </Text>
-              <Text style={styles.cardKickerDivider}>/</Text>
-              <Text style={styles.cardKickerText} numberOfLines={1}>
-                {thumbnailCategoryLabel(event)}
-              </Text>
+      {result ? (
+        <>
+          <View style={styles.recommendationVenueHeader}>
+            {thumbnail}
+            <View style={styles.recommendationVenueHeading}>
+              <Text style={styles.recommendationVenueTitle}>{event.title}</Text>
+              {facts ? <Text style={styles.recommendationVenueFacts}>{facts}</Text> : null}
             </View>
-          ) : null}
-          <Text style={styles.cardTitle} numberOfLines={compact ? 2 : 3}>
-            {event.title}
-          </Text>
-          <Text style={styles.cardMeta} numberOfLines={2}>
-            {event.venueName} · {formatAge(event)}
-          </Text>
-          {event.crowdingArea ? (
-            <Text style={styles.detailCrowdingTeaser}>주변 혼잡도 확인 ›</Text>
-          ) : null}
-          {compact && chipLabels.length > 0 ? (
-            <View style={styles.cardTagRow}>
-              {chipLabels.map(label => (
-                <Chip key={label} label={label} dense />
-              ))}
-            </View>
-          ) : null}
-          {compact ? (
-            <View style={styles.cardFooter}>
-              <Text style={styles.cardDate}>
-                {formatShortDate(event.startsAt)}
-              </Text>
-            </View>
-          ) : null}
-          {recommendationResult ? (
+          </View>
+          {result.reasons.length > 0 || result.caution ? (
             <View style={styles.recommendationReasonBox}>
-              <Text style={styles.recommendationReasonTitle}>추천 이유</Text>
-              {recommendationResult.reasons.map(reason => (
+              {result.reasons.map(reason => (
                 <Text key={reason} style={styles.recommendationReasonText}>
                   {reason}
                 </Text>
               ))}
-              {recommendationResult.caution ? (
-                <>
-                  <Text style={styles.recommendationCautionTitle}>
-                    확인할 점
-                  </Text>
-                  <Text style={styles.recommendationReasonText}>
-                    {recommendationResult.caution}
-                  </Text>
-                </>
+              {result.caution ? (
+                <Text style={styles.recommendationCautionText}>{result.caution}</Text>
               ) : null}
             </View>
           ) : null}
-        </View>
+          <Text style={styles.recommendationVenueAction}>상세 보기 ›</Text>
+        </>
+      ) : (
+        <>
+          {thumbnail}
+          <ExploreListingText event={event} />
+        </>
       )}
     </Pressable>
   );
@@ -4932,16 +4926,6 @@ function ExploreListingText({ event }: { event: BabyrooEvent }) {
       )}
     </View>
   );
-}
-
-function eventCardChipLabels(event: BabyrooEvent) {
-  const labels = [...event.tags];
-
-  if (event.indoor !== undefined) {
-    labels.push(event.indoor ? '실내' : '야외');
-  }
-
-  return [...new Set(labels)];
 }
 
 function EventThumbnailFallback({
@@ -6341,11 +6325,6 @@ function formatGender(gender: Child['gender']) {
     return '남아';
   }
   return '성별 미입력';
-}
-
-function formatShortDate(value: string) {
-  const [, month, day] = value.split('-');
-  return `${month}.${day}`;
 }
 
 function formatPriceType(priceType: BabyrooEvent['priceType']) {
@@ -7902,11 +7881,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     ...shadows.card,
   },
-  eventCardCompact: {
-    flexDirection: 'row',
+  recommendationVenueCard: {
+    elevation: 2,
+    flexDirection: 'column',
     marginTop: spacing.sm,
-    minHeight: 132,
     overflow: 'visible',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   thumbnail: {
     alignItems: 'center',
@@ -7916,6 +7898,10 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     overflow: 'hidden',
     width: 84,
+  },
+  recommendationThumbnail: {
+    height: 68,
+    width: 68,
   },
   thumbnailFeature: {
     borderRadius: radius.lg,
@@ -7959,87 +7945,52 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: 2,
   },
-  cardBody: {
+  recommendationVenueHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  recommendationVenueHeading: {
     flex: 1,
-  },
-  cardBodyFeature: {
-    justifyContent: 'center',
     minWidth: 0,
-    paddingBottom: spacing.xs,
   },
-  cardKickerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginBottom: 2,
-  },
-  cardKickerText: {
-    color: colors.primary,
-    flexShrink: 1,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  cardKickerDivider: {
-    color: colors.border,
-    fontSize: 11,
-    fontWeight: '900',
-  },
-  cardTitle: {
+  recommendationVenueTitle: {
     color: colors.text,
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '900',
-    lineHeight: 20,
+    lineHeight: 21,
   },
-  cardMeta: {
+  recommendationVenueFacts: {
     color: colors.muted,
-    fontSize: 11,
-    fontWeight: '600',
-    lineHeight: 15,
-    marginTop: 2,
-  },
-  cardTagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.sm,
-    rowGap: spacing.xs,
-  },
-  cardFooter: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-  },
-  cardDate: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 18,
+    marginTop: spacing.xs,
   },
   recommendationReasonBox: {
-    backgroundColor: colors.cream,
     borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    marginTop: spacing.md,
-    padding: spacing.md,
-  },
-  recommendationReasonTitle: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '900',
-    marginBottom: spacing.xs,
-  },
-  recommendationCautionTitle: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: '900',
+    borderTopWidth: 1,
+    gap: spacing.xs,
     marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+    paddingTop: spacing.sm,
   },
   recommendationReasonText: {
-    color: colors.muted,
-    fontSize: 12,
+    color: colors.text,
+    fontSize: 13,
     fontWeight: '700',
-    lineHeight: 17,
+    lineHeight: 18,
+  },
+  recommendationCautionText: {
+    color: colors.muted,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  recommendationVenueAction: {
+    alignSelf: 'flex-end',
+    color: colors.coralText,
+    fontSize: 14,
+    fontWeight: '900',
+    marginTop: spacing.sm,
   },
   detailRoot: {
     backgroundColor: colors.background,
@@ -8110,7 +8061,7 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
   },
   recommendationDetailHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.md,
     marginBottom: spacing.md,
@@ -8131,34 +8082,47 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     lineHeight: 38,
   },
-  recommendationDetailHeaderText: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'space-between',
-    minHeight: 44,
-  },
   recommendationDetailTitle: {
     ...typography.title,
     color: colors.text,
-    flexShrink: 0,
+    flex: 1,
   },
-  failureDetailHeaderText: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+  recommendationConditions: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.lg,
+    borderWidth: 1,
     gap: spacing.xs,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
-  failureDetailTime: {
-    textAlign: 'left',
+  recommendationConditionsToggle: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'space-between',
+    minHeight: 48,
+    paddingVertical: spacing.sm,
   },
-  recommendationDetailTime: {
-    color: colors.muted,
+  recommendationConditionsTitle: {
+    ...typography.body,
+    color: colors.text,
     flexShrink: 1,
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 17,
-    textAlign: 'right',
+    fontWeight: '900',
+  },
+  recommendationConditionsChevron: {
+    color: colors.text,
+    fontSize: 24,
+    lineHeight: 26,
+    transform: [{ rotate: '90deg' }],
+  },
+  recommendationConditionsChevronExpanded: {
+    transform: [{ rotate: '-90deg' }],
+  },
+  recommendationConditionsMeta: {
+    ...typography.caption,
+    color: colors.muted,
+    marginBottom: spacing.xs,
   },
   detailPills: {
     marginBottom: spacing.md,

@@ -77,8 +77,26 @@ test.each([
   [{ place: 'place_outdoor', vibe: 'vibe_quiet' }, '야외도 좋아요'],
 ] as const)('restores saved recommendation answers and visit-date ages %j', async (finalAnswers, finalLabel) => {
   await saveAuthSession({ ...testAuthSession, apiAccessToken: 'history-test-token' });
-  const listedEvent = eventsNewestFirst[0];
+  const listedEvent: BabyrooEvent = {
+    id: 'saved-venue',
+    csvSequence: 1,
+    title: '저장된 어린이 전시',
+    venueName: '어린이 전시관',
+    region: '서울',
+    locality: '용산구',
+    category: 'exhibition',
+    indoor: true,
+    priceType: 'free',
+    startsAt: '2026-01-01',
+    endsAt: '2026-12-31',
+    reservationStatus: 'unknown',
+    tags: [],
+    summary: '',
+    source: 'fixture',
+    sourceUrl: 'https://example.com/saved-venue',
+  };
   const ageReason = '11월 29일에 방문한다면 원래 아이(24개월)도 참여할 수 있어요.';
+  const caution = '원문에서 예약 가능 여부를 확인해 주세요.';
   const session: RecommendationSession = {
     ...failedRecommendation,
     status: 'success',
@@ -88,7 +106,7 @@ test.each([
       departureArea: { region: '경기', locality: '수원시' },
       resolvedVisitRange: { start: '2026-11-29', end: '2026-11-29' },
     },
-    results: [{ eventId: listedEvent.id, reasons: [ageReason] }],
+    results: [{ eventId: listedEvent.id, reasons: [ageReason], caution }],
     eventSnapshots: [listedEvent],
   };
   const list = jest.spyOn(RemoteRecommendationService.prototype, 'listSessions').mockResolvedValue([session]);
@@ -102,11 +120,35 @@ test.each([
       node.props.accessibilityLabel.includes('원래 아이') &&
       typeof node.props.onPress === 'function')[0];
     await ReactTestRenderer.act(() => row.props.onPress());
+    expect(root.findByProps({ testID: 'tab-shell' }).props.importantForAccessibility).toBe('no-hide-descendants');
+    const conditions = () => root.findByProps({ accessibilityLabel: '선택한 조건 보기' });
+    expect(conditions().props.accessibilityState).toEqual({ expanded: false });
+    expect(root.findAllByProps({ children: finalLabel })).toHaveLength(0);
+    expect(root.findByProps({ children: '방문 예정 11월 29일 (일)' })).toBeTruthy();
+    expect(root.findByProps({ children: ageReason })).toBeTruthy();
+    expect(root.findByProps({ children: caution })).toBeTruthy();
+    expect(root.findByProps({ children: '상세 보기 ›' })).toBeTruthy();
+    expect(root.findAllByProps({ children: '01.01' })).toHaveLength(0);
+
+    await ReactTestRenderer.act(() => conditions().props.onPress());
+    expect(conditions().props.accessibilityState).toEqual({ expanded: true });
     expect(root.findByProps({ children: '경기 수원시' })).toBeTruthy();
     expect(root.findByProps({ children: '동물이나 곤충을 좋아해요' })).toBeTruthy();
     expect(root.findByProps({ children: finalLabel })).toBeTruthy();
-    expect(root.findByProps({ children: '방문 예정 11월 29일 (일)' })).toBeTruthy();
-    expect(root.findByProps({ children: ageReason })).toBeTruthy();
+    expect(root.findAllByProps({ accessibilityLabel: 'Edit answer 출발 지역' })).toHaveLength(0);
+
+    const venue = root.findAll(node => node.props.accessibilityRole === 'button' &&
+      node.props.accessibilityLabel?.startsWith('저장된 어린이 전시') &&
+      typeof node.props.onPress === 'function')[0];
+    expect(venue.props.accessibilityLabel).toEqual(expect.stringContaining('서울 용산구 · 실내 · 무료'));
+    expect(venue.props.accessibilityLabel).toEqual(expect.stringContaining(caution));
+    await ReactTestRenderer.act(() => venue.props.onPress());
+    expect(root.findByProps({ accessibilityLabel: 'Open source or reservation page' })).toBeTruthy();
+    expect(root.findAllByProps({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' }).length).toBeGreaterThan(0);
+    await ReactTestRenderer.act(() => root.findByProps({ accessibilityLabel: 'Go back' }).props.onPress());
+    expect(conditions().props.accessibilityState).toEqual({ expanded: true });
+    await ReactTestRenderer.act(() => conditions().props.onPress());
+    expect(root.findAllByProps({ children: finalLabel })).toHaveLength(0);
   } finally {
     await ReactTestRenderer.act(() => renderer?.unmount());
     list.mockRestore();
@@ -201,6 +243,9 @@ test.each([
     await ReactTestRenderer.act(()=>{renderer=ReactTestRenderer.create(<App/>);});
     await ReactTestRenderer.act(async()=>{await open('failed-record',push);});
     expect(renderer!.root.findAllByProps({accessibilityLabel:'Go back to recommendations'}).length>0).toBe(opensDetail);
+    if (opensDetail) {
+      expect(renderer!.root.findByProps({ children: '추천 후보를 다시 확인할 수 없어요' })).toBeTruthy();
+    }
     expect(renderer!.root.findAll(node=>node.props.accessibilityRole==='button' &&
       typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('원래 아이')).length).toBeGreaterThan(0);
   } finally {
@@ -228,6 +273,13 @@ test.each(['nonretryable','missing-child','legacy-child'])('failed detail handle
       typeof node.props.accessibilityLabel==='string' && node.props.accessibilityLabel.includes('방문 예정') &&
       typeof node.props.onPress==='function')[0];
     await ReactTestRenderer.act(()=>row.props.onPress());
+    if (scenario === 'legacy-child') {
+      const conditions = root.findByProps({ accessibilityLabel: '선택한 조건 보기' });
+      expect(conditions.props.accessibilityState).toEqual({ expanded: false });
+      await ReactTestRenderer.act(() => conditions.props.onPress());
+      expect(root.findByProps({ children: '선택한 답변' })).toBeTruthy();
+      expect(root.findByProps({ children: '무료 위주' })).toBeTruthy();
+    }
     const retries=root.findAllByProps({accessibilityLabel:'다시 시도, 추천 완료 시 10 크레딧 사용'});
     if(scenario==='nonretryable') {
       expect(retries).toHaveLength(0);
