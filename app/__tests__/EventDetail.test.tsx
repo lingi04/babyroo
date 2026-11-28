@@ -54,6 +54,20 @@ async function renderEvent(overrides: Partial<BabyrooEvent> = {}) {
   return { renderer: renderer!, onBack };
 }
 
+test.each([
+  ['1970-01-01', '9999-12-31', '서울 종로구'],
+  ['2026-11-01', '2026-11-30', '서울 종로구 · 2026-11-01 – 2026-11-30'],
+  ['1970-01-01', '2026-11-30', '서울 종로구 · 1970-01-01 – 2026-11-30'],
+  ['2026-11-01', '9999-12-31', '서울 종로구 · 2026-11-01 – 9999-12-31'],
+])('formats the event detail dates %s to %s', async (startsAt, endsAt, expected) => {
+  const { renderer } = await renderEvent({ startsAt, endsAt });
+  try {
+    expect(renderer.root.findAllByType(Text).some(({ props }) => props.children === expected)).toBe(true);
+  } finally {
+    await ReactTestRenderer.act(() => renderer.unmount());
+  }
+});
+
 test('shows a newly mapped area even when the Explore event has no crowding metadata', async () => {
   jest.mocked(getEventFromBabyrooApi).mockResolvedValue({
     ...event,

@@ -3341,7 +3341,8 @@ export function EventDetail({
   const heroSize = { width: heroWidth, height: heroWidth / 2.3 };
   const singleColumn = width < 350 || fontScale >= 1.4;
   const location = [event.region, event.locality].filter(Boolean).join(' ');
-  const dates = [event.startsAt, event.endsAt].filter(Boolean).join(' – ');
+  const isPermanent = event.startsAt === '1970-01-01' && event.endsAt === '9999-12-31';
+  const dates = isPermanent ? '' : [event.startsAt, event.endsAt].filter(Boolean).join(' – ');
   const hasAge = event.ageMinMonths != null || event.ageMaxMonths != null;
   const reservation =
     event.reservationStatus === 'closed'
